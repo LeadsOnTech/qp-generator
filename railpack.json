@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "build": {
+    "builder": "dockerfile"
+  },
+  "deploy": {
+    "startCommand": "sh start.sh"
+  }
+}

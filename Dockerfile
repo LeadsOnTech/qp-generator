@@ -38,5 +38,9 @@ EXPOSE 4000
 ENV PORT=4000
 ENV NODE_ENV=production
 
+# Copy start script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # On container start: sync schema with db push, seed initial admin & NEET syllabus if fresh, then start server
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node prisma/seed.js && node src/server.js"]
+CMD ["/app/start.sh"]
