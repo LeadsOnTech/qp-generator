@@ -1,0 +1,19 @@
+services:
+  qpgen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/backend/prisma/dev.db
+    volumes:
+      - qpgen_data:/app/backend/prisma
+      - qpgen_uploads:/app/backend/uploads
+
+volumes:
+  qpgen_data:
+  qpgen_uploads:

@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const uploadRoutes = require('./routes/upload');
 const questionRoutes = require('./routes/questions');
@@ -50,6 +51,24 @@ app.use('/api/images', imageRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/institutes', instituteRoutes);
 app.use('/api/recharge', rechargeRoutes);
+
+// Serve compiled frontend in production
+const candidatePaths = [
+  path.join(__dirname, '..', '..', 'frontend', 'dist'),
+  path.join(__dirname, '..', 'public'),
+  path.join(process.cwd(), '..', 'frontend', 'dist'),
+];
+const frontendDist = candidatePaths.find((p) => fs.existsSync(p));
+if (frontendDist) {
+  console.log(`Serving frontend static files from: ${frontendDist}`);
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+      return res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+    next();
+  });
+}
 
 // Fallback error handler — never leak a raw stack trace to the client
 app.use((err, req, res, next) => {
