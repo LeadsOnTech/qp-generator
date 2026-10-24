@@ -1,0 +1,11 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}=\frac{2(3x+y)}{x+y}$ $(y<3x)$ is...
+Problem: The solution derivation and option matching contain algebraic inconsistencies for this specific homogeneous differential equation.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}=\frac{2x}{x+y}$ is...
+Problem: The integration and substitution steps do not yield option B correctly when evaluated back.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}=\frac{2y}{x-y}$ is...
+Problem: The integration gives v/(1+v)^2 = cx, substituting v=y/x gives yx/(x+y)^2 = c, which does not match option B.
+

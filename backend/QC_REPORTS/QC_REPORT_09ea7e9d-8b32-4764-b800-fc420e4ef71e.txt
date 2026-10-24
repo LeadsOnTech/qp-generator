@@ -1,0 +1,11 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The orders of the differential equations of the families of (i) all non-vertical straight lines in t...
+Problem: A non-vertical straight line has equation y = mx + c (2 constants), so order is 1, not 2. A parabola with vertex at the origin and axis along the X-axis is y^2 = 4ax (1 constant), order 1. Circles touching the Y-axis at the origin have equation x^2 + y^2 + 2gx = 0 (1 constant), order 1. The orders should be 1, 1, 1 (Option D).
+
+[FATAL ERROR] Question: The differential equation of the family of all circles of radius 1 is, where $y_1=\frac{dy}{dx},\ y_...
+Problem: For a family of circles of radius 1, $(x-h)^2 + (y-k)^2 = 1$, eliminating two arbitrary constants yields $(1+y_1^2)^3 = y_2^2$, but the solution text mentions incorrect intermediate steps and the option D is mathematically correct, however let's verify: $(y-k)^2 = rac{(1+y_1^2)^2}{y_2^2}$. Also $(x-h)^2 = rac{y_1^2(1+y_1^2)^2}{y_2^2}$. Sum is $rac{(1+y_1^2)^3}{y_2^2} = 1$, so $(1+y_1^2)^3 = y_2^2$. The logic is correct, option D is correct.
+
+[FATAL ERROR] Question: The differential equation of the family of curves $y=ax^{b}$ $(x>0)$, with $a,b$ arbitrary, is, wher...
+Problem: From y = ax^b, log y = log a + b log x. Differentiating: y_1/y = b/x => x y_1 = y b. Differentiating again: x y_2 + y_1 = b y_1. Eliminating b gives x y_2 + y_1 = (x y_1/y) y_1 => x y y_2 + y y_1 - x y_1^2 = 0, which matches option B. Wait, let's re-verify the option B: xyy_2 + yy_1 - xy_1^2 = 0. My derivative is xyy_2 + yy_1 - xy_1^2 = 0. Wait, option D is xyy_2 - yy_1 + xy_1^2 = 0. Let's check with values: y = x^2, y_1 = 2x, y_2 = 2. xyy_2 = x(x^2)(2) = 2x^3. yy_1 = (x^2)(2x) = 2x^3. xy_1^2 = x(4x^2) = 4x^3. Plugging into xyy_2 + yy_1 - xy_1^2: 2x^3 + 2x^3 - 4x^3 = 0. Correct option is indeed B. The logic in the solution is correct.
+

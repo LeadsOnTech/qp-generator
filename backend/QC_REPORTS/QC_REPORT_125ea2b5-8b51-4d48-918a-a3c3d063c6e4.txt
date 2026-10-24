@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: If $\int e^{x/2}(\sin x+2\cos x)\,dx=k\,e^{x/2}\sin x+c$, then $k=$...
+Problem: Derivative of $e^{x/2}\sin x$ is $e^{x/2}(\frac{1}{2}\sin x + \cos x)$, but the integral is $e^{x/2}(\sin x + 2\cos x) = 2 \cdot [e^{x/2}(\frac{1}{2}\sin x + \cos x)]$. Therefore, integrating this gives $2 e^{x/2}\sin x + c$, so $k=2$. Wait, the solution states $d/dx(e^{x/2}\sin x) = e^{x/2}(\frac{1}{2}\sin x + \cos x)$, but the integrand is multiplied by 2, which matches option A (k=2). Let's re-verify: $\int e^{x/2}(\sin x + 2\cos x) dx = 2 \int e^{x/2}(\frac{1}{2}\sin x + \cos x) dx = 2 e^{x/2}\sin x$. So $k=2$. The logic is correct.
+

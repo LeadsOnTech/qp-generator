@@ -1,0 +1,343 @@
+// Phase 1 — Question Bank Database Schema
+// Datasource: SQLite for local/dev (Coolify prod can switch provider to "postgresql" later — same models work unchanged)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Core taxonomy ----------
+
+model Exam {
+  id        String     @id @default(cuid())
+  name      String     @unique // e.g. "NEET", "JEE", "EAPCET"
+  subjects  Subject[]
+  createdAt DateTime   @default(now())
+
+  // Exam Hub — a saved "blueprint" for this exam so Generate Paper doesn't
+  // need re-typing subject counts / difficulty mix every time.
+  patternSubjects      String?  // JSON: [{ name, count }]
+  patternDifficultyMix String?  // JSON: { easy, medium, hard }
+  patternPaperType     String?  // e.g. "MODEL_PAPER"
+}
+
+model Subject {
+  id        String     @id @default(cuid())
+  name      String     // e.g. "Physics", "Chemistry", "Biology", "Reasoning", "English"
+  examId    String
+  exam      Exam       @relation(fields: [examId], references: [id])
+  chapters  Chapter[]
+  createdAt DateTime   @default(now())
+
+  @@unique([name, examId])
+}
+
+model Chapter {
+  id             String    @id @default(cuid())
+  name           String
+  subjectId      String
+  subject        Subject   @relation(fields: [subjectId], references: [id])
+  // Syllabus Master status — the rule-based filter described in the roadmap
+  syllabusStatus String    @default("ACTIVE") // ACTIVE | REMOVED | MODIFIED
+  statusNote     String?   // e.g. "Removed in NEET 2025 syllabus revision"
+  statusYear     Int?      // year the status changed
+  topics         Topic[]
+  questions      Question[]
+  createdAt      DateTime  @default(now())
+
+  @@unique([name, subjectId])
+}
+
+model Topic {
+  id         String     @id @default(cuid())
+  name       String
+  chapterId  String
+  chapter    Chapter    @relation(fields: [chapterId], references: [id])
+  questions  Question[]
+  createdAt  DateTime   @default(now())
+
+  @@unique([name, chapterId])
+}
+
+// ---------- Institutes (light version for Phase 1 — full auth arrives Phase 6) ----------
+
+model Institute {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  questions Question[]
+  papers    Paper[]
+  users     User[]
+  rechargeRequests RechargeRequest[]
+  razorpayTransactions RazorpayTransaction[]
+  createdAt DateTime   @default(now())
+
+  // White-label branding — shown on generated paper letterheads
+  logoFilename String?
+  phone        String?
+  address      String?
+  tagline      String?
+
+  // Credits — balance is spent 1-per-question on finalized papers.
+  creditBalance Int @default(0)
+  creditHistory CreditTransaction[]
+
+  // Trial/Demo login tracking — used for the admin's sales-outreach flow:
+  // generate a dummy login, send it via WhatsApp to a prospective college,
+  // record which phone number it was sent to, and see whether/how much
+  // they've used it before following up.
+  isTrial          Boolean @default(false)
+  trialPhoneNumber String?
+  trialPassword    String? // Saves the plaintext password so admin can view it later
+}
+
+// ---------- Credit ledger ----------
+// One row per credit change (recharge, manual admin adjustment, or a
+// paper-finalization deduction), so both the admin and the institute can
+// see a clear history — never just a single mutable number with no trail.
+model CreditTransaction {
+  id           String    @id @default(cuid())
+  instituteId  String
+  institute    Institute @relation(fields: [instituteId], references: [id])
+  amount       Int       // positive = credit added, negative = credit spent
+  reason       String    // e.g. "Trial account created", "Manual recharge", "Paper: Weekly Test 04"
+  balanceAfter Int
+  createdAt    DateTime  @default(now())
+}
+
+// ---------- Manual UPI (scan-and-pay) recharge requests ----------
+// The institute pays the admin's UPI QR outside the app, then submits the
+// reference number here. This is a REQUEST only — no credits move until an
+// admin verifies the money actually arrived and approves it. That keeps
+// the flow safe without any payment gateway: the app never trusts a
+// self-reported payment on its own.
+model RechargeRequest {
+  id            String    @id @default(cuid())
+  instituteId   String
+  institute     Institute @relation(fields: [instituteId], references: [id])
+  amountRupees  Int       // rupees the institute says they paid (1 credit = ₹1)
+  creditsAsked  Int       // credits to grant on approval (kept explicit; == amountRupees today)
+  upiReference  String    // UPI transaction/reference number the institute typed in
+  note          String?   // optional note from the institute
+  status        String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedByEmail String? // which admin acted on it
+  reviewNote      String? // optional admin note (e.g. why rejected)
+  reviewedAt      DateTime?
+  creditTransactionId String? // links to the ledger entry created on approval
+  createdAt     DateTime  @default(now())
+}
+
+// ---------- Razorpay Automated Payments ----------
+// Instantly credits the institute upon successful signature verification.
+model RazorpayTransaction {
+  id               String    @id @default(cuid())
+  instituteId      String
+  institute        Institute @relation(fields: [instituteId], references: [id])
+  orderId          String    @unique
+  paymentId        String?   @unique
+  signature        String?
+  amountRupees     Int
+  creditsBought    Int
+  status           String    @default("CREATED") // CREATED | SUCCESS | FAILED
+  createdAt        DateTime  @default(now())
+  completedAt      DateTime?
+}
+
+// ---------- App-wide settings (key/value) ----------
+// Small settings the admin controls, e.g. the UPI ID and QR image shown to
+// institutes on the recharge page. Key/value keeps it flexible without a
+// migration every time a new setting is needed.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Authentication ----------
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         String    // "ADMIN" | "INSTITUTE"
+
+  // Only set for role = INSTITUTE. An ADMIN user manages the whole
+  // platform and isn't tied to a single institute.
+  instituteId  String?
+  institute    Institute? @relation(fields: [instituteId], references: [id])
+
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  // Optional Two-Factor Authentication (TOTP, works with Google
+  // Authenticator/Authy). twoFactorSecret is only set once the user has
+  // confirmed setup with a valid code — never enabled from just scanning
+  // the QR code, to avoid locking someone out with an unconfirmed secret.
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  // Forgot-password flow. We store a HASH of the reset token, never the
+  // token itself — same principle as passwords: if the database ever
+  // leaked, the stored value alone couldn't be used to reset an account.
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
+}
+
+// ---------- Questions ----------
+
+model Question {
+  id             String   @id @default(cuid())
+  groupId        String?  // Links questions to a shared comprehension passage
+
+  workflowState  String   @default("BANK") // DRAFT | IN_QC | BANK
+  uploadBatchId  String?  // Groups questions from a single upload for preview
+
+  questionText   String
+  optionA        String
+  optionB        String
+  optionC        String
+  optionD        String
+  correctOption  String   // "A" | "B" | "C" | "D"
+
+  // Optional worked solution/explanation. When present, an institute can
+  // choose to include solutions on a generated paper (charged 1 credit
+  // each, same as a question). Empty for questions that have no solution.
+  solutionText   String?
+
+  questionType   String   @default("MCQ") // MCQ | ASSERTION_REASON | MATCH_FOLLOWING | STATEMENT_I_II
+
+  // Previous-year-question provenance. Optional — filled from the upload's
+  // "ExamYear" / "ExamSource" columns when present. examYear enables
+  // "how many PYQs from 2024 vs 2023" style analytics and filtering;
+  // examSource keeps the full human label (e.g. "JEE Main 2025, 22 Jan
+  // Shift 1") for display. Both blank for non-PYQ / freshly-authored
+  // questions.
+  examYear       Int?
+  examSource     String?
+
+  chapterId      String
+  chapter        Chapter  @relation(fields: [chapterId], references: [id])
+  topicId        String?
+  topic          Topic?   @relation(fields: [topicId], references: [id])
+
+  difficulty     String   @default("UNTAGGED") // EASY | MEDIUM | HARD | UNTAGGED
+  difficultySource String @default("NONE")     // AI_SUGGESTED | HUMAN_REVIEWED | NONE
+
+  // Ownership / sharing model (Phase 6b groundwork, added now so schema doesn't change later)
+  ownerInstituteId String?
+  ownerInstitute    Institute? @relation(fields: [ownerInstituteId], references: [id])
+  sharedGlobally    Boolean    @default(true) // true = part of the shared Global Bank
+
+  // Bank-source verification level
+  verificationLevel String  @default("UNVERIFIED") // UNVERIFIED | AIA_VERIFIED | COMMUNITY_CONTRIBUTED
+
+  // Reuse tracking (used later for "no-repeat in last N papers" logic)
+  timesUsed      Int      @default(0)
+  lastUsedAt     DateTime?
+
+  // ---- Phase 2: AI-assisted difficulty tagging ----
+  aiSuggestedDifficulty String?  // EASY | MEDIUM | HARD (AI's proposal, not final)
+  aiConfidence          Float?   // 0.0 - 1.0
+  aiRationale           String?  // one-line reason shown to the reviewer
+  aiEngine              String?  // "CLAUDE" | "RULE_BASED"
+  reviewStatus          String?  // "PENDING" | "ACCEPTED" | "OVERRIDDEN"
+
+  // Upload provenance
+  // Phase 4: Subject-specialist quality checks
+  checkStatus  String?   // null (not yet checked) | PASSED | FLAGGED
+  checkIssues  String?   // JSON array of issue strings, if flagged
+  checkEngine  String?   // "RULE_BASED" | "CLAUDE"
+  checkedAt    DateTime?
+
+  // Diagram-based questions — filename of an uploaded image, served statically
+  imageFilename String?
+  optionAImage  String?
+  optionBImage  String?
+  optionCImage  String?
+  optionDImage  String?
+
+  sourceFileName String?
+  sourceRow      Int?
+
+  isActive       Boolean  @default(true) // soft-delete flag (e.g. superseded by a corrected question)
+
+  papers         PaperQuestion[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ---------- Upload batches (audit trail) ----------
+
+model UploadBatch {
+  id             String   @id @default(cuid())
+  fileName       String
+  fileType       String   // xlsx | csv | docx
+  totalRows      Int      @default(0)
+  successCount   Int      @default(0)
+  errorCount     Int      @default(0)
+  errors         String?  // JSON-stringified array of row-level errors
+  uploadedBy     String?  // institute slug or "AIA" for your own uploads
+  createdAt      DateTime @default(now())
+}
+
+// ---------- Phase 3: Generated papers ----------
+
+model Paper {
+  id            String          @id @default(cuid())
+  title         String
+  instituteName String?
+  instituteId   String?
+  institute     Institute?      @relation(fields: [instituteId], references: [id])
+  examName      String
+  paperType     String          @default("DPP") // DPP | WEEKLY_TEST | GRAND_TEST | MOCK_TEST | MODEL_PAPER
+  config        String          // JSON of the original generation request
+  status        String          @default("DRAFT") // DRAFT | FINALIZED
+  // Whether this paper was generated to include worked solutions. When
+  // true, solutions are charged 1 credit each (in addition to 1 credit
+  // per question) at finalize time. The answer key is always free.
+  includeSolutions Boolean       @default(false)
+  shortagesNote String?         // JSON: unmet requests (e.g. not enough HARD Physics)
+  createdAt     DateTime        @default(now())
+  finalizedAt   DateTime?
+  questions     PaperQuestion[]
+}
+
+model PaperQuestion {
+  id         String   @id @default(cuid())
+  paperId    String
+  paper      Paper    @relation(fields: [paperId], references: [id])
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  order      Int
+
+  @@unique([paperId, questionId])
+}
+
+model WhatsAppVerification {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  otp       String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RegistrationRequest {
+  id            String   @id @default(cuid())
+  fullName      String
+  phone         String   @unique
+  email         String
+  instituteName String
+  userType      String
+  gbpLink       String?
+  businessCardUrl String?
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt     DateTime @default(now())
+}

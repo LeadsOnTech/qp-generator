@@ -1,0 +1,143 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question ID: cmu8bg2i5000iumhwmbcy3iut
+Question: Which pair of solutions will have the SAME boiling point?...
+Problem: Multiple options (A and D) yield the same effective molality (1.0 m), making the question ambiguous since both have the same boiling point elevation.
+
+[FATAL ERROR] Question ID: cmu8bg5uv002wumhwqyaydqlt
+Question: The general formula for molar mass determination from freezing point depression is:...
+Problem: Option C gives the formula for molar mass from osmotic pressure as M_2 = \frac{\pi V}{RT} only when V is in terms of volume of solution containing w2 grams. However, the options and explanations are dimensionally inconsistent or misleading since formula (B) is boiling point elevation, making 'All of the above' incorrect because each option refers to a different property.
+
+[FATAL ERROR] Question ID: cmu8bqbbz0007ume01k2cv1wf
+Question: Given below are two statements:
+Statement I : The molal boiling point elevation constant $K_b$ of ca...
+Problem: Statement I is scientifically false (camphor is famously used for freezing point depression in the Rast method, not boiling point elevation, because it sublimes easily and has a very high boiling point range). Since Statement I is false and Statement II is true, the correct option should be C, not B.
+
+[FATAL ERROR] Question ID: cmu8bqbvu000nume0lr1q5pbi
+Question: Camphor has $K_f = 37.7$ K·kg/mol and melting point $178.4°$C. A solution of $0.5$ g of an organic c...
+Problem: The solution admits that the calculation yields 498.7 g/mol and does not match option A (75.4 g/mol). The logic and options are inconsistent.
+
+[FATAL ERROR] Question ID: cmu8bqc6o000vume06jus459z
+Question: A solution contains $2.3$ g of ethanol ($\text{M} = 46$ g/mol) and $3.0$ g of acetic acid ($\text{M}...
+Problem: Acetic acid is a weak electrolyte and undergoes association/ionization in water. Assuming van't Hoff factor i = 1 for both without justification is incorrect; acetic acid has i != 1.
+
+[FATAL ERROR] Question ID: cmu8bqchu0013ume0hlpdr2n5
+Question: A $5\%$ (w/w) aqueous solution of an electrolyte of molar mass $132$ g/mol freezes at $-1.488°$C ($K...
+Problem: The calculated van't Hoff factor is approximately 2.0 (Option C), but the solution marks Option A (3.0) as correct.
+
+[FATAL ERROR] Question ID: cmu8c7g7l003nume0ncp3k5cv
+Question: A $0.1$ mol/kg solution of acetic acid ($K_a = 1.8 \times 10^{-5}$) in water has a freezing point de...
+Problem: Calculation error: 1.01342 * 0.186 = 0.188496 K, but option A gives 0.1873 K. The math in the solution (1.01342 * 0.186 = 0.1885) does not match the chosen option value 0.1873.
+
+[FATAL ERROR] Question ID: cmub0k8t50015umx8xi770axo
+Question: Which of the following groups shows BOTH +M and -I electronic effects?...
+Problem: The question asks for a group showing BOTH +M and -I effects. The correct option is given as D (-CHO), but -CHO only shows -M and -I effects, not +M. Alternatively, -OH (Option B) shows +M and -I, but the solution text mentions -OH while marking D. Thus, the logic and option key are contradictory and incorrect.
+
+[FATAL ERROR] Question ID: cmub0kap3002vumx8hbljzi3d
+Question: Statement I : Optical isomers are non-superimposable mirror images of each other. A molecule shows o...
+Problem: Statement I is scientifically flawed. A molecule can be chiral and show optical isomerism even without an asymmetric carbon (e.g., allenes, biphenyls, spiranes), and having a stereocentre (specifically a chiral carbon) is a sufficient condition in many cases but not a strict requirement for optical isomerism. Therefore, Statement I is false, making the correct option B.
+
+[FATAL ERROR] Question ID: cmudnmk8s000eumu09kry5c3a
+Question: Which of the following correctly states Newton's First Law?...
+Problem: The explanation in the solution text contains factually incorrect assignments of options to laws (e.g., stating Option A is Newton's First Law, Option B is Third Law, etc., while Option D is the correct answer).
+
+[FATAL ERROR] Question ID: cmudo1hmu003iumu0pknai9ae
+Question: Which of the following correctly states Newton's First Law?...
+Problem: The solution contains a blatant contradiction regarding the laws: it states Option A is the First Law (which is actually F=ma, i.e., Second Law), calls Option B the Third Law (it is not), calls Option C the Second Law (it is the Third Law), and calls Option D derived from the Second Law (it is the First Law). Despite the correct option being D, the explanation text is factually inverted and incorrect.
+
+[FATAL ERROR] Question ID: cmui3m53l00hjumb8byhyb0mj
+Question: After substituting $y=vx$ in $\dfrac{dy}{dx}=F(y/x)$, the resulting equation for $v$ is:...
+Problem: The question asks for the resulting equation after substitution, which from $y = vx$ gives $v + x\frac{dv}{dx} = F(v)$. However, the correct option provided is D ($v + x\frac{dv}{dx}=F(v)$), but wait, the solution text says $x\,dv/dx = F(v)-v$ which is option C's rearrangement, yet the marked option is D. Wait, option D is literally $v+x\frac{dv}{dx}=F(v)$, which directly matches the substitution result before rearrangement. Thus option D is correct, but the solution text mentions C's form. Actually, let's re-verify: $y=vx \implies \frac{dy}{dx} = v + x\frac{dv}{dx}$. Equating this to $F(v)$ gives $v + x\frac{dv}{dx} = F(v)$, which is Option D. The solution text is slightly contradictory in its explanation steps but the marked option is correct. Let's mark isLogicCorrect as true since the option D is mathematically sound and correct.
+
+[FATAL ERROR] Question ID: cmui3m5u300i3umb8c5zb7qp3
+Question: The general solution of $(x+y)\,dy=(x-y)\,dx$ is:...
+Problem: The correct solution using integration yields Option A (or equivalent logarithmic/inverse-trigonometric forms), but Option C is given as correct while the solution text itself contradicts it and derives Option A's form.
+
+[FATAL ERROR] Question ID: cmui3m6ft00ijumb8q3trd93r
+Question: The general solution of $(x^2-y^2)\,dx+2xy\,dy=0$ is:...
+Problem: The solution derives $x^2+y^2=Ax$, which corresponds to Option D, but the correct option is marked as A ($x^2-y^2=Cx$). The logic shows the correct answer is D.
+
+[FATAL ERROR] Question ID: cmui3m6ml00inumb8z9hk9nwf
+Question: The general solution of $\dfrac{dy}{dx}=\dfrac{x+2y}{2x+y}$ is:...
+Problem: The correct integration and simplification yield $(x+y)/(x-y)^3 = C$ (or equivalent forms), but Option B states $(x+y)^3 = C(x-y)$, which dimensionally and algebraically does not match the integration result.
+
+[FATAL ERROR] Question ID: cmui3m82v00jnumb85refzzcs
+Question: The general solution of $\left(x+y\cos\dfrac{y}{x}\right)dx-x\cos\dfrac{y}{x}\,dy=0$ is:...
+Problem: The correct integration yields sin(y/x) = ln|x| + C, which corresponds to option D, but the correct option is marked as C which gives cos(y/x) = ln|x| + C.
+
+[FATAL ERROR] Question ID: cmui3m88400jrumb8rcrt268n
+Question: Solve $(x^2+y^2)\,dx-2xy\,dy=0$ with $y(1)=0$:...
+Problem: The general solution is x^2 + y^2 = Cx. Applying y(1)=0 gives C=1, yielding x^2 + y^2 = x (Option C). Option B (y=0) is incorrect because it does not satisfy the differential equation or the given curve family properly.
+
+[FATAL ERROR] Question ID: cmui3m8t100k3umb8iag3tifj
+Question: The DE of all curves making angle $45°$ with the family $y=Ce^x$ is:...
+Problem: The correct option for the differential equation of curves making an angle of 45° with the family y = Ce^x (which has slope m1 = y) is given by m2 = (m1 - 1)/(1 + m1) = (y - 1)/(y + 1), or for y = Cx it is (y - x)/(y + x). Option D gives dy/dx = y + 1, which is incorrect and contradictory to the solution text.
+
+[FATAL ERROR] Question ID: cmui3m9b200kfumb810xmb5sa
+Question: Solve $x\dfrac{dy}{dx}=y+x\sin^2(y/x)$ with $y(\pi)=\pi/2$:...
+Problem: The solution shows -cot(v) = ln|x| + C, which means cot(v) = -ln|x| - C or cot(y/x) = -ln|x| + C' (where C' = -C). Option A states cot(y/x) = -ln|x| + C, which matches, but the solution text and option signs are inconsistent with standard integration of csc^2(v) dv = dv/sin^2(v) leading to -cot(v) = ln|x| + C.
+
+[FATAL ERROR] Question ID: cmui3m9jz00kjumb806d7akpr
+Question: A DE is homogeneous of degree $n$ if $f(\lambda x,\lambda y)=\lambda^n f(x,y)$. For homogeneous DEs...
+Problem: The question is incomplete (ends abruptly with 'For homogeneous DEs'), and the correct option states -1 while the solution explicitly proves the degree is 0 (Option D).
+
+[FATAL ERROR] Question ID: cmui3m9p900knumb8scpej6ss
+Question: After the substitution $y=vx$, the equation $\dfrac{dy}{dx}=F(y/x)$ becomes separable because:...
+Problem: Option B states 'Both B and C', but option A and C are usually labeled differently, making the referencing confusing and structurally flawed for a standard MCQ.
+
+[FATAL ERROR] Question ID: cmui3mai300l7umb88dt4mjwk
+Question: The general solution of $x\,dy=(y+\sqrt{x^2+y^2})\,dx$ is:...
+Problem: Option D is correct mathematically, but the solution text has internal confusion regarding constants and options. However, option D states y+sqrt(x^2+y^2)=Cx which is incorrect for this DE because the integration gives sinh^-1(v) = ln|x| + C => v + sqrt(1+v^2) = Ax => y + sqrt(x^2+y^2) = Ax^2, making option A the correct one, while the prompt labels D as correct.
+
+[FATAL ERROR] Question ID: cmui3manx00lbumb802kdg69e
+Question: The general solution of $\dfrac{dy}{dx}=\dfrac{y^2-xy}{x^2}$ is:...
+Problem: The solution and correct option mapping is completely confused. The correct general solution leads to x/y = 1 + Cx (or similar algebraic form), but option D gives an entirely different relation (-1/y + 1/x = ln|x| + C) which does not match the differential equation.
+
+[FATAL ERROR] Question ID: cmui3mbks00lzumb8tlfaxc4k
+Question: The general solution of $\dfrac{dy}{dx}=\dfrac{x^2y-y^3}{x^3-xy^2}$ is:...
+Problem: The DE simplifies to dy/dx = y/x, which gives the solution y = Cx (Option D), but the given correct option is A (x^2 - y^2 = Cx). The mathematics in the solution and the listed correct option conflict.
+
+[FATAL ERROR] Question ID: cmui3mbq300m3umb82ghk37lm
+Question: The general solution of $\dfrac{dy}{dx}=\dfrac{2xy}{x^2-y^2}$ is:...
+Problem: The correct solution to dy/dx = 2xy/(x^2 - y^2) is x^2 + y^2 = Cy (Option B), but the given correct option is C (x^2 - y^2 = Cx). The integration and derivation lead to circles tangent to the x-axis, matching Option B.
+
+[FATAL ERROR] Question ID: cmuo27761003zuma8rvz1fpo2
+Question: Find $C(13,3)$....
+Problem: Calculation error: 13 * 12 * 11 / 6 = 13 * 2 * 11 = 286 is actually correct arithmetic, but let's recheck: 13*12=156, 156*11=1716, 1716/6 = 286. Wait, the option says 286, and solution says 286, but C(13,3) = (13*12*11)/(3*2*1) = 286. Let me check the question: C(13,3) = 286. Wait, 13*2*11 = 286. Is option A correct? Yes. Wait, why did I flag logic correct as false? Let me re-verify. 13*12*11/6 = 286. 286 is Option A. The solution and option match. So logic is correct. Wait, I must output true.
+
+[FATAL ERROR] Question ID: cmuqm8nvl009yumdc9d0ckgaz
+Question: If $F_1=F_2=1$ and $F_{n+2}=F_{n+1}+F_n$, then for every $n\geq 2$, $F_{n+1}F_{n-1}-F_n^2=$...
+Problem: For n=2: F_3 F_1 - F_2^2 = (2)(1) - (1)^2 = 1. For n=3: F_4 F_2 - F_3^2 = (3)(1) - (2)^2 = -1. The pattern gives (-1)^n, but for n=2 it gives (-1)^2 = 1, and for n=3 it gives (-1)^3 = -1. Wait, let's re-verify: F_1=1, F_2=1, F_3=2, F_4=3. For n=2, F_3 F_1 - F_2^2 = 2(1) - 1 = 1 = (-1)^0? No, (-1)^2 = 1. For n=3, F_4 F_2 - F_3^2 = 3(1) - 4 = -1 = (-1)^3. Thus, the expression equals (-1)^{n-1} or similar depending on index, but let's check n=2: option D gives (-1)^2 = 1, option C gives (-1)^{2+1} = -1. Since for n=2 it is 1, D is correct (-1^2 = 1, (-1)^3 = -1). Wait, solution says: n=2 gives 1=(-1)^2 (which is D). But solution states 'value is (-1)^n' and option D is (-1)^n. Let's check n=3: (-1)^3 = -1, which matches. So logic and option D are actually correct.
+
+[FATAL ERROR] Question ID: cmuqmnqqg00bmumdc8i41bbgl
+Question: The parts of a proof by mathematical induction are: (a) conclude that $P(n)$ is true for all $n\in\m...
+Problem: The correct sequence described in the solution is (b), (c), (d), (a), which corresponds to Option C, but the correct option is incorrectly listed as A.
+
+[FATAL ERROR] Question ID: cmuqydayl00d0umdcwa8bl4h2
+Question: If $x+2$ is a factor of $x^3+kx+6$, then $k=$...
+Problem: For x+2 to be a factor, substituting x = -2 must yield 0. P(-2) = (-2)^3 + k(-2) + 6 = -8 - 2k + 6 = -2 - 2k = 0, which gives k = -1. Wait, the solution states -8 - 2k + 6 = 0 which gives -2k = 2 => k = -1. The solution is actually correct, but option A says -1. Let's re-verify: (-2)^3 + k(-2) + 6 = -8 - 2k + 6 = -2 - 2k = 0 => k = -1. The logic is correct.
+
+[FATAL ERROR] Question ID: cmuqydb5g00d6umdcs4benjno
+Question: The monic cubic equation with roots $1,2,-4$ is...
+Problem: Roots are 1, 2, -4. The equation is (x-1)(x-2)(x+4) = 0. Expanding: (x^2 - 3x + 2)(x + 4) = x^3 + 4x^2 - 3x^2 - 12x + 2x + 8 = x^3 + x^2 - 10x + 8 = 0. Option A has -x^2, Option B has +x^2. Wait, 4x^2 - 3x^2 = +x^2. So Option B is correct. The logic is actually correct.
+
+[FATAL ERROR] Question ID: cmuqydbb100daumdcxq8j0eso
+Question: The equation whose roots are the negatives of the roots of $x^3-3x^2+4x-5=0$ is...
+Problem: To find the equation whose roots are the negatives of the given roots, we simply replace $x$ by $-x$. Substituting $-x$ in $x^3-3x^2+4x-5=0$ gives $(-x)^3-3(-x)^2+4(-x)-5=0$, which simplifies to $-x^3-3x^2-4x-5=0$, or multiplying by $-1$: $x^3+3x^2+4x+5=0$. The solution incorrectly states to multiply by $-1$ after replacing, leading to option B being coincidentally correct via the wrong method, but the substitution method alone yields B. Wait, replacing $x$ by $-x$ gives $-x^3-3x^2-4x-5=0$. Multiplying by $-1$ gives $x^3+3x^2+4x+5=0$, which matches B. Thus, the logic is actually sound even though the explanation is poorly phrased.
+
+[FATAL ERROR] Question ID: cmuqydbf800deumdc9drgwwco
+Question: To remove the $x^2$ term from $x^3+6x^2+x-2=0$, its roots must be...
+Problem: To remove the $x^2$ term from $x^3+6x^2+x-2=0$, we need to diminish the roots by $-h = -rac{a_1}{n a_0} = -rac{6}{3(1)} = -2$, which means the roots must be diminished by $2$ (replace $x$ by $x-2$). If roots are increased by $2$ (replace $x$ by $x+2$), the new $x^2$ coefficient becomes $6 + 3(2) = 12$. The solution claims to replace $x$ by $x-2$, but option A states 'increased by 2', which contradicts replacing $x$ by $x-2$ (that would mean diminished by 2). Thus, the solution/option pairing has a contradiction.
+
+[FATAL ERROR] Question ID: cmuqydcop00ecumdc886rb8cq
+Question: If the roots of $x^3-3x^2+kx+3=0$ are in arithmetic progression, then $k=$...
+Problem: If roots are in AP, let them be a-d, a, a+d. Sum of roots = 3a = 3, so a = 1. Substituting x = 1 gives 1 - 3 + k + 3 = 0, which yields k = -1. However, evaluating the equation x^3 - 3x^2 - x + 3 = 0 for k = -1 gives roots -1, 1, 3, which are in AP. The logic holds, but wait: the substitution gives 1 - 3 + k + 3 = 0 -> k + 1 = 0 -> k = -1. Wait, the solution states 1-3+k+3=0 which actually gives k+1=0 => k=-1. Wait, 1^3 - 3(1^2) + k(1) + 3 = 1 - 3 + k + 3 = k + 1 = 0 => k = -1. The solution text says '1-3+k+3=0' which equals k+1=0, but the correct option is A (-1). Let's check if the logic is correct: yes, k = -1.
+
+[FATAL ERROR] Question ID: cmuqydcrm00eeumdcaz4v53fu
+Question: The equation whose roots are each $2$ more than the roots of $x^3-2x+1=0$ is...
+Problem: To find the equation whose roots are 2 more than the given roots, we must replace x by x-2. Let's substitute x-2 into x^3 - 2x + 1 = 0: (x-2)^3 - 2(x-2) + 1 = x^3 - 6x^2 + 12x - 8 - 2x + 4 + 1 = x^3 - 6x^2 + 10x - 3 = 0. Option B matches this, so the logic is actually correct.
+
+[FATAL ERROR] Question ID: cmuqydczp00ekumdcb2r41qqu
+Question: The roots of $x^3-2x^2+2x-1=0$ are...
+Problem: The roots of x^2 - x + 1 = 0 are -(-\pm \sqrt{1-4})/2 = (1 \pm i\sqrt{3})/2, which are the cube roots of unity \omega and \omega^2, not -\omega and -\omega^2. Therefore, the roots of x^3-2x^2+2x-1=0 are 1, \omega, \omega^2, making Option C correct, not A.
+

@@ -1,0 +1,11 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}=2x+2y-1$ is...
+Problem: The substitution is u = 2x + 2y - 1, leading to u' = 2 + 2y' = 2 + 2u, so u' - 2u = 2 which is a linear differential equation, not directly separable by the simple u = x + y substitution shown in the solution.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\left(1+2y^{2}\right)\frac{dy}{dx}=y\cos x$ $(y>0...
+Problem: Integration of (1/y + 2y) gives log y + y^2, but the differential equation is (1 + 2y^2)/(y) dy = cos x dx, which becomes (1/y + 2y) dy = cos x dx. Wait, 1/y + 2y integrated is log y + y^2. Let's check the options and integration: integral of 2y is y^2, not 2y^2. So option B says 2y^2 which is wrong, option A has y^2. The solution shows log y + y^2 = sin x + c, matching option A.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}=(x+y)^{3}-1$ is...
+Problem: Let u = x+y, then du/dx = 1 + dy/dx, so dy/dx = u' - 1. Given equation: u' - 1 = u^3 - 1 => u' = u^3 => u^{-3} du = dx => -1/(2u^2) = x + c => 1/(2(x+y)^2) + x = c_1, which doesn't directly match option C (which lacks the factor of 1/2 or has different constants).
+

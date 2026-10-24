@@ -1,0 +1,43 @@
+Created At: 2026-09-01T13:30:38+05:30
+Completed At: 2026-09-01T13:30:39+05:30
+
+The command exited with code 0.
+Output:
+
+   * @param questions  ordered [{ questionText, options: {A,B,C,D}, correctOption }]
+   * @param withAnswers  include the answer-key page
+   */
+> function buildPaperPdf(stream, paper, questions, withAnswers) {
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 36, bottom: 0, left: 36, right: 36 },
+      bufferPages: true
+    });
+    ensureFontsRegistered(doc);
+    doc.pipe(stream);
+  
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+  
+    const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length);
+    const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4);
+    const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
+  
+    layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY);
+  
+    if (withAnswers) drawAnswerKey(doc, questions, pageWidth);
+  
+    // Solutions section, only when this paper was generated with solutions
+    // included (charged 1 credit each at finalize). The answer key above is
+    // always free; this is the paid add-on.
+    if (paper.includeSolutions) drawSolutions(doc, questions, pageWidth);
+  
+    drawHeadersAndFooters(doc, paper);
+    doc.end();
+  }
+  
+> module.exports = { buildPaperPdf };
+  
+
+
+

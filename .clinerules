@@ -1,0 +1,41 @@
+# Exam Hub — Project Rules & PDF Layout Memory
+
+These rules document the exact PDF generation and layout decisions made with the user. Any agent modifying the backend PDF generation must adhere strictly to these constraints.
+
+## General Project Constraints
+1. **Dependency Pinning:** Never upgrade any npm packages past the exact versions pinned in `package.json`.
+2. **Prisma Config:** Never create a `prisma.config.ts` file.
+
+## PDF Layout Constraints (EAPCET/NEET/JEE style)
+
+### 1. Margins & Gutters
+- **Page Margins:** Exactly **0.5 inches** (36 points) on all four sides.
+- **Column Gutter:** Exactly **0.5 inches** (36 points) gap between the two columns.
+- **Vertical Divider Line:** Draw a thin solid black vertical line (`lineWidth(0.5)`) down the center of each page to separate the columns.
+  - On Page 1: Start just below the Student Details box (to avoid cutting it).
+  - On subsequent pages: Start at `Y = 48` (just below the running header divider line).
+  - **End Point:** Must end at `bottomLimit - 14` (approximately `Y = 792`) to leave a clean gap before the page number/footer text, preventing the line from cutting through the centered footer.
+
+### 2. Page Headers & Footers
+- **Page 1 Header:** Center-aligned institute name, exam name, title, and date.
+- **Page 1 Details:** Includes a Student Details section right below the instructions box:
+  `Student Name: _________________________________________      Roll No: ______________________`
+- **Page 2+ Running Header:**
+  - Starts from Page 2 onwards.
+  - Left-aligned: Exam Name / Title (e.g. `Ranker Test Series [02] NEET`).
+  - Right-aligned: Institute Name (e.g. `KVR JR COLLEGE`).
+  - Horizontal Divider Line: Thin line (`lineWidth(0.5)`) at `Y = 42`.
+  - **Questions vertical start:** Subsequent pages MUST start question layout at `Y = 54` to avoid overlapping the header.
+
+### 3. Font & Unicode Symbol Rendering
+- **Font Face:** Must use **Times New Roman** (regular and bold) loaded from system TTF files (`C:/Windows/Fonts/times.ttf` and `timesbd.ttf`) if available. Do not use built-in standard PDF fonts like `Times-Roman` as they lack Unicode mappings for superscript and subscript characters.
+- **Font Size:** Question text, options, and answer key must be rendered at `11pt`.
+
+### 4. Question & Options Layout Alignment
+- **Tab Gap:** A fixed tab width of **22 points** must be used for the question numbers (e.g. `1. `, `10. `).
+- **Text Alignment:** Question text must be justified (`align: 'justify'`).
+- **Options Alignment:** Options must start at `x + 22 points` to align perfectly with the question text rather than shifting left.
+- **Dynamic Layout Mode:** Options must be formatted as 4-per-line, 2-per-line, or 1-per-line. This MUST be computed by physically measuring string widths using `doc.widthOfString` to prevent text wrapping/clashing. If any option is too wide, it falls back to 1-per-line.
+
+### 5. Scientific/Chemical Formula Subscripts
+- To correctly render chemistry and physics names (like `H₂O`, `CO₂`, `H₂SO₄`, `CH₄`), any text or option containing an uppercase element symbol followed by numbers must be parsed using `formatChemicalFormulas` to map the ASCII numbers to Unicode subscript characters (`₀` to `₉`).

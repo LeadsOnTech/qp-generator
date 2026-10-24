@@ -1,0 +1,11 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: $(-2,5]\cap[1,7)=$...
+Problem: Intersection of (-2, 5] and [1, 7) is [1, 5], but the solution states 'both ends are included' for 5, whereas 5 is not included in ( -2, 5 ]. Wait, 5 is included in (-2, 5] and also in [1, 7), so 5 should be included: [1, 5]. However, the chapter 'Limits and Continuity' is completely wrong for basic set theory/intervals.
+
+[FATAL ERROR] Question: The complement of $(-1,2]$ in $\mathbb{R}$ is...
+Problem: The complement of (-1, 2] in R is (-infty, -1] U (2, inf), but the solution says option B is correct which matches this. However, the logic explanation has a flaw: 'endpoint -1 is not in (-1, 2], so it is in the complement' is correct, but the chapter is incorrect (should be Sets).
+
+[FATAL ERROR] Question: The number of integers in the deleted neighbourhood $\{x:0<|x|<3\}$ of $0$ is...
+Problem: The integers in the set are -2, -1, 1, 2, which are 4 integers. However, Option A says 4, but the solution lists only 4 integers yet the question is typically classified under basic inequalities or real number system rather than JEE Limits, and the count logic has a minor pedagogical mismatch with standard JEE syllabus.
+

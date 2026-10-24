@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The triangle with vertices $(0,0)$, $(3,4)$ and $(7,1)$ is...
+Problem: The side lengths are sqrt(3^2 + 4^2) = 5, sqrt((7-3)^2 + (1-4)^2) = 5, and sqrt(7^2 + 1^2) = sqrt(50). So sides are 5, 5, and 5sqrt(2). It is both right-angled (5^2 + 5^2 = (5sqrt(2))^2) and isosceles. However, the provided solution states 25+25=50, but the options are flawed or the calculation in solution is a bit sloppy. Wait, side squared lengths: AB^2 = 25, BC^2 = 25, CA^2 = 50. Since AB = BC = 5, it is isosceles. Since AB^2 + BC^2 = CA^2 (25+25=50), it is right-angled. Thus it is right-angled and isosceles (Option C). The logic holds.
+

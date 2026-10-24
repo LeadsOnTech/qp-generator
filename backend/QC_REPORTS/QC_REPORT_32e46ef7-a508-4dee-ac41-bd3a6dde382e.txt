@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The points $(0,0,0)$, $(1,0,0)$, $(0,1,0)$ and $(0,0,1)$...
+Problem: The points (0,0,0), (1,0,0), (0,1,0), and (0,0,1) clearly lie on the plane x+y+z=1 (Option C), making them coplanar (Option D). Since there are multiple correct options (B is marked correct, but C and D are also geometrically correct), the question is flawed.
+

@@ -1,0 +1,23 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The equation of the normal to $y=x^{2}+2x$ at $x=1$ is...
+Problem: At x=1, y=3. Tangent slope dy/dx = 2x+2 = 4. Normal slope is -1/4. Equation of normal is y - 3 = -1/4(x - 1) => x + 4y = 13, which matches option D. However, the provided solution text is too brief and incomplete.
+
+[FATAL ERROR] Question: The equation of the normal to $y=x^{3}-x$ at $x=2$ is...
+Problem: At x=2, y=6. Tangent slope dy/dx = 3x^2 - 1 = 11. Normal slope is -1/11. Equation of normal is y - 6 = -1/11(x - 2) => x + 11y = 68, which matches option D. The solution text is incomplete.
+
+[FATAL ERROR] Question: The equation of the normal to $y=\sqrt{x+1}$ at $x=3$ is...
+Problem: At x=3, y=2. Tangent slope dy/dx = 1/(2sqrt(x+1)) = 1/4. Normal slope is -4. Equation of normal is y - 2 = -4(x - 3) => 4x + y = 14, which matches option B. The solution text is incomplete.
+
+[FATAL ERROR] Question: The equation of the normal to $y=\frac{1}{x^{2}}$ at $x=2$ is...
+Problem: At x=2, y=1/4. Tangent slope dy/dx = -2/x^3 = -1/4. Normal slope is 4. Equation of normal is y - 1/4 = 4(x - 2) => 16x - 4y = 33, which matches option B. The solution text is incomplete.
+
+[FATAL ERROR] Question: The equation of the normal to $y=e^{x}$ at $x=1$ is...
+Problem: At x=1, y=e. Tangent slope dy/dx = e. Normal slope is -1/e. Equation of normal is y - e = -1/e(x - 1) => x + ey = e^2 + 1, which matches option C. The solution text is incomplete.
+
+[FATAL ERROR] Question: The equation of the normal to $x^{2}-y^{2}=9$ at $(5,4)$ is...
+Problem: For the hyperbola x^2 - y^2 = 9, differentiating gives 2x - 2y(dy/dx) = 0, so dy/dx = x/y. At (5,4), tangent slope is 5/4. The normal slope is -4/5. Equation of normal: y - 4 = -4/5 (x - 5) => 5y - 20 = -4x + 20 => 4x + 5y = 40. This matches option B.
+
+[FATAL ERROR] Question: The points on $y=x^{3}$ at which the normal is parallel to $x+12y=0$ are...
+Problem: For normal parallel to x + 12y = 0 (slope -1/12), the tangent must have slope 12. Thus 3x^2 = 12 gives x = +/-2. For x = 2, y = 8; for x = -2, y = -8. However, checking the options and normal slope condition: slope of normal is -1/(3x^2) = -1/12 => 3x^2 = 12 => x = +/- 2. The solution is correct.
+

@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: Two wires A and B of the same material have radii in the ratio 1 : 2 and are stretched with tensions...
+Problem: The solution states v is proportional to (sqrt(T))/r. However, mass per unit length mu = pi * r^2 * rho. Since density is not specified as equal for both wires, radius alone cannot substitute for mass per unit length without knowing densities. But assuming same material implies same density. Let's check: v = sqrt(T / (pi * r^2 * rho)). Thus v_A / v_B = sqrt(T_A / T_B) * (r_B / r_A) = sqrt(2 / 1) * (2 / 1) = 2 * sqrt(2) : 1. The solution uses v proportional to sqrt(T)/r which is correct for same material/density, so logic is actually correct.
+

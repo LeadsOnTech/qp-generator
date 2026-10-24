@@ -1,0 +1,14 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The general solution of the differential equation $x^{2}\frac{dy}{dx}+(1-2x)y=x^{2}$ $(x>0)$ is...
+Problem: The solution contains errors in calculating the integrating factor and integrating. For the equation dy/dx + (1/x^2 - 2/x)y = 1, P(x) = (1-2x)/x^2 = 1/x^2 - 2/x. IF = exp(int (1/x^2 - 2/x) dx) = exp(-1/x - 2ln x) = (1/x^2) e^{-1/x}. The general solution is actually y = x^2 + ce^{1/x} (Option D), not Option A.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}+y=y^{2}(\cos x-\sin x)$ is...
+Problem: The substitution z = 1/y gives z' - z = sin x - cos x. The integrating factor is e^(-x). Multiplying gives e^(-x)z = int e^(-x)(sin x - cos x)dx = e^(-x)sin x + c, which yields 1/y = sin x + ce^x, matching option C, not A.
+
+[FATAL ERROR] Question: If $\frac{dy}{dx}-\frac{y}{x}=x^{2}\sin x$ $(x>0)$ and $y(\pi)=\pi^{2}$, then $y\left(\frac{\pi}{2}\...
+Problem: Integrating factor approach leads to y/x = sin x - x cos x + c. With y(pi) = pi^2, pi = 0 - pi(-1) + c => pi = pi + c => c = 0. Then y(pi/2) = (pi/2) * (sin(pi/2) - (pi/2)cos(pi/2)) = (pi/2)(1 - 0) = pi/2, which matches Option D.
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}+y=x^{2}+2x$ is...
+Problem: The correct solution for y'(x) + y = x^2 + 2x is y = x^2 - 2x + 2 + ce^{-x}. The provided solution incorrectly claims option B is correct when it is actually option D.
+

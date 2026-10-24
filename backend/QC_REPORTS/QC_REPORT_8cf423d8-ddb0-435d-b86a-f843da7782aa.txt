@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The general solution of the differential equation $\frac{dy}{dx}+y=x^{2}+2x$ is...
+Problem: The solution states that y = x^2 + ce^(-x) is the solution, but differentiating this gives y' + y = 2x - x^2 + ce^(-x) + ce^(-x) which does not match the RHS x^2 + 2x. Using the integrating factor e^x, the particular integral for x^2 + 2x is x^2 - 2x + 2, making the correct general solution y = x^2 - 2x + 2 + ce^(-x) (Option D).
+

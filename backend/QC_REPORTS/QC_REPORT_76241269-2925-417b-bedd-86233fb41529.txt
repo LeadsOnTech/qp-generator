@@ -1,0 +1,5 @@
+=== AI QUALITY CONTROL REPORT ===
+
+[FATAL ERROR] Question: The points $(0,0,0)$, $(1,0,0)$, $(0,1,0)$ and $(0,0,1)$...
+Problem: The points (0,0,0), (1,0,0), (0,1,0), and (0,0,1) all satisfy x+y+z=0 (false) wait, they lie on x+y+z=1, meaning they ARE coplanar (Option D). Also, the determinant of the vectors from origin is 1, which means they form a tetrahedron of non-zero volume, hence they are NOT coplanar (Option B is correct). Wait, three points are always coplanar, four points not coplanar. Thus they are not coplanar is correct. Let's re-verify: determinant is 1, volume is non-zero, so they are not coplanar. Option B is indeed correct.
+
