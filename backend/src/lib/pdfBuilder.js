@@ -172,6 +172,7 @@ function formatExponents(text) {
 }
 
 function getOptionsLayoutType(doc, q, colWidth, fontSize = 11) {
+  if (!q.options) return 'NORMAL';
   doc.font(FONT_REGULAR).fontSize(fontSize);
   
   let fitsQuarter = true;
@@ -188,7 +189,7 @@ function getOptionsLayoutType(doc, q, colWidth, fontSize = 11) {
     // fits and push every option onto its own line. Measure the RENDERED
     // width instead.
     const raw = `(${i + 1}) ` + (q.options[keys[i]] || '');
-    const w = richWidth(doc, raw, 11);
+    const w = richWidth(doc, raw, fontSize);
     if (w > quarterWidth - 4) fitsQuarter = false; // 4 points padding safety
     if (w > halfWidth - 4) fitsHalf = false;
   }
@@ -423,36 +424,40 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
   const optImgD = resolveOptionImage(doc, q.optionDImage || q.optionImages?.D);
   const hasOptionImages = Boolean(optImgA || optImgB || optImgC || optImgD);
 
-  const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize);
-  let optionsHeight;
-  if (hasOptionImages) {
-    const rowAB = Math.max(optImgA?.height || 0, optImgB?.height || 0) + 26; // diagram + 4pt + 14pt text + 8pt gap
-    const rowCD = Math.max(optImgC?.height || 0, optImgD?.height || 0) + 22; // diagram + 4pt + 14pt text + 4pt gap
-    optionsHeight = rowAB + rowCD + 6;
-  } else if (layoutType === 'VERY_COMPACT') {
-    // Math options render taller than a plain text line, so measure them
-    // rather than assuming a fixed 14pt row.
-    const qw = (colWidth - numWidth - 4) / 4;
-    optionsHeight = Math.max(14, ...['A','B','C','D'].map((k) => richMeasure(doc, q.options[k], qw, fontSize)));
-  } else if (layoutType === 'COMPACT') {
-    const hw = (colWidth - numWidth - 4) / 2;
-    const rowAB = Math.max(...['A','B'].map((k) => richMeasure(doc, q.options[k], hw, fontSize)));
-    const rowCD = Math.max(...['C','D'].map((k) => richMeasure(doc, q.options[k], hw, fontSize)));
-    optionsHeight = Math.max(14, rowAB) + Math.max(14, rowCD);
-  } else {
-    doc.font(FONT_REGULAR).fontSize(fontSize);
-          optionsHeight = ['A', 'B', 'C', 'D'].reduce((sum, k) => {
+  const isNVQ = !q.options || !Object.keys(q.options).length;
+  let optionsHeight = 0;
+
+  if (!isNVQ) {
+    const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize);
+    if (hasOptionImages) {
+      const rowAB = Math.max(optImgA?.height || 0, optImgB?.height || 0) + 26; // diagram + 4pt + 14pt text + 8pt gap
+      const rowCD = Math.max(optImgC?.height || 0, optImgD?.height || 0) + 22; // diagram + 4pt + 14pt text + 4pt gap
+      optionsHeight = rowAB + rowCD + 6;
+    } else if (layoutType === 'VERY_COMPACT') {
+      const qw = (colWidth - numWidth - 4) / 4;
+      optionsHeight = Math.max(14, ...['A','B','C','D'].map((k, j) => richMeasure(doc, `(${j + 1}) ${q.options[k] || ''}`, qw, fontSize, 'left')));
+    } else if (layoutType === 'COMPACT') {
+      const hw = (colWidth - numWidth - 4) / 2;
+      const rowAB = Math.max(
+        richMeasure(doc, `(1) ${q.options.A || ''}`, hw, fontSize, 'left'),
+        richMeasure(doc, `(2) ${q.options.B || ''}`, hw, fontSize, 'left')
+      );
+      const rowCD = Math.max(
+        richMeasure(doc, `(3) ${q.options.C || ''}`, hw, fontSize, 'left'),
+        richMeasure(doc, `(4) ${q.options.D || ''}`, hw, fontSize, 'left')
+      );
+      optionsHeight = Math.max(14, rowAB) + Math.max(14, rowCD);
+    } else {
+      const optFontSize = Math.min(fontSize, 10.5);
+      doc.font(FONT_REGULAR).fontSize(optFontSize);
+      const avail = colWidth - numWidth - 4;
+      optionsHeight = ['A', 'B', 'C', 'D'].reduce((sum, k) => {
         const numeral = { A: '1', B: '2', C: '3', D: '4' }[k];
-        const raw = `(${numeral}) ${q.options[k]}`;
-        const avail = colWidth - numWidth - 4;
-        const w = richWidth(doc, raw, fontSize);
-        let optFontSize = fontSize;
-        if (w > avail) {
-          optFontSize = Math.max(6.5, fontSize * (avail / w) * 0.98);
-        }
-        const h = richMeasure(doc, raw, avail, optFontSize);
+        const raw = `(${numeral}) ${q.options[k] || ''}`;
+        const h = richMeasure(doc, raw, avail, optFontSize, 'left');
         return sum + h + 1;
       }, 0);
+    }
   }
 
   return textHeight + imageHeight + optionsHeight + questionGap; // spacing after the question
@@ -477,7 +482,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     const glyphBottom = y + fontSize * 1.9;
     textBottomY = Math.max(doc.y, glyphBottom);
   } else {
-    textBottomY = richDraw(doc, formatQuestionTextForLayout(q.questionText), x + numWidth, y, colWidth - numWidth, 11, INK);
+    textBottomY = richDraw(doc, formatQuestionTextForLayout(q.questionText), x + numWidth, y, colWidth - numWidth, fontSize, INK);
   }
 
   let cursorY = textBottomY + 1;
@@ -539,34 +544,30 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     doc.text(`(4) ${q.options.D || ''}`, x + numWidth + halfWidth + optionGutter, textY2, { width: halfWidth, align: 'center' });
 
     cursorY = textY2 + 16;
-  } else {
+  } else if (q.options && Object.keys(q.options).length) {
     const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize);
     if (layoutType === 'VERY_COMPACT') {
-    const quarterWidth = (colWidth - numWidth - 4) / 4;
-    let vcBottom = cursorY;
-    ['A','B','C','D'].forEach((k, j) => {
-      const b = richDraw(doc, `(${j + 1}) ${q.options[k]}`, x + numWidth + quarterWidth * j, cursorY, quarterWidth, 11, SOFT);
-      vcBottom = Math.max(vcBottom, b);
-    });
-    cursorY = Math.max(cursorY + 14, vcBottom);
-  } else if (layoutType === 'COMPACT') {
-    const halfWidth = (colWidth - numWidth - 4) / 2;
-    const bA = richDraw(doc, `(1) ${q.options.A}`, x + numWidth, cursorY, halfWidth, 11, SOFT);
-    const bB = richDraw(doc, `(2) ${q.options.B}`, x + numWidth + halfWidth, cursorY, halfWidth, 11, SOFT);
-    cursorY = Math.max(cursorY + 14, bA, bB);
-    const bC = richDraw(doc, `(3) ${q.options.C}`, x + numWidth, cursorY, halfWidth, 11, SOFT);
-    const bD = richDraw(doc, `(4) ${q.options.D}`, x + numWidth + halfWidth, cursorY, halfWidth, 11, SOFT);
-    cursorY = Math.max(cursorY + 14, bC, bD);
-  } else {
-          for (const key of ['A', 'B', 'C', 'D']) {
-        const raw = `(${numeralFor[key]}) ${q.options[key]}`;
+      const quarterWidth = (colWidth - numWidth - 4) / 4;
+      let vcBottom = cursorY;
+      ['A','B','C','D'].forEach((k, j) => {
+        const b = richDraw(doc, `(${j + 1}) ${q.options[k] || ''}`, x + numWidth + quarterWidth * j, cursorY, quarterWidth, fontSize, SOFT, 'left');
+        vcBottom = Math.max(vcBottom, b);
+      });
+      cursorY = Math.max(cursorY + 14, vcBottom);
+    } else if (layoutType === 'COMPACT') {
+      const halfWidth = (colWidth - numWidth - 4) / 2;
+      const bA = richDraw(doc, `(1) ${q.options.A || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bB = richDraw(doc, `(2) ${q.options.B || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      cursorY = Math.max(cursorY + 14, bA, bB);
+      const bC = richDraw(doc, `(3) ${q.options.C || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bD = richDraw(doc, `(4) ${q.options.D || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      cursorY = Math.max(cursorY + 14, bC, bD);
+    } else {
+      const optFontSize = Math.min(fontSize, 10.5);
+      for (const key of ['A', 'B', 'C', 'D']) {
+        const raw = `(${numeralFor[key]}) ${q.options[key] || ''}`;
         const avail = colWidth - numWidth - 4;
-        const w = richWidth(doc, raw, fontSize);
-        let optFontSize = fontSize;
-        if (w > avail) {
-          optFontSize = Math.max(6.5, fontSize * (avail / w) * 0.98);
-        }
-        cursorY = richDraw(doc, raw, x + numWidth, cursorY, avail, optFontSize, SOFT) + 1;
+        cursorY = richDraw(doc, raw, x + numWidth, cursorY, avail, optFontSize, SOFT, 'left') + 1;
       }
     }
   }
