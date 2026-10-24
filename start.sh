@@ -3,18 +3,23 @@ set -e
 
 echo "=== Starting QP Generator ==="
 
-# Go to backend directory
+# Set environment defaults if not provided by host/Coolify
+export PORT="${PORT:-4000}"
+export DATABASE_URL="${DATABASE_URL:-file:/app/backend/prisma/dev.db}"
+export JWT_SECRET="${JWT_SECRET:-qp-generator-prod-jwt-secret-key-2026}"
+export NODE_ENV="${NODE_ENV:-production}"
+
+# Navigate to backend directory
 cd /app/backend 2>/dev/null || cd backend 2>/dev/null || true
 
-# Generate Prisma Client if not already generated
-npx prisma generate || true
+# Ensure persistent directories exist
+mkdir -p /app/backend/prisma /app/backend/uploads/images /app/backend/uploads/cards ./prisma ./uploads/images ./uploads/cards 2>/dev/null || true
 
-# Synchronize SQLite database schema
-npx prisma db push --skip-generate || true
+echo "Applying database schema..."
+npx prisma db push --skip-generate
 
-# Seed default admin and initial syllabus if not already seeded
-node prisma/seed.js || true
+echo "Seeding default admin and starter syllabus..."
+node prisma/seed.js
 
-# Start Express server on PORT (default 4000)
-echo "Launching server on port ${PORT:-4000}..."
+echo "Launching application server on port $PORT..."
 exec node src/server.js

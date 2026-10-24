@@ -21,11 +21,21 @@ RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install --production=false
 
-# Copy backend files
+# Copy backend source
 COPY backend/ ./backend/
 
 # Copy compiled frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+# Copy start script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Set production environment variables
+ENV PORT=4000
+ENV NODE_ENV=production
+ENV DATABASE_URL="file:/app/backend/prisma/dev.db"
+ENV JWT_SECRET="qp-generator-prod-jwt-secret-key-2026"
 
 # Generate Prisma Client
 WORKDIR /app/backend
@@ -35,12 +45,6 @@ RUN npx prisma generate
 RUN mkdir -p /app/backend/uploads/images /app/backend/uploads/cards /app/backend/prisma
 
 EXPOSE 4000
-ENV PORT=4000
-ENV NODE_ENV=production
 
-# Copy start script
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# On container start: sync schema with db push, seed initial admin & NEET syllabus if fresh, then start server
+# On container start: run start.sh
 CMD ["/app/start.sh"]

@@ -370,32 +370,37 @@ router.post('/signup', async (req, res) => {
  * code from the user's authenticator app to get the real session token.
  */
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
-  }
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-    include: { institute: true },
-  });
-  if (!user) {
-    return res.status(401).json({ error: 'Incorrect email or password.' });
-  }
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      include: { institute: true },
+    });
+    if (!user) {
+      return res.status(401).json({ error: 'Incorrect email or password.' });
+    }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    return res.status(401).json({ error: 'Incorrect email or password.' });
-  }
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Incorrect email or password.' });
+    }
 
-  if (user.twoFactorEnabled) {
-    const pendingToken = signPendingTwoFactorToken(user);
-    return res.json({ requiresTwoFactor: true, pendingToken });
-  }
+    if (user.twoFactorEnabled) {
+      const pendingToken = signPendingTwoFactorToken(user);
+      return res.json({ requiresTwoFactor: true, pendingToken });
+    }
 
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  const token = signToken(user);
-  res.json({ token, user: formatUserResponse(user, user.institute) });
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    const token = signToken(user);
+    res.json({ token, user: formatUserResponse(user, user.institute) });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message || 'Something went wrong on the server.' });
+  }
 });
 
 /**
