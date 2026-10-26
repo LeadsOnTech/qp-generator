@@ -398,7 +398,7 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
 
     const paper = {
       title: 'Batch Upload Preview',
-      instituteName: 'QuestionForge Drafts',
+      instituteName: 'QuestionStudio Drafts',
       examName: 'Preview Only',
       paperType: 'PREVIEW'
     };

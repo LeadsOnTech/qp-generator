@@ -73,7 +73,7 @@ export default function Layout() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">QuestionForge</span>
+          <span className="brand-mark">QuestionStudio</span>
         </div>
         <div className="brand-sub">Question Bank &amp; Paper Engine</div>
 

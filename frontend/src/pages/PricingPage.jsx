@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -13,14 +13,14 @@ const LogoSvg = () => (
 );
 
 const faqs = [
-  { q: "What is a QuestionForge credit?", a: "One credit is used to generate one question or one solution." },
+  { q: "What is a QuestionStudio credit?", a: "One credit is used to generate one question or one solution." },
   { q: "How much does one credit cost?", a: "One credit costs ₹1." },
   { q: "What is the minimum recharge?", a: "The minimum recharge is ₹5,000, which gives you 5,000 credits." },
   { q: "Is there a maximum recharge?", a: "There is no maximum recharge limit." },
   { q: "Do credits expire?", a: "No. Your purchased credits do not expire." },
   { q: "Does generating a PDF consume credits?", a: "No. PDF generation and download do not consume credits." },
   { q: "Are solutions included with question generation?", a: "Solutions use credits separately. One generated solution uses one credit." },
-  { q: "Can I use credits for NEET, JEE Main and EAMCET/EAPCET?", a: "QuestionForge currently supports NEET, JEE Main and EAMCET/EAPCET." },
+  { q: "Can I use credits for NEET, JEE Main and EAMCET/EAPCET?", a: "QuestionStudio currently supports NEET, JEE Main and EAMCET/EAPCET." },
   { q: "Can I get a refund?", a: "Credit purchases are non-refundable." },
   { q: "How can I recharge?", a: "You can recharge through Razorpay or the available manual payment option." }
 ];
@@ -36,10 +36,10 @@ export default function PricingPage() {
   const [calcS, setCalcS] = useState(100);
 
   useEffect(() => {
-    document.title = "QuestionForge Pricing — Simple Pay-As-You-Go Credits";
+    document.title = "QuestionStudio Pricing — Simple Pay-As-You-Go Credits";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute("content", "Simple QuestionForge pricing for coaching institutes, junior colleges and teachers. Generate questions and solutions with 1 credit per question or solution. Start with 200 free credits.");
+      meta.setAttribute("content", "Simple QuestionStudio pricing for coaching institutes, junior colleges and teachers. Generate questions and solutions with 1 credit per question or solution. Start with 200 free credits.");
     }
   }, []);
 
@@ -81,7 +81,7 @@ export default function PricingPage() {
       <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
         <Link to="/" className="brand-logo">
           <LogoSvg />
-          QuestionForge
+          QuestionStudio
         </Link>
         <nav className="nav-links">
           <Link to="/" className="nav-link">Home</Link>
@@ -161,7 +161,7 @@ export default function PricingPage() {
         <div style={{ background: '#fff', borderRadius: 24, padding: 48, width: '100%', maxWidth: 900, boxShadow: '0 24px 48px rgba(11,21,84,0.06)', border: '1px solid var(--line)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48 }}>
           
           <div>
-            <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8, color: 'var(--premium-indigo)' }}>QuestionForge Credits</h2>
+            <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8, color: 'var(--premium-indigo)' }}>QuestionStudio Credits</h2>
             <p style={{ fontSize: 16, color: 'var(--premium-text-secondary)', marginBottom: 32 }}>Simple pay-as-you-go pricing.</p>
             
             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -381,7 +381,7 @@ export default function PricingPage() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--premium-blue)" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
               </div>
               <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Pay Manually</h3>
-              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>Scan the QuestionForge QR code, complete the payment, and submit your transaction number for verification.</p>
+              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>Scan the QuestionStudio QR code, complete the payment, and submit your transaction number for verification.</p>
               {user ? (
                 <Link to="/recharge" className="btn-outline-white" style={{ width: '100%', justifyContent: 'center', border: '1px solid var(--line)', color: 'var(--premium-indigo)' }}>View Manual Payment Details</Link>
               ) : (
@@ -414,7 +414,7 @@ export default function PricingPage() {
       <section style={{ padding: '100px 64px', background: 'linear-gradient(135deg, #0B1554 0%, #101F66 100%)', textAlign: 'center', color: '#fff' }}>
         <h2 style={{ fontSize: 40, fontWeight: 800, marginBottom: 24, fontFamily: 'var(--font-display)' }}>Start Generating Smarter.</h2>
         <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.8)', maxWidth: 600, margin: '0 auto 40px' }}>
-          Create your account and get <span style={{ color: '#FDE047', fontWeight: 800 }}>200 free credits</span> to experience QuestionForge today.
+          Create your account and get <span style={{ color: '#FDE047', fontWeight: 800 }}>200 free credits</span> to experience QuestionStudio today.
         </p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
           <CtaButton className="btn-primary-yellow" style={{ padding: '16px 32px', fontSize: 16 }} />
@@ -427,7 +427,7 @@ export default function PricingPage() {
           <div className="footer-brand">
             <Link to="/" className="brand-logo" style={{ marginBottom: 24, color: '#fff' }}>
               <LogoSvg />
-              QuestionForge
+              QuestionStudio
             </Link>
             <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
           </div>
@@ -467,7 +467,7 @@ export default function PricingPage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} QuestionForge — Andhra Inspire Academy. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} QuestionStudio — Andhra Inspire Academy. All rights reserved.</div>
           <div style={{ display: 'flex', gap: 16 }}>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>Twitter</a>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>LinkedIn</a>

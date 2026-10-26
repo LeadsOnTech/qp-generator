@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "=== Starting QP Generator ==="
+echo "=== Starting QuestionStudio ==="
 
 # Set environment defaults if not provided by host/Coolify
 export PORT="${PORT:-4000}"

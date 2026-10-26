@@ -1,4 +1,4 @@
-﻿import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import '../landing.css';
@@ -70,7 +70,7 @@ export default function FeaturesPage() {
       <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
         <Link to="/" className="brand-logo">
           <LogoSvg />
-          QuestionForge
+          QuestionStudio
         </Link>
         <nav className="nav-links">
           <Link to="/" className="nav-link">Home</Link>
@@ -90,7 +90,7 @@ export default function FeaturesPage() {
           Everything you need to automate your <span>examinations</span>
         </h1>
         <p className="hero-subtitle" style={{ margin: '0 auto 40px', maxWidth: 600 }}>
-          QuestionForge replaces your entire DTP department, proofreading team, and question-setting overhead with a single click.
+          QuestionStudio replaces your entire DTP department, proofreading team, and question-setting overhead with a single click.
         </p>
       </section>
 
@@ -114,7 +114,7 @@ export default function FeaturesPage() {
           <div className="footer-brand">
             <Link to="/" className="brand-logo" style={{ marginBottom: 24, color: '#fff' }}>
               <LogoSvg />
-              QuestionForge
+              QuestionStudio
             </Link>
             <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
           </div>
@@ -155,7 +155,7 @@ export default function FeaturesPage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} QuestionForge — Andhra Inspire Academy. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} QuestionStudio — Andhra Inspire Academy. All rights reserved.</div>
           <div style={{ display: 'flex', gap: 16 }}>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>Twitter</a>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>LinkedIn</a>

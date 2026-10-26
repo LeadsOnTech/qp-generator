@@ -66,16 +66,26 @@ async function main() {
   // One-time default admin account — change this password immediately
   // after first login. There is no public signup for ADMIN; only this
   // seed creates one.
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@questionforge.local';
+  const defaultEmail = 'admin@questionstudio.local';
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || defaultEmail;
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe123!';
 
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  let existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
-    await prisma.user.create({
-      data: { email: adminEmail, passwordHash, role: 'ADMIN' },
-    });
-    console.log(`Admin account created — email: ${adminEmail} / password: ${adminPassword} (please change this after first login).`);
+    const legacyAdmin = await prisma.user.findUnique({ where: { email: 'admin@questionforge.local' } });
+    if (legacyAdmin) {
+      await prisma.user.update({
+        where: { id: legacyAdmin.id },
+        data: { email: adminEmail }
+      });
+      console.log(`Migrated legacy admin email to ${adminEmail}`);
+    } else {
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      await prisma.user.create({
+        data: { email: adminEmail, passwordHash, role: 'ADMIN' },
+      });
+      console.log(`Admin account created — email: ${adminEmail} / password: ${adminPassword} (please change this after first login).`);
+    }
   } else {
     console.log('Admin account already exists — skipping creation.');
   }

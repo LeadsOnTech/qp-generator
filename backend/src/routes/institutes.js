@@ -9,7 +9,7 @@ const router = express.Router();
 
 function generateDummyCredentials() {
   const suffix = crypto.randomBytes(3).toString('hex'); // e.g. "a1b2c3"
-  const email = `trial-${suffix}@questionforge.local`;
+  const email = `trial-${suffix}@questionstudio.local`;
   // Hex encoding is always alphanumeric (0-9a-f) with no characters to
   // strip, so this reliably gives exactly 10 characters every time —
   // easy enough to type from a WhatsApp message on a phone.

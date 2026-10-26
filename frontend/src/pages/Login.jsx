@@ -80,7 +80,7 @@ export default function Login() {
         ) : (
           <form onSubmit={handleCodeSubmit}>
             <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 16 }}>
-              Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code shown for QuestionForge.
+              Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code shown for QuestionStudio.
             </p>
             <div className="field">
               <label>6-digit code</label>

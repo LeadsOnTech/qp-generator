@@ -1,4 +1,4 @@
-﻿// backend/src/lib/whatsapp.js
+// backend/src/lib/whatsapp.js
 // Abstract provider for WhatsApp Business API
 
 const crypto = require('crypto');
@@ -42,13 +42,13 @@ class WhatsAppService {
   }
 
   async sendWelcomeMessage(phone, credits, loginUrl) {
-    const message = `Welcome to QuestionForge!
+    const message = `Welcome to QuestionStudio!
 
 Your account has been created successfully.
 
 🎁 Welcome Credits: ${credits} Credits
 
-Your QuestionForge account is now ready.
+Your QuestionStudio account is now ready.
 
 Login:
 ${loginUrl}
@@ -64,7 +64,7 @@ PDF Generation = FREE
 Credits Never Expire
 
 Welcome to smarter question-paper generation.
-— Team QuestionForge`;
+— Team QuestionStudio`;
 
     console.log(`\n[WHATSAPP SERVICE] Sending Welcome Message to ${phone}:\n${message}\n`);
     

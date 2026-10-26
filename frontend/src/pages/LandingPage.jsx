@@ -1,4 +1,4 @@
-﻿import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import '../landing.css';
@@ -157,7 +157,7 @@ export default function LandingPage() {
       <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
         <Link to="/" className="brand-logo">
           <LogoSvg />
-          QuestionForge
+          QuestionStudio
         </Link>
         <nav className="nav-links">
           <Link to="/" className="nav-link">Home</Link>
@@ -285,7 +285,7 @@ export default function LandingPage() {
           <svg className="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/></svg>
           <div>
             <div className="trust-text">500+ Institutes</div>
-            <div className="trust-subtext">Trust QuestionForge</div>
+            <div className="trust-subtext">Trust QuestionStudio</div>
           </div>
         </div>
         <div className="trust-item">
@@ -304,9 +304,9 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* WHY QUESTIONFORGE */}
+      {/* WHY QUESTIONSTUDIO */}
       <section id="features" className="features-section">
-        <div className="section-eyebrow">Why colleges switch to QuestionForge</div>
+        <div className="section-eyebrow">Why colleges switch to QuestionStudio</div>
         <h2 className="section-title">Everything that used to slow you down — <span>gone</span></h2>
         
         <div className="features-grid">
@@ -397,7 +397,7 @@ export default function LandingPage() {
           <div className="footer-brand">
             <Link to="/" className="brand-logo" style={{ marginBottom: 24, color: '#fff' }}>
               <LogoSvg />
-              QuestionForge
+              QuestionStudio
             </Link>
             <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
           </div>
@@ -443,7 +443,7 @@ export default function LandingPage() {
         </div>
 
         <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} QuestionForge — Andhra Inspire Academy. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} QuestionStudio — Andhra Inspire Academy. All rights reserved.</div>
           <div style={{ display: 'flex', gap: 16 }}>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>Twitter</a>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>LinkedIn</a>

@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -61,7 +61,7 @@ export default function Signup() {
         
         <div style={{ position: 'relative', zIndex: 2 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', textDecoration: 'none', fontSize: 24, fontWeight: 800, marginBottom: 80 }}>
-            <LogoSvg /> QuestionForge
+            <LogoSvg /> QuestionStudio
           </Link>
           
           <h1 style={{ fontSize: 48, fontWeight: 800, lineHeight: 1.1, marginBottom: 24, fontFamily: 'var(--font-display)' }}>
@@ -105,7 +105,7 @@ export default function Signup() {
         {step === 1 && (
           <div style={{ width: '100%', maxWidth: 440 }}>
             <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 8 }}>Request Access</h2>
-            <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 32 }}>QuestionForge is exclusively for institutes and teachers. Please verify your identity to get 200 free credits.</p>
+            <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 32 }}>QuestionStudio is exclusively for institutes and teachers. Please verify your identity to get 200 free credits.</p>
             
             {error && <div className="alert alert-danger" style={{ marginBottom: 24 }}>{error}</div>}
 
@@ -191,7 +191,7 @@ export default function Signup() {
             
             <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 12 }}>Request Submitted</h2>
             <p style={{ fontSize: 16, color: 'var(--premium-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
-              Thank you for requesting access to QuestionForge. Our backend team is verifying your business card and profile.
+              Thank you for requesting access to QuestionStudio. Our backend team is verifying your business card and profile.
             </p>
             
             <div style={{ padding: 24, background: '#f8fafc', borderRadius: 12, border: '1px solid var(--line)', marginBottom: 32 }}>

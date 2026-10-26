@@ -70,7 +70,7 @@ router.post('/register/approve-access/:id', requireAuth, async (req, res) => {
       return { user: usr, institute: inst };
     });
 
-    const loginMsg = `Your QuestionForge account is approved!\n\nLogin: http://localhost:5173/#/login\nEmail: ${request.email}\nPassword: ${rawPassword}\n\n🎁 200 Free Credits have been added.`;
+    const loginMsg = `Your QuestionStudio account is approved!\n\nLogin: http://localhost:5173/#/login\nEmail: ${request.email}\nPassword: ${rawPassword}\n\n🎁 200 Free Credits have been added.`;
     whatsapp.sendWelcomeMessage(request.phone, 200, "http://localhost:5173/#/login").catch(() => {});
     // In production, use whatsapp provider to send the actual password securely
 
@@ -462,7 +462,7 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Account not found.' });
 
   const secret = authenticator.generateSecret();
-  const otpauthUrl = authenticator.keyuri(user.email, 'QuestionForge', secret);
+  const otpauthUrl = authenticator.keyuri(user.email, 'QuestionStudio', secret);
   const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
   res.json({ secret, qrCodeDataUrl });

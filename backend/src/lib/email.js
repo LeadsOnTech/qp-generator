@@ -45,12 +45,12 @@ async function sendPasswordResetEmail(toEmail, resetLink) {
   await mailer.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: toEmail,
-    subject: 'Reset your QuestionForge password',
-    text: `We received a request to reset your QuestionForge password.\n\n` +
+    subject: 'Reset your QuestionStudio password',
+    text: `We received a request to reset your QuestionStudio password.\n\n` +
           `Click this link to set a new password (valid for 1 hour):\n${resetLink}\n\n` +
           `If you didn't request this, you can safely ignore this email.`,
     html: `
-      <p>We received a request to reset your QuestionForge password.</p>
+      <p>We received a request to reset your QuestionStudio password.</p>
       <p><a href="${resetLink}" style="background:#101d33;color:#d9ae4e;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Reset my password</a></p>
       <p>This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.</p>
     `,

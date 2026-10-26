@@ -1,4 +1,4 @@
-# QuestionForge — Scan-and-Pay Credit Recharge (Manual UPI + Admin Approval)
+# QuestionStudio — Scan-and-Pay Credit Recharge (Manual UPI + Admin Approval)
 
 Your clients can now recharge credits themselves by scanning your UPI QR —
 no payment gateway, no fees. It's kept safe by a simple rule: credits are

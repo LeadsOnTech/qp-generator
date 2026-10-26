@@ -127,7 +127,7 @@ export default function TrialAccounts() {
             className="btn btn-ghost"
             style={{ fontSize: 12.5 }}
             onClick={() => copyToClipboard(
-              `Hi! Try QuestionForge free — generate your own question papers instantly.\n\nWebsite: ${window.location.origin}\nLogin: ${justGenerated.email}\nPassword: ${justGenerated.password}\n\nYou get 200 free credits to test it out (1 credit = 1 question).`
+              `Hi! Try QuestionStudio free — generate your own question papers instantly.\n\nWebsite: ${window.location.origin}\nLogin: ${justGenerated.email}\nPassword: ${justGenerated.password}\n\nYou get 200 free credits to test it out (1 credit = 1 question).`
             )}
           >
             Copy a ready-made WhatsApp message
