@@ -60,9 +60,14 @@ export default function Signup() {
       <div style={{ flex: 1, background: 'linear-gradient(135deg, #0B1554 0%, #101F66 100%)', color: '#fff', padding: 64, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }} className="hide-on-mobile">
         
         <div style={{ position: 'relative', zIndex: 2 }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', textDecoration: 'none', fontSize: 24, fontWeight: 800, marginBottom: 80 }}>
-            <LogoSvg /> QuestionStudio
-          </Link>
+          <div style={{ marginBottom: 60 }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', textDecoration: 'none', fontSize: 24, fontWeight: 800 }}>
+              <LogoSvg /> QuestionStudio
+            </Link>
+            <div style={{ fontSize: 13, color: 'var(--premium-yellow)', fontWeight: 600, marginTop: 8, letterSpacing: '0.04em' }}>
+              Your Questions. Your Standards.
+            </div>
+          </div>
           
           <h1 style={{ fontSize: 48, fontWeight: 800, lineHeight: 1.1, marginBottom: 24, fontFamily: 'var(--font-display)' }}>
             Create smarter exams in minutes.

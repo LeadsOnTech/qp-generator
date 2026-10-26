@@ -157,7 +157,10 @@ export default function LandingPage() {
       <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
         <Link to="/" className="brand-logo">
           <LogoSvg />
-          QuestionStudio
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+            <span>QuestionStudio</span>
+            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>Your Questions. Your Standards.</span>
+          </div>
         </Link>
         <nav className="nav-links">
           <Link to="/" className="nav-link">Home</Link>
@@ -174,7 +177,14 @@ export default function LandingPage() {
       <section className="hero-section">
         <div className="hero-container">
           <div className="hero-content">
-            <div className="hero-badge">For NEET "¢ JEE "¢ EAMCET Coaching Institutes</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
+              <div className="hero-badge" style={{ marginBottom: 0, color: '#FDE047', borderColor: 'rgba(253, 224, 71, 0.5)', background: 'rgba(253, 224, 71, 0.08)' }}>
+                Your Questions. Your Standards.
+              </div>
+              <div className="hero-badge" style={{ marginBottom: 0 }}>
+                NEET · JEE · EAMCET
+              </div>
+            </div>
             <h1 className="hero-title">
               Generate exam-ready question papers <span>in minutes</span>, not days
             </h1>
@@ -395,9 +405,12 @@ export default function LandingPage() {
       <footer className="landing-footer">
         <div className="footer-grid">
           <div className="footer-brand">
-            <Link to="/" className="brand-logo" style={{ marginBottom: 24, color: '#fff' }}>
+            <Link to="/" className="brand-logo" style={{ marginBottom: 16, color: '#fff' }}>
               <LogoSvg />
-              QuestionStudio
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                <span>QuestionStudio</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--premium-yellow)', letterSpacing: '0.04em', marginTop: 4 }}>Your Questions. Your Standards.</span>
+              </div>
             </Link>
             <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
           </div>
@@ -443,7 +456,7 @@ export default function LandingPage() {
         </div>
 
         <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} QuestionStudio — Andhra Inspire Academy. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} QuestionStudio — Your Questions. Your Standards. All rights reserved.</div>
           <div style={{ display: 'flex', gap: 16 }}>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>Twitter</a>
             <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>LinkedIn</a>

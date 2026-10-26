@@ -75,7 +75,7 @@ export default function Layout() {
         <div className="brand">
           <span className="brand-mark">QuestionStudio</span>
         </div>
-        <div className="brand-sub">Question Bank &amp; Paper Engine</div>
+        <div className="brand-sub">Your Questions. Your Standards.</div>
 
         {isAdmin ? (
           <>

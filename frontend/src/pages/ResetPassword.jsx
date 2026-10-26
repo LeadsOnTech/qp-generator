@@ -43,7 +43,10 @@ export default function ResetPassword() {
       <div className="card card-pad" style={{ width: 420 }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--navy-950)' }}>
-            Question<span style={{ color: 'var(--gold-500)' }}>Forge</span>
+            Question<span style={{ color: 'var(--gold-500)' }}>Studio</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--ink-soft)', letterSpacing: '0.04em', marginTop: 2, textTransform: 'uppercase', fontWeight: 600 }}>
+            Your Questions. Your Standards.
           </div>
           <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 4 }}>Set a new password</p>
         </div>
