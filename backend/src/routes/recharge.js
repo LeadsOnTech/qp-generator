@@ -8,6 +8,24 @@ const { adjustCredits } = require('../lib/credits');
 
 const router = express.Router();
 
+/**
+ * Calculates total credits granted for a payment in rupees, including promotional bonus tiers:
+ * - ₹20,000+ : 25% bonus (e.g. ₹20,000 -> 25,000 credits)
+ * - ₹10,000 to ₹19,999 : 15% bonus (e.g. ₹10,000 -> 11,500 credits)
+ * - Under ₹10,000 : 1:1 standard (e.g. ₹5,000 -> 5,000 credits)
+ */
+function calculateCreditsForRupees(amountRupees) {
+  const amt = Number(amountRupees) || 0;
+  if (!Number.isInteger(amt) || amt <= 0) return 0;
+  let bonus = 0;
+  if (amt >= 20000) {
+    bonus = Math.floor(amt * 0.25);
+  } else if (amt >= 10000) {
+    bonus = Math.floor(amt * 0.15);
+  }
+  return amt + bonus;
+}
+
 // ---- QR image upload (admin only) ----
 const QR_DIR = path.join(__dirname, '..', '..', 'uploads', 'images');
 if (!fs.existsSync(QR_DIR)) fs.mkdirSync(QR_DIR, { recursive: true });
@@ -43,28 +61,39 @@ async function setSetting(key, value) {
 
 /**
  * GET /api/recharge/upi-info
- * The admin's UPI details (id + QR image url) shown to institutes on the
+ * The admin's UPI details (id + QR image url) and Razorpay gateway status shown to institutes on the
  * recharge page. Readable by any signed-in user; only the admin can set it.
  */
 router.get('/upi-info', async (req, res) => {
-  const [upiId, payeeName, qrFilename] = await Promise.all([
-    getSetting('upi_id'), getSetting('upi_payee_name'), getSetting('upi_qr_filename'),
+  const [upiId, payeeName, qrFilename, dbRzpKey, dbRzpSecret] = await Promise.all([
+    getSetting('upi_id'),
+    getSetting('upi_payee_name'),
+    getSetting('upi_qr_filename'),
+    getSetting('razorpay_key_id'),
+    getSetting('razorpay_key_secret'),
   ]);
+  const activeRzpKey = process.env.RAZORPAY_KEY_ID || dbRzpKey || null;
+  const activeRzpSecret = process.env.RAZORPAY_KEY_SECRET || dbRzpSecret || null;
+
   res.json({
     upiId: upiId || null,
     payeeName: payeeName || null,
     qrUrl: qrFilename ? `/uploads/images/${qrFilename}` : null,
     configured: Boolean(upiId || qrFilename),
+    razorpayConfigured: Boolean(activeRzpKey && activeRzpSecret),
+    razorpayKeyId: activeRzpKey ? (activeRzpKey.length > 8 ? activeRzpKey.slice(0, 8) + '...' : activeRzpKey) : null,
   });
 });
 
 /**
- * PUT /api/recharge/upi-info  (admin) — set UPI id + payee name.
+ * PUT /api/recharge/upi-info  (admin) — set UPI id, payee name, and optional Razorpay API keys.
  */
 router.put('/upi-info', requireAdmin, async (req, res) => {
-  const { upiId, payeeName } = req.body;
-  if (upiId != null) await setSetting('upi_id', String(upiId).trim());
-  if (payeeName != null) await setSetting('upi_payee_name', String(payeeName).trim());
+  const { upiId, payeeName, razorpayKeyId, razorpayKeySecret } = req.body;
+  if (upiId !== undefined) await setSetting('upi_id', String(upiId || '').trim());
+  if (payeeName !== undefined) await setSetting('upi_payee_name', String(payeeName || '').trim());
+  if (razorpayKeyId !== undefined) await setSetting('razorpay_key_id', String(razorpayKeyId || '').trim());
+  if (razorpayKeySecret !== undefined) await setSetting('razorpay_key_secret', String(razorpayKeySecret || '').trim());
   res.json({ ok: true });
 });
 
@@ -107,17 +136,20 @@ router.post('/request', async (req, res) => {
     return res.status(409).json({ error: 'You already have a pending request with this reference number.' });
   }
 
+  // Bonus credits calculated automatically according to pricing bundle tiers
+  const creditsAsked = calculateCreditsForRupees(amount);
+
   const request = await prisma.rechargeRequest.create({
     data: {
       instituteId,
       amountRupees: amount,
-      creditsAsked: amount, // 1 credit = ₹1
+      creditsAsked,
       upiReference,
       note,
       status: 'PENDING',
     },
   });
-  res.json({ ok: true, request: { id: request.id, status: request.status, amountRupees: amount } });
+  res.json({ ok: true, request: { id: request.id, status: request.status, amountRupees: amount, creditsAsked } });
 });
 
 /**
@@ -215,10 +247,15 @@ router.post('/:id/approve', requireAdmin, async (req, res) => {
     return res.status(409).json({ error: `This request was already ${request.status.toLowerCase()}.` });
   }
 
+  const bonusAmount = request.creditsAsked - request.amountRupees;
+  const reasonText = bonusAmount > 0
+    ? `UPI recharge (₹${request.amountRupees.toLocaleString('en-IN')} + ${bonusAmount.toLocaleString('en-IN')} bonus credits, ref ${request.upiReference})`
+    : `UPI recharge (₹${request.amountRupees.toLocaleString('en-IN')}, ref ${request.upiReference})`;
+
   const { institute, transaction } = await adjustCredits(
     request.instituteId,
     request.creditsAsked,
-    `UPI recharge (ref ${request.upiReference})`
+    reasonText
   );
 
   await prisma.rechargeRequest.update({
@@ -260,11 +297,11 @@ router.post('/:id/reject', requireAdmin, async (req, res) => {
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
-function getRazorpayClient() {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+async function getRazorpayClient() {
+  const key_id = process.env.RAZORPAY_KEY_ID || await getSetting('razorpay_key_id');
+  const key_secret = process.env.RAZORPAY_KEY_SECRET || await getSetting('razorpay_key_secret');
   if (!key_id || !key_secret) return null;
-  return new Razorpay({ key_id, key_secret });
+  return { client: new Razorpay({ key_id, key_secret }), key_id, key_secret };
 }
 
 /**
@@ -280,17 +317,23 @@ router.post('/razorpay/create', async (req, res) => {
     return res.status(400).json({ error: 'Invalid amount.' });
   }
 
-  const rzp = getRazorpayClient();
-  if (!rzp) {
+  const rzpObj = await getRazorpayClient();
+  if (!rzpObj) {
     return res.status(503).json({ error: 'Razorpay is not configured on this server yet.' });
   }
+  const { client: rzp, key_id } = rzpObj;
 
   try {
-    const creditsBought = amountRupees; // 1 credit = 1 rupee for now
+    const creditsBought = calculateCreditsForRupees(amountRupees);
     const order = await rzp.orders.create({
       amount: amountRupees * 100, // Razorpay takes paise
       currency: 'INR',
       receipt: `rcpt_${Date.now()}`,
+      notes: {
+        instituteId,
+        amountRupees,
+        creditsBought,
+      }
     });
 
     await prisma.razorpayTransaction.create({
@@ -302,7 +345,13 @@ router.post('/razorpay/create', async (req, res) => {
       }
     });
 
-    res.json({ orderId: order.id, amount: order.amount, currency: order.currency, key: process.env.RAZORPAY_KEY_ID });
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: key_id,
+      creditsBought
+    });
   } catch (err) {
     console.error('Razorpay Create Error:', err);
     res.status(500).json({ error: 'Failed to create payment order.' });
@@ -322,8 +371,9 @@ router.post('/razorpay/verify', async (req, res) => {
     return res.status(400).json({ error: 'Missing payment details.' });
   }
 
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!key_secret) return res.status(503).json({ error: 'Razorpay is not configured.' });
+  const rzpObj = await getRazorpayClient();
+  if (!rzpObj) return res.status(503).json({ error: 'Razorpay is not configured.' });
+  const { key_secret } = rzpObj;
 
   const body = razorpay_order_id + '|' + razorpay_payment_id;
   const expectedSignature = crypto
@@ -342,20 +392,25 @@ router.post('/razorpay/verify', async (req, res) => {
   // Signature is valid. Grant credits if not already granted.
   const tx = await prisma.razorpayTransaction.findUnique({ where: { orderId: razorpay_order_id } });
   if (!tx) return res.status(404).json({ error: 'Order not found.' });
-  if (tx.status === 'SUCCESS') return res.json({ ok: true, message: 'Already processed.' });
+  if (tx.status === 'SUCCESS') return res.json({ ok: true, message: 'Already processed.', creditsAdded: tx.creditsBought });
 
   await prisma.razorpayTransaction.update({
     where: { orderId: razorpay_order_id },
     data: { status: 'SUCCESS', paymentId: razorpay_payment_id, signature: razorpay_signature, completedAt: new Date() }
   });
 
-  await adjustCredits(
+  const bonusAmount = tx.creditsBought - tx.amountRupees;
+  const reasonText = bonusAmount > 0
+    ? `Instant recharge via Razorpay (₹${tx.amountRupees.toLocaleString('en-IN')} + ${bonusAmount.toLocaleString('en-IN')} bonus credits, Order: ${razorpay_order_id})`
+    : `Instant recharge via Razorpay (₹${tx.amountRupees.toLocaleString('en-IN')}, Order: ${razorpay_order_id})`;
+
+  const { institute } = await adjustCredits(
     instituteId,
     tx.creditsBought,
-    `Instant recharge via Razorpay (Order: ${razorpay_order_id})`
+    reasonText
   );
 
-  res.json({ ok: true, creditsAdded: tx.creditsBought });
+  res.json({ ok: true, creditsAdded: tx.creditsBought, newBalance: institute.creditBalance });
 });
 
 module.exports = router;

@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { login, verifyTwoFactor } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -23,7 +26,11 @@ export default function Login() {
       if (result.requiresTwoFactor) {
         setPendingToken(result.pendingToken);
       } else {
-        navigate(result.user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard');
+        if (redirectUrl) {
+          navigate(redirectUrl);
+        } else {
+          navigate(result.user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard');
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -38,7 +45,11 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await verifyTwoFactor(pendingToken, code.trim());
-      navigate(user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard');
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else {
+        navigate(user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -60,6 +71,22 @@ export default function Login() {
             {pendingToken ? 'Enter your authenticator code' : 'Sign in to your account'}
           </p>
         </div>
+
+        {redirectUrl && (
+          <div style={{
+            background: 'rgba(30, 58, 138, 0.08)',
+            border: '1px solid rgba(30, 58, 138, 0.2)',
+            color: 'var(--navy-900)',
+            borderRadius: 8,
+            padding: '10px 14px',
+            fontSize: 12.5,
+            marginBottom: 20,
+            textAlign: 'center',
+            fontWeight: 600
+          }}>
+            ⚡ Sign in to proceed to credit recharge
+          </div>
+        )}
 
         {error && <div className="alert alert-danger">{error}</div>}
 

@@ -14,6 +14,8 @@ export default function RechargeApprovals() {
 
   const [upiId, setUpiId] = useState('');
   const [payeeName, setPayeeName] = useState('');
+  const [rzpKeyId, setRzpKeyId] = useState('');
+  const [rzpKeySecret, setRzpKeySecret] = useState('');
   const [savingUpi, setSavingUpi] = useState(false);
   const [revenue, setRevenue] = useState(null);
   const qrRef = useRef(null);
@@ -23,6 +25,7 @@ export default function RechargeApprovals() {
       .then(([p, h, u, rev]) => {
         setPending(p); setHistory(h); setUpi(u); setRevenue(rev);
         setUpiId(u.upiId || ''); setPayeeName(u.payeeName || '');
+        if (u.razorpayKeyId) setRzpKeyId(u.razorpayKeyId);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -51,9 +54,16 @@ export default function RechargeApprovals() {
   async function saveUpi() {
     setSavingUpi(true); setError(null); setMessage(null);
     try {
-      await api.setUpiInfo({ upiId: upiId.trim(), payeeName: payeeName.trim() });
+      const payload = {
+        upiId: upiId.trim(),
+        payeeName: payeeName.trim(),
+      };
+      if (rzpKeyId && !rzpKeyId.includes('...')) payload.razorpayKeyId = rzpKeyId.trim();
+      if (rzpKeySecret) payload.razorpayKeySecret = rzpKeySecret.trim();
+
+      await api.setUpiInfo(payload);
       if (qrRef.current?.files?.[0]) await api.uploadUpiQr(qrRef.current.files[0]);
-      setMessage('Payment details saved.');
+      setMessage('Payment details and Gateway settings saved successfully.');
       load();
     } catch (e) { setError(e.message); } finally { setSavingUpi(false); }
   }
@@ -118,32 +128,72 @@ export default function RechargeApprovals() {
         </div>
       )}
 
-      {/* UPI setup */}
-      <div className="card card-pad" style={{ marginBottom: 28, borderLeft: `3px solid ${NAVY}` }}>
-        <h3 style={{ marginBottom: 4 }}>Your UPI payment details</h3>
-        <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 14 }}>Shown to institutes on their recharge page. Upload your QR and/or enter your UPI ID.</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-          <div className="field" style={{ margin: 0 }}>
-            <label>UPI ID</label>
-            <input type="text" placeholder="yourname@bank" value={upiId} onChange={(e) => setUpiId(e.target.value)} />
+      {/* Payment Configuration */}
+      <div className="card card-pad" style={{ marginBottom: 28, borderLeft: `4px solid ${NAVY}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: 17, color: NAVY }}>Recharge &amp; Payment Gateway Configuration</h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>Configure the UPI credentials shown to institutes and optional Razorpay API keys for automated payments.</p>
           </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Payee name (optional)</label>
-            <input type="text" placeholder="e.g. Andhra Inspire Academy" value={payeeName} onChange={(e) => setPayeeName(e.target.value)} />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>QR image (PNG/JPG)</label>
-            <input type="file" accept="image/png,image/jpeg,image/webp" ref={qrRef} />
+          <div style={{
+            background: upi?.razorpayConfigured ? '#DCFCE7' : '#FEF3C7',
+            color: upi?.razorpayConfigured ? '#15803D' : '#92400E',
+            padding: '4px 10px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 700
+          }}>
+            {upi?.razorpayConfigured ? '● Razorpay Live' : '● Razorpay Awaiting Keys'}
           </div>
         </div>
-        {upi?.qrUrl && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 4 }}>Current QR:</div>
-            <img src={`${imgBase}${upi.qrUrl}`} alt="Current UPI QR" style={{ maxWidth: 120, border: '1px solid var(--line)', borderRadius: 6, padding: 4, background: '#fff' }} />
+
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>
+            1. Direct UPI &amp; QR Settings (Active)
           </div>
-        )}
-        <button className="btn btn-primary" style={{ marginTop: 14, background: NAVY, color: '#fff' }} onClick={saveUpi} disabled={savingUpi}>
-          {savingUpi ? 'Saving…' : 'Save payment details'}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label>UPI ID</label>
+              <input type="text" placeholder="yourname@bank" value={upiId} onChange={(e) => setUpiId(e.target.value)} />
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label>Payee Name (optional)</label>
+              <input type="text" placeholder="e.g. Andhra Inspire Academy" value={payeeName} onChange={(e) => setPayeeName(e.target.value)} />
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label>Custom QR Image (PNG/JPG)</label>
+              <input type="file" accept="image/png,image/jpeg,image/webp" ref={qrRef} />
+            </div>
+          </div>
+          {upi?.qrUrl && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 4 }}>Uploaded Custom QR:</div>
+              <img src={`${imgBase}${upi.qrUrl}`} alt="Current UPI QR" style={{ maxWidth: 120, border: '1px solid var(--line)', borderRadius: 6, padding: 4, background: '#fff' }} />
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px dashed #E2E8F0' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+            2. Razorpay Automated Gateway (Optional)
+          </div>
+          <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginBottom: 12 }}>
+            Enter your Razorpay Key ID and Secret to enable instant automated checkouts via cards, netbanking, and UPI.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label>Razorpay Key ID</label>
+              <input type="text" placeholder="rzp_live_... or rzp_test_..." value={rzpKeyId} onChange={(e) => setRzpKeyId(e.target.value)} />
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label>Razorpay Key Secret</label>
+              <input type="password" placeholder="Enter new secret to update..." value={rzpKeySecret} onChange={(e) => setRzpKeySecret(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-primary" style={{ marginTop: 18, background: NAVY, color: '#fff', padding: '10px 20px', fontWeight: 700 }} onClick={saveUpi} disabled={savingUpi}>
+          {savingUpi ? 'Saving Settings…' : 'Save Payment & Gateway Settings'}
         </button>
       </div>
 

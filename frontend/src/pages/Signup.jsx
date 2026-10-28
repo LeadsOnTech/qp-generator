@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const LogoSvg = () => (
@@ -11,6 +11,10 @@ const LogoSvg = () => (
 );
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
+  const plan = searchParams.get('plan');
+  const amount = searchParams.get('amount');
+
   const [step, setStep] = useState(1);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -281,6 +285,36 @@ export default function Signup() {
             }}>
               <span>⚡</span> 200 Free Welcome Credits
             </div>
+
+            {amount && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(7, 21, 74, 0.04), rgba(246, 200, 76, 0.12))',
+                border: '1.5px solid rgba(246, 200, 76, 0.5)',
+                borderRadius: 12,
+                padding: '12px 16px',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap'
+              }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy-950)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    🎯 Selected: {plan === 'institution' ? 'Institution Master Pack' : plan === 'growth' ? 'Growth Academy Pack' : plan === 'starter' ? 'Starter Pack' : 'Custom Pack'} (₹{Number(amount).toLocaleString('en-IN')})
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 2 }}>
+                    Sign up to claim 200 free trial credits. This recharge plan will be ready in your account.
+                  </div>
+                </div>
+                <Link 
+                  to={`/login?redirect=/recharge?amount=${amount}${plan ? `&plan=${plan}` : ''}`}
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--premium-blue)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                >
+                  Already registered? Sign in →
+                </Link>
+              </div>
+            )}
 
             <h2 style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6, letterSpacing: '-0.02em' }}>Request Access</h2>
             <p style={{ fontSize: 14.5, color: 'var(--ink-soft)', marginBottom: 28, lineHeight: 1.5 }}>

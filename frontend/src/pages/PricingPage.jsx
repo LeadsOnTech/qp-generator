@@ -108,8 +108,10 @@ export default function PricingPage() {
   }
   const totalCustomCredits = numAmount + bonusCredits;
 
-  const CtaLink = ({ className, style, children, amount }) => {
-    const target = user ? (amount ? `/recharge?amount=${amount}` : '/recharge') : '/signup';
+  const CtaLink = ({ className, style, children, amount, plan }) => {
+    const target = user 
+      ? (amount ? `/recharge?amount=${amount}${plan ? `&plan=${plan}` : ''}` : '/recharge') 
+      : (amount ? `/signup?amount=${amount}${plan ? `&plan=${plan}` : ''}` : '/signup');
     return (
       <Link to={target} className={className} style={style}>
         {children || (user ? 'Recharge Credits' : 'Claim 200 Free Credits →')}
@@ -351,6 +353,7 @@ export default function PricingPage() {
 
             <CtaLink 
               amount="5000"
+              plan="starter"
               className="btn btn-ghost" 
               style={{ 
                 width: '100%', 
@@ -366,6 +369,13 @@ export default function PricingPage() {
             >
               {user ? 'Recharge ₹5,000' : 'Select Starter Pack'}
             </CtaLink>
+            {!user && (
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                <Link to="/login?redirect=/recharge?amount=5000&plan=starter" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'underline' }}>
+                  Existing institute? Sign in to buy →
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* TIER 2: GROWTH / ACADEMY (MOST POPULAR - HIGHLIGHTED!) */}
@@ -455,6 +465,7 @@ export default function PricingPage() {
 
             <CtaLink 
               amount="10000"
+              plan="growth"
               className="btn btn-primary" 
               style={{ 
                 width: '100%', 
@@ -472,6 +483,13 @@ export default function PricingPage() {
             >
               {user ? 'Recharge ₹10,000 (Get 11,500 Cr)' : 'Choose Growth Pack (Save 15%) →'}
             </CtaLink>
+            {!user && (
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                <Link to="/login?redirect=/recharge?amount=10000&plan=growth" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'underline' }}>
+                  Existing institute? Sign in to buy →
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* TIER 3: INSTITUTION MASTER (MAX SAVINGS) */}
@@ -538,6 +556,7 @@ export default function PricingPage() {
 
             <CtaLink 
               amount="20000"
+              plan="institution"
               className="btn btn-ghost" 
               style={{ 
                 width: '100%', 
@@ -554,6 +573,13 @@ export default function PricingPage() {
             >
               {user ? 'Recharge ₹20,000 (Get 25,000 Cr)' : 'Get Institution Pack →'}
             </CtaLink>
+            {!user && (
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                <Link to="/login?redirect=/recharge?amount=20000&plan=institution" style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'underline' }}>
+                  Existing institute? Sign in to buy →
+                </Link>
+              </div>
+            )}
           </div>
 
         </div>
@@ -653,22 +679,32 @@ export default function PricingPage() {
 
             <div>
               {isAmountValid ? (
-                <CtaLink 
-                  amount={customAmount}
-                  className="btn btn-primary" 
-                  style={{ 
-                    width: '100%', 
-                    padding: '16px', 
-                    fontSize: 15.5, 
-                    fontWeight: 700, 
-                    justifyContent: 'center', 
-                    display: 'flex',
-                    borderRadius: 12,
-                    textDecoration: 'none'
-                  }}
-                >
-                  {user ? `Proceed to Pay ₹${numAmount.toLocaleString()} →` : 'Create Account to Recharge →'}
-                </CtaLink>
+                <>
+                  <CtaLink 
+                    amount={customAmount}
+                    plan="custom"
+                    className="btn btn-primary" 
+                    style={{ 
+                      width: '100%', 
+                      padding: '16px', 
+                      fontSize: 15.5, 
+                      fontWeight: 700, 
+                      justifyContent: 'center', 
+                      display: 'flex',
+                      borderRadius: 12,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    {user ? `Proceed to Pay ₹${numAmount.toLocaleString()} →` : 'Create Account to Recharge →'}
+                  </CtaLink>
+                  {!user && (
+                    <div style={{ marginTop: 8, textAlign: 'center' }}>
+                      <Link to={`/login?redirect=/recharge?amount=${customAmount}&plan=custom`} style={{ fontSize: 12, color: 'var(--ink-soft)', textDecoration: 'underline' }}>
+                        Existing institute? Sign in to buy →
+                      </Link>
+                    </div>
+                  )}
+                </>
               ) : (
                 <button disabled style={{ width: '100%', padding: '16px', fontSize: 14.5, borderRadius: 12, border: 'none', background: '#E2E8F0', color: '#94A3B8', fontWeight: 600 }}>
                   Minimum recharge is ₹5,000
