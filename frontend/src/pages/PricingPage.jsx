@@ -7,47 +7,72 @@ import '../landing.css';
 
 const LogoSvg = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-    <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#F6C84C"/>
+    <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2 12L12 17L22 12" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const faqs = [
-  { q: "What is a QuestionStudio credit?", a: "One credit is used to generate one question or one solution." },
-  { q: "How much does one credit cost?", a: "One credit costs ₹1." },
-  { q: "What is the minimum recharge?", a: "The minimum recharge is ₹5,000, which gives you 5,000 credits." },
-  { q: "Is there a maximum recharge?", a: "There is no maximum recharge limit." },
-  { q: "Do credits expire?", a: "No. Your purchased credits do not expire." },
-  { q: "Does generating a PDF consume credits?", a: "No. PDF generation and download do not consume credits." },
-  { q: "Are solutions included with question generation?", a: "Solutions use credits separately. One generated solution uses one credit." },
-  { q: "Can I use credits for NEET, JEE Main and EAMCET/EAPCET?", a: "QuestionStudio currently supports NEET, JEE Main and EAMCET/EAPCET." },
-  { q: "Can I get a refund?", a: "Credit purchases are non-refundable." },
-  { q: "How can I recharge?", a: "You can recharge through Razorpay or the available manual payment option." }
+  { 
+    q: "What is a QuestionStudio credit?", 
+    a: "One credit generates one complete verified question. If you choose to include full step-by-step worked solutions for your paper, solutions use 1 credit per question that has a worked solution." 
+  },
+  { 
+    q: "How much does one credit cost?", 
+    a: "The standard rate is ₹1 per credit. When you choose our Growth (₹10,000) or Institution (₹20,000) packs, you receive up to 25% extra bonus credits, lowering your effective cost to as low as ₹0.80 per question." 
+  },
+  { 
+    q: "Do purchased credits ever expire?", 
+    a: "Never! Your credits remain in your institute account indefinitely with lifetime validity. There are no monthly resets, no annual expirations, and no pressure during summer holidays or off-seasons." 
+  },
+  { 
+    q: "Does creating or downloading the final PDF consume credits?", 
+    a: "No! PDF generation, letterhead branding, question reordering, and unlimited PDF downloads are 100% free. You only spend credits once when assembling questions into your test paper." 
+  },
+  { 
+    q: "What is the minimum recharge amount?", 
+    a: "The minimum recharge is ₹5,000, giving you 5,000 credits. There is no maximum limit, and larger bundles include bonus credits." 
+  },
+  { 
+    q: "Can I use credits across NEET, JEE Main, and EAMCET?", 
+    a: "Yes! Your single credit balance works across all supported competitive exams including NEET (UG), JEE Main, JEE Advanced, and AP/TS EAMCET & EAPCET." 
+  },
+  { 
+    q: "How does this compare to hiring a DTP typing agency?", 
+    a: "A DTP operator charges ₹500 to ₹1,200 per paper and takes 2 to 3 days with frequent typos. With QuestionStudio, a 75-question JEE paper costs just ₹75, is formatted in LaTeX with sharp diagrams in under 2 minutes, and carries your institute's custom letterhead automatically." 
+  },
+  { 
+    q: "What payment methods are supported?", 
+    a: "We support instant online recharge via Razorpay (UPI, Google Pay, PhonePe, Paytm, NetBanking, Credit & Debit Cards) as well as direct UPI/Bank transfer with invoice generation." 
+  },
+  { 
+    q: "How do I claim my 200 Free Welcome Credits?", 
+    a: "Simply click 'Get Started Free' and submit your institute visiting card or teacher ID. Once our verification team approves your institute (within 2-4 hours), 200 free credits are credited automatically to your account." 
+  }
 ];
 
 export default function PricingPage() {
   const { user } = useAuth();
   const [institute, setInstitute] = useState(null);
-  const [scrolled, setScrolled] = useState(false);
   
+  // Custom recharge state
   const [customAmount, setCustomAmount] = useState('5000');
   
-  const [calcQ, setCalcQ] = useState(100);
-  const [calcS, setCalcS] = useState(100);
+  // Interactive Exam Cost Estimator
+  const [examType, setExamType] = useState('JEE'); // 'JEE' | 'NEET' | 'DPP' | 'CUSTOM'
+  const [calcQ, setCalcQ] = useState(75);
+  const [includeSol, setIncludeSol] = useState(false);
+  
+  // FAQ Accordion State
+  const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
-    document.title = "QuestionStudio Pricing — Simple Pay-As-You-Go Credits";
+    document.title = "QuestionStudio Pricing — Simple Pay-As-You-Go Credits | NEET, JEE, EAMCET";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute("content", "Simple QuestionStudio pricing for coaching institutes, junior colleges and teachers. Generate questions and solutions with 1 credit per question or solution. Start with 200 free credits.");
+      meta.setAttribute("content", "Pay only for what you generate at ₹1/question. Zero subscriptions, lifetime credit validity, and 200 free welcome credits for Indian coaching institutes and colleges.");
     }
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
@@ -56,349 +81,1098 @@ export default function PricingPage() {
     }
   }, [user]);
 
+  // Handle Preset Exam Clicks
+  function selectExamPreset(type) {
+    setExamType(type);
+    if (type === 'JEE') {
+      setCalcQ(75);
+      setIncludeSol(false);
+    } else if (type === 'NEET') {
+      setCalcQ(180);
+      setIncludeSol(false);
+    } else if (type === 'DPP') {
+      setCalcQ(30);
+      setIncludeSol(false);
+    }
+  }
+
   const numAmount = parseInt(customAmount) || 0;
   const isAmountValid = numAmount >= 5000;
-  const numQ = parseInt(calcQ) || 0;
-  const numS = parseInt(calcS) || 0;
 
-  const CtaButton = ({ className, style }) => {
-    if (user) {
-      return (
-        <Link to="/recharge" className={className} style={style}>
-          Recharge Credits
-        </Link>
-      );
-    }
+  // Calculate Bonus for Custom Amount
+  let bonusCredits = 0;
+  if (numAmount >= 20000) {
+    bonusCredits = Math.floor(numAmount * 0.25); // 25% bonus
+  } else if (numAmount >= 10000) {
+    bonusCredits = Math.floor(numAmount * 0.15); // 15% bonus
+  }
+  const totalCustomCredits = numAmount + bonusCredits;
+
+  const CtaLink = ({ className, style, children, amount }) => {
+    const target = user ? (amount ? `/recharge?amount=${amount}` : '/recharge') : '/signup';
     return (
-      <Link to="/signup" className={className} style={style}>
-        Get Started Free
+      <Link to={target} className={className} style={style}>
+        {children || (user ? 'Recharge Credits' : 'Claim 200 Free Credits →')}
       </Link>
     );
   };
 
   return (
-    <div className="landing-page pricing-page">
+    <div className="landing-page pricing-page" style={{ background: '#f8fafc', color: 'var(--ink)' }}>
       {/* HEADER */}
       <MarketingHeader activePage="pricing" />
 
-      {/* PREMIUM HERO */}
-      <section className="pricing-hero" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #0B1554 0%, #101F66 100%)', color: '#fff' }}>
-        <div style={{ display: 'inline-block', fontSize: 13, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--premium-yellow)', marginBottom: 24, textTransform: 'uppercase' }}>
-          SIMPLE • FLEXIBLE • PAY AS YOU GO
-        </div>
-        <h1 style={{ fontSize: 'clamp(32px, 7vw, 56px)', fontWeight: 800, marginBottom: 24, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.15, color: '#ffffff' }}>
-          Pay Only for What You Generate.
-        </h1>
-        <p style={{ fontSize: 'clamp(16px, 3vw, 20px)', color: 'rgba(255,255,255,0.8)', maxWidth: 700, margin: '0 auto 40px', lineHeight: 1.6 }}>
-          Generate exam-ready question papers for NEET, JEE Main and EAMCET/EAPCET using a simple credit system designed for coaching institutes, junior colleges and teachers.
-        </p>
-        
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-          <CtaButton className="btn-primary-yellow" style={{ padding: '16px 32px', fontSize: 16 }} />
-        </div>
-        <div style={{ marginTop: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '12px 24px', borderRadius: '100px', color: '#4ADE80', fontWeight: 800, fontSize: 15, boxShadow: '0 0 32px rgba(34, 197, 94, 0.2)', maxWidth: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
-          <div style={{ background: '#22C55E', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+      {/* HERO SECTION */}
+      <section className="pricing-hero" style={{ 
+        textAlign: 'center', 
+        background: 'radial-gradient(circle at 50% 10%, rgba(49, 87, 232, 0.25) 0%, transparent 60%), radial-gradient(circle at 85% 80%, rgba(246, 200, 76, 0.12) 0%, transparent 50%), linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #08113B 100%)', 
+        color: '#ffffff',
+        padding: 'clamp(48px, 8vw, 84px) clamp(16px, 5vw, 64px) clamp(56px, 9vw, 96px)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Subtle Grid Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 1.5px, transparent 1.5px)',
+          backgroundSize: '40px 40px',
+          opacity: 0.7,
+          pointerEvents: 'none'
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: 8, 
+            fontSize: 12.5, 
+            fontWeight: 800, 
+            letterSpacing: '0.08em', 
+            color: '#F6C84C', 
+            background: 'rgba(246, 200, 76, 0.12)', 
+            border: '1px solid rgba(246, 200, 76, 0.35)', 
+            padding: '6px 16px', 
+            borderRadius: 999, 
+            marginBottom: 20, 
+            textTransform: 'uppercase' 
+          }}>
+            <span>⚡</span> TRANSPARENT PAY-AS-YOU-GO • ZERO MONTHLY COMMITMENT
           </div>
-          Every new account gets 200 FREE CREDITS!
+
+          <h1 style={{ 
+            fontSize: 'clamp(32px, 6vw, 54px)', 
+            fontWeight: 800, 
+            marginBottom: 20, 
+            fontFamily: 'var(--font-display)', 
+            letterSpacing: '-0.025em', 
+            lineHeight: 1.16, 
+            color: '#ffffff' 
+          }}>
+            Generate Exam Papers for ₹1/Question. <br />
+            <span style={{ 
+              background: 'linear-gradient(135deg, #FFE082 0%, #F6C84C 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 4px 24px rgba(246, 200, 76, 0.25)'
+            }}>
+              Never Pay an Expensive Monthly Retainer.
+            </span>
+          </h1>
+
+          <p style={{ 
+            fontSize: 'clamp(15px, 2.8vw, 19px)', 
+            color: 'rgba(255, 255, 255, 0.85)', 
+            maxWidth: 720, 
+            margin: '0 auto 36px', 
+            lineHeight: 1.6 
+          }}>
+            No lock-in contracts. No credit expiry. Assemble error-free NEET, JEE, and EAMCET papers with your custom logo and branding in 2 minutes.
+          </p>
+          
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+            <CtaLink 
+              className="btn btn-primary" 
+              style={{ 
+                padding: '15px 34px', 
+                fontSize: 16, 
+                fontWeight: 800, 
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
+                color: '#07154A',
+                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
+                border: 'none',
+                textDecoration: 'none'
+              }}
+            >
+              {user ? 'Recharge Credits' : 'Claim 200 Free Credits →'}
+            </CtaLink>
+          </div>
+
+          {/* Social Proof + Free Credits Badge */}
+          <div style={{ 
+            marginTop: 36, 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: 16, 
+            background: 'rgba(255, 255, 255, 0.06)', 
+            border: '1px solid rgba(255, 255, 255, 0.12)', 
+            padding: '10px 20px', 
+            borderRadius: 999, 
+            backdropFilter: 'blur(8px)',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #07154A', backgroundImage: 'url(/images/avatars/educator-indian-1.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #07154A', backgroundImage: 'url(/images/avatars/educator-indian-2.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', marginLeft: -8 }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #07154A', backgroundImage: 'url(/images/avatars/educator-indian-3.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', marginLeft: -8 }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #07154A', backgroundImage: 'url(/images/avatars/educator-indian-4.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', marginLeft: -8 }} />
+            </div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#4ADE80', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>✓</span> Every verified institute starts with 200 FREE CREDITS!
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* USER BALANCE / MAIN PRICING CARD */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        
-        {!user && (
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 16, padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 900, marginBottom: 40, boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--premium-text-secondary)' }}>Sign in to view your current credit balance.</div>
-            <Link to="/login" className="btn-outline-white" style={{ padding: '12px 24px', color: 'var(--premium-indigo)', border: '1px solid var(--line)' }}>Sign In</Link>
-          </div>
-        )}
-        {user && institute && (
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 16, padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 900, marginBottom: 40, boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }}>
+      {/* USER BALANCE CALLOUT (IF LOGGED IN) */}
+      {user && institute && (
+        <div style={{ maxWidth: 1120, margin: '-32px auto 32px', padding: '0 20px', position: 'relative', zIndex: 10 }}>
+          <div style={{ 
+            background: '#ffffff', 
+            border: '1.5px solid #3157E8', 
+            borderRadius: 18, 
+            padding: '20px 28px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            boxShadow: '0 12px 32px rgba(49, 87, 232, 0.12)',
+            flexWrap: 'wrap',
+            gap: 16
+          }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--premium-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Credit Balance</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--premium-blue)', fontFamily: 'var(--font-mono)' }}>
-                {institute.creditBalance.toLocaleString()} <span style={{ fontSize: 18, color: 'var(--premium-text)' }}>Credits</span>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Active Account Balance</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                {institute.creditBalance.toLocaleString()} <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--premium-blue)', fontFamily: 'var(--font-body)' }}>Available Credits</span>
               </div>
             </div>
-            <Link to="/recharge" className="btn-primary-yellow" style={{ padding: '12px 24px' }}>Recharge Now</Link>
-          </div>
-        )}
-
-        {/* TRANSPARENT FORMULA */}
-        <div style={{ width: '100%', maxWidth: 900, marginBottom: 64, display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 24 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--premium-indigo)' }}>₹1</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--premium-text-secondary)' }}>EQUALS</div>
-          </div>
-          <div style={{ fontSize: 40, color: '#CBD5E1' }}>=</div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--premium-blue)' }}>1 CREDIT</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--premium-text-secondary)' }}>FOR 1 QUESTION / SOLUTION</div>
+            <Link to="/recharge" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: 14.5, fontWeight: 700 }}>
+              + Top Up Credits Now
+            </Link>
           </div>
         </div>
+      )}
 
-        {/* RECHARGE CARD */}
-        <div className="pricing-recharge-card">
-          
-          <div>
-            <h2 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, marginBottom: 8, color: 'var(--premium-indigo)' }}>QuestionStudio Credits</h2>
-            <p style={{ fontSize: 16, color: 'var(--premium-text-secondary)', marginBottom: 32 }}>Simple pay-as-you-go pricing.</p>
-            
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, fontWeight: 600 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                1 Question = 1 Credit
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, fontWeight: 600 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                1 Solution = 1 Credit
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, fontWeight: 600 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                PDF Generation & Download = FREE
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, fontWeight: 600 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                Credits Never Expire
-              </li>
-            </ul>
-            <div style={{ fontSize: 13, color: '#94A3B8' }}>* Credit purchases are non-refundable. Minimum recharge is ₹5,000. No maximum limit.</div>
+      {/* SECTION: 3 TEMPTING CREDIT BUNDLES */}
+      <section style={{ maxWidth: 1200, margin: '48px auto', padding: '0 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 44 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            TRANSPARENT VOLUME PACKAGES
           </div>
+          <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+            Choose Your Credit Package
+          </h2>
+          <p style={{ fontSize: 16.5, color: 'var(--ink-soft)', maxWidth: 640, margin: '0 auto', lineHeight: 1.5 }}>
+            Pick a bundle to unlock volume bonus credits. Credits never expire and can be used anytime across all academic sessions.
+          </p>
+        </div>
+
+        {/* 3 TIERS GRID */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: 28, 
+          alignItems: 'stretch',
+          marginBottom: 48
+        }}>
           
-          <div style={{ background: '#f8fafc', padding: 'clamp(20px, 4vw, 32px)', borderRadius: 16, border: '1px solid #E2E8F0' }}>
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--premium-indigo)' }}>How many credits do you need?</label>
+          {/* TIER 1: STARTER */}
+          <div style={{ 
+            background: '#ffffff', 
+            borderRadius: 22, 
+            padding: '36px 28px', 
+            border: '1.5px solid var(--line)', 
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                Starter Pack
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--navy-950)' }}>₹5,000</span>
+                <span style={{ fontSize: 14, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
+              </div>
+              <div style={{ 
+                padding: '10px 14px', 
+                background: '#F1F5F9', 
+                borderRadius: 10, 
+                fontSize: 14, 
+                fontWeight: 700, 
+                color: 'var(--navy-900)', 
+                marginBottom: 24,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span>⚡</span> 5,000 Credits (₹1.00 / Question)
+              </div>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 24 }}>
+                Ideal for individual subject faculty, tutors, and small coaching centres conducting weekly practice tests and DPPs.
+              </p>
+
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 20, marginBottom: 28 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 14 }}>
+                  What's included:
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: 'var(--ink)' }}>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> 5,000 Verified Questions or Solutions
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Full NEET, JEE Main &amp; EAMCET Syllabus
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Unlimited PDF Exports with Custom Logo
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Lifetime Validity — Zero Credit Expiry
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Standard WhatsApp Support
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <CtaLink 
+              amount="5000"
+              className="btn btn-ghost" 
+              style={{ 
+                width: '100%', 
+                padding: '13px', 
+                fontSize: 14.5, 
+                fontWeight: 700, 
+                justifyContent: 'center', 
+                borderRadius: 10,
+                border: '1.5px solid var(--line)',
+                background: '#F8FAFC',
+                textDecoration: 'none'
+              }}
+            >
+              {user ? 'Recharge ₹5,000' : 'Select Starter Pack'}
+            </CtaLink>
+          </div>
+
+          {/* TIER 2: GROWTH / ACADEMY (MOST POPULAR - HIGHLIGHTED!) */}
+          <div style={{ 
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #FBFDFF 100%)', 
+            borderRadius: 24, 
+            padding: '36px 28px', 
+            border: '2.5px solid #F59E0B', 
+            boxShadow: '0 16px 40px rgba(245, 158, 11, 0.16)',
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between',
+            position: 'relative',
+            transform: 'scale(1.03)',
+            zIndex: 3
+          }}>
+            {/* Best Value Ribbon */}
+            <div style={{ 
+              position: 'absolute', 
+              top: -15, 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)', 
+              color: '#07154A', 
+              padding: '6px 18px', 
+              borderRadius: 999, 
+              fontSize: 11.5, 
+              fontWeight: 800, 
+              letterSpacing: '0.06em', 
+              boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+              whiteSpace: 'nowrap'
+            }}>
+              ⭐ MOST POPULAR • 15% EXTRA BONUS
+            </div>
+
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, marginTop: 4 }}>
+                Growth Academy
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 42, fontWeight: 800, color: 'var(--navy-950)' }}>₹10,000</span>
+                <span style={{ fontSize: 14, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
+              </div>
+              
+              <div style={{ 
+                padding: '12px 14px', 
+                background: 'rgba(245, 158, 11, 0.12)', 
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: 12, 
+                fontSize: 14.5, 
+                fontWeight: 800, 
+                color: '#B45309', 
+                marginBottom: 24,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span>🔥</span> 11,500 Credits (₹0.87 / Question)
+              </div>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 24 }}>
+                The preferred pack for coaching academies conducting regular weekly tests, grand tests, and mock papers for 100+ students.
+              </p>
+
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 20, marginBottom: 28 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 14 }}>
+                  Everything in Starter, plus:
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: 'var(--ink)' }}>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#F59E0B', fontWeight: 800 }}>★</span> <strong style={{ color: '#B45309' }}>+1,500 Free Bonus Credits</strong> (₹1,500 Value)
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Total 11,500 Exam Questions &amp; Solutions
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> High-Speed Bulk Generation &amp; Assembly
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Full Worked Solutions Section on Demand
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Priority WhatsApp Onboarding &amp; Support
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <CtaLink 
+              amount="10000"
+              className="btn btn-primary" 
+              style={{ 
+                width: '100%', 
+                padding: '14px', 
+                fontSize: 15, 
+                fontWeight: 800, 
+                justifyContent: 'center', 
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
+                color: '#07154A',
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)',
+                border: 'none',
+                textDecoration: 'none'
+              }}
+            >
+              {user ? 'Recharge ₹10,000 (Get 11,500 Cr)' : 'Choose Growth Pack (Save 15%) →'}
+            </CtaLink>
+          </div>
+
+          {/* TIER 3: INSTITUTION MASTER (MAX SAVINGS) */}
+          <div style={{ 
+            background: '#ffffff', 
+            borderRadius: 22, 
+            padding: '36px 28px', 
+            border: '1.5px solid var(--line)', 
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                Institution Master
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--navy-950)' }}>₹20,000</span>
+                <span style={{ fontSize: 14, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
+              </div>
+              <div style={{ 
+                padding: '10px 14px', 
+                background: '#EEF0FF', 
+                borderRadius: 10, 
+                fontSize: 14, 
+                fontWeight: 700, 
+                color: 'var(--premium-blue)', 
+                marginBottom: 24,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <span>🚀</span> 25,000 Credits (₹0.80 / Question)
+              </div>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 24 }}>
+                For junior colleges, multi-branch institutes, and premier residential academies running annual test series.
+              </p>
+
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 20, marginBottom: 28 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 14 }}>
+                  Maximum institutional perks:
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, color: 'var(--ink)' }}>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: 'var(--premium-blue)', fontWeight: 800 }}>★</span> <strong style={{ color: 'var(--premium-blue)' }}>+5,000 Free Bonus Credits</strong> (₹5,000 Value)
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> 25,000 Questions (Enough for 250+ full tests)
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Custom High-Resolution Letterhead Setup
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Multi-Faculty Login Credentials
+                  </li>
+                  <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Dedicated Institute Manager on WhatsApp
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <CtaLink 
+              amount="20000"
+              className="btn btn-ghost" 
+              style={{ 
+                width: '100%', 
+                padding: '13px', 
+                fontSize: 14.5, 
+                fontWeight: 700, 
+                justifyContent: 'center', 
+                borderRadius: 10,
+                border: '1.5px solid var(--premium-blue)',
+                color: 'var(--premium-blue)',
+                background: '#F8FAFC',
+                textDecoration: 'none'
+              }}
+            >
+              {user ? 'Recharge ₹20,000 (Get 25,000 Cr)' : 'Get Institution Pack →'}
+            </CtaLink>
+          </div>
+
+        </div>
+
+        {/* CUSTOM AMOUNT RECHARGE BOX */}
+        <div style={{ 
+          background: '#ffffff', 
+          borderRadius: 20, 
+          padding: 'clamp(24px, 4vw, 40px)', 
+          border: '1.5px solid var(--line)', 
+          boxShadow: '0 6px 24px rgba(0, 0, 0, 0.05)',
+          maxWidth: 900,
+          margin: '0 auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+            <div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', margin: '0 0 6px' }}>Need a Custom Recharge Amount?</h3>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', margin: 0 }}>Enter any custom amount (min ₹5,000). Bonus credits apply automatically.</p>
+            </div>
+            
+            {/* Quick Amount Pills */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {['5000', '10000', '15000', '25000', '50000'].map(amt => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setCustomAmount(amt)}
+                  style={{
+                    background: customAmount === amt ? 'var(--navy-950)' : '#F1F5F9',
+                    color: customAmount === amt ? '#F6C84C' : 'var(--ink)',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ₹{Number(amt).toLocaleString()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, alignItems: 'center' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--navy-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Recharge Amount (₹)
+              </label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 18, fontWeight: 600, color: 'var(--premium-text-secondary)' }}>₹</span>
+                <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 22, fontWeight: 700, color: 'var(--ink-soft)' }}>₹</span>
                 <input 
                   type="number" 
+                  step="500"
+                  min="5000"
                   value={customAmount} 
                   onChange={e => setCustomAmount(e.target.value)} 
-                  style={{ width: '100%', padding: '16px 16px 16px 40px', fontSize: 20, fontWeight: 700, borderRadius: 8, border: '2px solid #CBD5E1', boxSizing: 'border-box' }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '14px 16px 14px 40px', 
+                    fontSize: 22, 
+                    fontWeight: 800, 
+                    borderRadius: 12, 
+                    border: '2px solid #CBD5E1', 
+                    boxSizing: 'border-box',
+                    color: 'var(--navy-950)',
+                    fontFamily: 'var(--font-mono)'
+                  }}
                 />
               </div>
             </div>
-            
-            <div style={{ marginBottom: 32, padding: 24, background: '#EEF0FF', borderRadius: 8, border: '1px dashed #3157E8', textAlign: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#3157E8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>You will receive</div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--premium-indigo)' }}>
-                {numAmount.toLocaleString()} <span style={{ fontSize: 16 }}>Credits</span>
+
+            <div style={{ 
+              background: '#EEF0FF', 
+              padding: '18px 24px', 
+              borderRadius: 14, 
+              border: '1px dashed #3157E8', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between' 
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Total Credits Received
+                </div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)' }}>
+                  {totalCustomCredits.toLocaleString()}
+                </div>
               </div>
+              {bonusCredits > 0 && (
+                <div style={{ background: '#DCFCE7', color: '#16A34A', padding: '6px 12px', borderRadius: 8, fontSize: 12.5, fontWeight: 800, textAlign: 'right' }}>
+                  +{bonusCredits.toLocaleString()} BONUS FREE!
+                </div>
+              )}
             </div>
-            
-            {isAmountValid ? (
-              user ? <Link to="/recharge" className="btn-primary-yellow" style={{ width: '100%', padding: '16px', fontSize: 16, justifyContent: 'center', display: 'flex' }}>Continue to Recharge</Link> : <Link to="/signup" className="btn-primary-yellow" style={{ width: '100%', padding: '16px', fontSize: 16, justifyContent: 'center', display: 'flex' }}>Create Account to Recharge</Link>
+
+            <div>
+              {isAmountValid ? (
+                <CtaLink 
+                  amount={customAmount}
+                  className="btn btn-primary" 
+                  style={{ 
+                    width: '100%', 
+                    padding: '16px', 
+                    fontSize: 15.5, 
+                    fontWeight: 700, 
+                    justifyContent: 'center', 
+                    display: 'flex',
+                    borderRadius: 12,
+                    textDecoration: 'none'
+                  }}
+                >
+                  {user ? `Proceed to Pay ₹${numAmount.toLocaleString()} →` : 'Create Account to Recharge →'}
+                </CtaLink>
               ) : (
-              <button disabled style={{ width: '100%', padding: '16px', fontSize: 16, borderRadius: 8, border: 'none', background: '#E2E8F0', color: '#94A3B8', fontWeight: 600 }}>
-                Minimum recharge is ₹5,000
+                <button disabled style={{ width: '100%', padding: '16px', fontSize: 14.5, borderRadius: 12, border: 'none', background: '#E2E8F0', color: '#94A3B8', fontWeight: 600 }}>
+                  Minimum recharge is ₹5,000
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* INTERACTIVE EXAM COST ESTIMATOR ("SEE WHAT YOUR CREDITS CAN DO") */}
+      <section className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              REAL-WORLD USAGE CALCULATOR
+            </div>
+            <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+              See What Your Credits Can Do
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 640, margin: '0 auto', lineHeight: 1.5 }}>
+              Choose an exam format below to see the exact cost per paper. Compare it with the high price and turnaround time of typing agencies!
+            </p>
+
+            {/* Exam Preset Selector Tabs */}
+            <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: 6, borderRadius: 12, marginTop: 24, gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => selectExamPreset('JEE')}
+                style={{
+                  background: examType === 'JEE' ? '#3157E8' : 'transparent',
+                  color: examType === 'JEE' ? '#ffffff' : 'var(--ink)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                📐 JEE Main (75 Qs)
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => selectExamPreset('NEET')}
+                style={{
+                  background: examType === 'NEET' ? '#3157E8' : 'transparent',
+                  color: examType === 'NEET' ? '#ffffff' : 'var(--ink)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                🧪 NEET (180 Qs)
+              </button>
+              <button
+                type="button"
+                onClick={() => selectExamPreset('DPP')}
+                style={{
+                  background: examType === 'DPP' ? '#3157E8' : 'transparent',
+                  color: examType === 'DPP' ? '#ffffff' : 'var(--ink)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                ⚡ Daily DPP (30 Qs)
+              </button>
+              <button
+                type="button"
+                onClick={() => setExamType('CUSTOM')}
+                style={{
+                  background: examType === 'CUSTOM' ? '#3157E8' : 'transparent',
+                  color: examType === 'CUSTOM' ? '#ffffff' : 'var(--ink)',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                ⚙️ Custom Slider
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, alignItems: 'center' }}>
+            {/* Interactive Calculator Controls */}
+            <div style={{ background: '#F8FAFC', padding: 'clamp(24px, 4vw, 36px)', borderRadius: 22, border: '1.5px solid var(--line)' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 20 }}>
+                {examType === 'CUSTOM' ? 'Customize Your Paper Specs' : `${examType} Exam Specifications`}
+              </h3>
+
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5, fontWeight: 700, marginBottom: 10 }}>
+                  <span>Questions in this Paper</span>
+                  <span style={{ color: 'var(--premium-blue)', fontFamily: 'var(--font-mono)', fontSize: 16 }}>{calcQ} Questions</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="10" 
+                  max="200" 
+                  step="5" 
+                  value={calcQ} 
+                  onChange={e => { setCalcQ(Number(e.target.value)); setExamType('CUSTOM'); }} 
+                  style={{ width: '100%', accentColor: 'var(--premium-blue)' }} 
+                />
+              </div>
+
+              <div style={{ marginBottom: 28, background: '#ffffff', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--line)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={includeSol} 
+                    onChange={e => setIncludeSol(e.target.checked)} 
+                    style={{ width: 18, height: 18, accentColor: 'var(--premium-blue)' }} 
+                  />
+                  <div>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy-900)' }}>Include Full Worked Solutions (+{calcQ} Credits)</span>
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>Answer key is always free. Worked solutions are optional.</div>
+                  </div>
+                </label>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 10, color: 'var(--ink-soft)' }}>
+                  <span>Question Assembling:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{calcQ} Credits</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 10, color: 'var(--ink-soft)' }}>
+                  <span>Worked Solutions Add-on:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{includeSol ? `${calcQ} Credits` : '₹0 (Answer Key Included Free)'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 16, color: 'var(--ink-soft)' }}>
+                  <span>PDF &amp; Logo Branding:</span>
+                  <span style={{ fontWeight: 800, color: '#16A34A' }}>FREE</span>
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  background: 'linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
+                  color: '#ffffff', 
+                  padding: '16px 20px', 
+                  borderRadius: 14 
+                }}>
+                  <div>
+                    <div style={{ fontSize: 11.5, color: '#F6C84C', fontWeight: 700, textTransform: 'uppercase' }}>Total QuestionStudio Cost</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                      ₹{includeSol ? calcQ * 2 : calcQ}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12.5, textAlign: 'right', color: 'rgba(255, 255, 255, 0.8)' }}>
+                    Just <strong>{includeSol ? calcQ * 2 : calcQ} credits</strong><br />Generated in 2 minutes
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Savings & Comparison vs DTP Agency */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ 
+                background: '#FEF3C7', 
+                border: '1.5px solid #F59E0B', 
+                borderRadius: 18, 
+                padding: '24px', 
+                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.12)' 
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  💰 MASSIVE COST COMPARISON
+                </div>
+                <h4 style={{ fontSize: 20, fontWeight: 800, color: '#78350F', margin: '0 0 12px' }}>
+                  You Save Over 85% per Test Paper
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, background: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>DTP Typing Agency:</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#DC2626' }}>₹600 – ₹1,200</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-soft)', marginTop: 2 }}>⏰ Takes 2–3 Days</div>
+                  </div>
+                  <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: 14 }}>
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>QuestionStudio:</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A' }}>₹{includeSol ? calcQ * 2 : calcQ}</div>
+                    <div style={{ fontSize: 11.5, color: '#16A34A', fontWeight: 700, marginTop: 2 }}>⚡ Ready in 2 Minutes</div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 13.5, color: '#92400E', lineHeight: 1.5 }}>
+                  Generating 20 test papers per month saves your institute over <strong>₹15,000 to ₹22,000 every single month</strong> while completely eliminating typing mistakes.
+                </div>
+              </div>
+
+              <div style={{ 
+                background: '#F8FAFC', 
+                border: '1px solid var(--line)', 
+                borderRadius: 18, 
+                padding: '22px 24px' 
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--navy-950)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🛡️</span> Zero Watermark, 100% White-Label
+                </div>
+                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: 0, lineHeight: 1.5 }}>
+                  Your generated papers feature only your institute's name, address, phone number, and logo. There is no QuestionStudio branding on student printouts.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CALCULATOR & EXAMPLES */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 16, textAlign: 'center' }}>See What Your Credits Can Do</h2>
-        <p style={{ fontSize: 18, color: 'var(--premium-text-secondary)', marginBottom: 48, textAlign: 'center', maxWidth: 600 }}>Easily estimate how many credits your typical question paper will consume.</p>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 32, width: '100%', maxWidth: 1000 }}>
-          {/* Calc */}
-          <div style={{ background: '#f8fafc', padding: 40, borderRadius: 24, border: '1px solid var(--line)' }}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>Estimate Your Paper</h3>
-            
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                <span>Number of Questions</span>
-                <span style={{ color: 'var(--premium-blue)' }}>{numQ}</span>
-              </label>
-              <input type="range" min="10" max="300" step="10" value={calcQ} onChange={e => setCalcQ(e.target.value)} style={{ width: '100%' }} />
-            </div>
-            
-            <div style={{ marginBottom: 40 }}>
-              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                <span>Number of Solutions (Optional)</span>
-                <span style={{ color: 'var(--premium-blue)' }}>{numS}</span>
-              </label>
-              <input type="range" min="0" max={calcQ} step="10" value={calcS} onChange={e => setCalcS(e.target.value)} style={{ width: '100%' }} />
-            </div>
-            
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 15 }}>
-                <span style={{ color: 'var(--premium-text-secondary)' }}>Question Credits:</span>
-                <span style={{ fontWeight: 600 }}>{numQ}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 15 }}>
-                <span style={{ color: 'var(--premium-text-secondary)' }}>Solution Credits:</span>
-                <span style={{ fontWeight: 600 }}>{numS}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, fontSize: 15 }}>
-                <span style={{ color: 'var(--premium-text-secondary)' }}>PDF Generation:</span>
-                <span style={{ fontWeight: 700, color: '#22C55E' }}>FREE</span>
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#EEF0FF', padding: 20, borderRadius: 12 }}>
-                <span style={{ fontWeight: 700, color: 'var(--premium-indigo)' }}>Total Cost</span>
-                <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--premium-blue)' }}>{numQ + numS} <span style={{ fontSize: 14 }}>Credits</span></span>
-              </div>
-            </div>
+      {/* WHY THIS PRICING MODEL WORKS (6 VALUE HIGHLIGHTS) */}
+      <section className="pricing-section-pad" style={{ backgroundColor: '#F8FAFC' }}>
+        <div style={{ textAlign: 'center', marginBottom: 44, maxWidth: 700, margin: '0 auto 44px' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            DESIGNED FOR INDIAN ACADEMIES
           </div>
-          
-          {/* Examples */}
-          <div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>Real-World Examples</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ padding: 20, border: '1px solid var(--line)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--premium-indigo)' }}>Small Weekly Test</div>
-                  <div style={{ fontSize: 14, color: 'var(--premium-text-secondary)' }}>50 Questions (No solutions)</div>
-                </div>
-                <div style={{ fontWeight: 800, color: 'var(--premium-blue)', fontSize: 18 }}>50 Credits</div>
-              </div>
-              
-              <div style={{ padding: 20, border: '1px solid var(--line)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--premium-indigo)' }}>Standard Exam Paper</div>
-                  <div style={{ fontSize: 14, color: 'var(--premium-text-secondary)' }}>100 Questions (No solutions)</div>
-                </div>
-                <div style={{ fontWeight: 800, color: 'var(--premium-blue)', fontSize: 18 }}>100 Credits</div>
-              </div>
-
-              <div style={{ padding: 20, border: '1px solid var(--line)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--premium-indigo)' }}>Comprehensive Mock Test</div>
-                  <div style={{ fontSize: 14, color: 'var(--premium-text-secondary)' }}>100 Questions + 100 Solutions</div>
-                </div>
-                <div style={{ fontWeight: 800, color: 'var(--premium-blue)', fontSize: 18 }}>200 Credits</div>
-              </div>
-
-              <div style={{ padding: 20, border: '1px solid var(--line)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--premium-indigo)' }}>Bulk Term Exam Generation</div>
-                  <div style={{ fontSize: 14, color: 'var(--premium-text-secondary)' }}>500 Questions + 500 Solutions</div>
-                </div>
-                <div style={{ fontWeight: 800, color: 'var(--premium-blue)', fontSize: 18 }}>1,000 Credits</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* VALUE HIGHLIGHTS */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#f8fafc' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 16 }}>Built Around the Way You Actually Work</h2>
-          <p style={{ fontSize: 18, color: 'var(--premium-text-secondary)' }}>Fair, transparent pricing built for coaching institutes.</p>
+          <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+            Built Around the Way You Actually Work
+          </h2>
+          <p style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.5 }}>
+            Traditional software forces you into costly yearly contracts. QuestionStudio gives you complete freedom.
+          </p>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
           {[
-            { title: 'NO MONTHLY SUBSCRIPTION', body: 'Only pay when you generate. No recurring fees weighing you down during off-seasons.' },
-            { title: 'NO CREDIT EXPIRY', body: 'Use your credits whenever you need them. No monthly resets or annual expiry dates.' },
-            { title: 'NO HIDDEN LIMITS', body: 'Your credits are clearly counted. You always know exactly what you are spending.' },
-            { title: 'SIMPLE 1:1 PRICING', body: '₹1 = 1 Credit. Generating 100 questions costs exactly 100 credits. Simple.' },
-            { title: 'FREE PDF GENERATION', body: 'Generate and download the final PDF files without consuming any additional credits.' },
-            { title: '200 FREE CREDITS', body: 'Start generating right away. Every new eligible account starts with 200 credits free.' }
+            { 
+              icon: '💳', 
+              title: 'NO MONTHLY SUBSCRIPTIONS', 
+              body: 'Pay only when you actually generate papers. Zero recurring fees weighing you down during vacation months and off-seasons.' 
+            },
+            { 
+              icon: '⏳', 
+              title: 'LIFETIME CREDIT VALIDITY', 
+              body: 'Credits never expire. Recharge today and use your credits whenever you need them across future academic terms.' 
+            },
+            { 
+              icon: '📊', 
+              title: 'NO HIDDEN LIMITS', 
+              body: '1 Question = 1 Credit. Transparent balance deduction with real-time audit logs in your dashboard.' 
+            },
+            { 
+              icon: '🏷️', 
+              title: 'SIMPLE 1:1 BASE RATE', 
+              body: '₹1 = 1 Credit base pricing, with up to 25% extra bonus credits included free on high-volume recharges.' 
+            },
+            { 
+              icon: '📄', 
+              title: 'FREE PDF GENERATION', 
+              body: 'Generate, reorder questions, and download ready-to-print vector PDFs with your logo completely free.' 
+            },
+            { 
+              icon: '🎁', 
+              title: '200 FREE WELCOME CREDITS', 
+              body: 'Every newly approved institute gets 200 free credits immediately to test and verify the paper quality risk-free.' 
+            }
           ].map((c, i) => (
-            <div key={i} style={{ background: '#fff', padding: 'clamp(20px, 4vw, 32px)', borderRadius: 16, border: '1px solid var(--line)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--premium-blue)', marginBottom: 12, letterSpacing: '0.05em' }}>{c.title}</h3>
-              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }}>{c.body}</p>
+            <div key={i} style={{ 
+              background: '#ffffff', 
+              padding: '28px 24px', 
+              borderRadius: 18, 
+              border: '1px solid var(--line)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 14 }}>{c.icon}</div>
+              <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, letterSpacing: '0.04em' }}>{c.title}</h3>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.55, margin: 0 }}>{c.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* AUDIENCE & EXAMS */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, maxWidth: 1100, width: '100%', marginBottom: 48 }}>
-          <div style={{ textAlign: 'center', padding: 'clamp(20px, 4vw, 32px)', background: '#EEF0FF', borderRadius: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Coaching Institutes</h3>
-            <p style={{ fontSize: 14, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }}>Generate large volumes of exam papers for NEET, JEE Main and EAMCET/EAPCET seamlessly.</p>
+      {/* COMPARISON TABLE: QUESTIONSTUDIO VS DTP VS LEGACY SOFTWARE */}
+      <section className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+            <h2 style={{ fontSize: 'clamp(26px, 5vw, 34px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+              Why Institutes Switch to QuestionStudio
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-soft)', lineHeight: 1.5 }}>
+              Compare QuestionStudio with traditional options coaching institutes use in India.
+            </p>
           </div>
-          <div style={{ textAlign: 'center', padding: 'clamp(20px, 4vw, 32px)', background: '#EEF0FF', borderRadius: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Junior Colleges</h3>
-            <p style={{ fontSize: 14, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }}>Create customized exam papers and solutions perfectly integrated with your institution's workflow.</p>
-          </div>
-          <div style={{ textAlign: 'center', padding: 'clamp(20px, 4vw, 32px)', background: '#EEF0FF', borderRadius: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Individual Teachers</h3>
-            <p style={{ fontSize: 14, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }}>Generate exactly what you need without committing to any rigid monthly subscription.</p>
-          </div>
-        </div>
-        
-        <div style={{ textAlign: 'center' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--premium-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 24 }}>Supported Examinations</h3>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <div style={{ padding: '10px 24px', background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 32, fontWeight: 700, color: 'var(--premium-indigo)' }}>NEET</div>
-            <div style={{ padding: '10px 24px', background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 32, fontWeight: 700, color: 'var(--premium-indigo)' }}>JEE Main</div>
-            <div style={{ padding: '10px 24px', background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 32, fontWeight: 700, color: 'var(--premium-indigo)' }}>EAMCET / EAPCET</div>
+
+          <div className="table-wrap" style={{ borderRadius: 18, border: '1.5px solid var(--line)', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 640 }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC' }}>
+                  <th style={{ padding: '16px 20px', fontSize: 13, fontWeight: 800, color: 'var(--navy-900)' }}>Feature</th>
+                  <th style={{ padding: '16px 20px', fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>Manual DTP / Typing Agency</th>
+                  <th style={{ padding: '16px 20px', fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>Traditional Question Bank Software</th>
+                  <th style={{ padding: '16px 20px', fontSize: 14, fontWeight: 800, color: '#3157E8', background: '#EEF0FF' }}>QuestionStudio</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>Average Cost per Exam Paper</td>
+                  <td style={{ padding: '16px 20px', color: '#DC2626' }}>₹600 – ₹1,200</td>
+                  <td style={{ padding: '16px 20px', color: '#DC2626' }}>₹25,000 – ₹50,000 / year upfront</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#16A34A', background: '#F9FAFF' }}>₹30 – ₹100 pay-as-you-go</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>Paper Turnaround Time</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>2 to 4 business days</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>1 to 2 hours manual picking</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: 'var(--premium-blue)', background: '#F9FAFF' }}>Under 2 Minutes</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>Contract Lock-in</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>Per-paper negotiation</td>
+                  <td style={{ padding: '16px 20px', color: '#DC2626' }}>1-Year rigid subscription</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#16A34A', background: '#F9FAFF' }}>Zero lock-in, lifetime validity</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>Formula &amp; LaTeX Equations</td>
+                  <td style={{ padding: '16px 20px', color: '#DC2626' }}>Frequent font errors &amp; typos</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>Blurry bitmaps / low res</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#16A34A', background: '#F9FAFF' }}>Vector-sharp LaTeX diagrams</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>White-Label Letterhead</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>Manual MS Word copy-paste</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>Inflexible templates</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: 'var(--premium-blue)', background: '#F9FAFF' }}>Instant automatic header logo</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--line)' }}>
+                  <td style={{ padding: '16px 20px', fontWeight: 700 }}>Free Trial</td>
+                  <td style={{ padding: '16px 20px', color: '#DC2626' }}>None</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--ink-soft)' }}>Watermarked sample only</td>
+                  <td style={{ padding: '16px 20px', fontWeight: 800, color: '#16A34A', background: '#F9FAFF' }}>200 Free Credits to test live</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      {/* RECHARGE METHODS */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#f8fafc' }}>
+      {/* PAYMENT MODES */}
+      <section className="pricing-section-pad" style={{ backgroundColor: '#F8FAFC' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 16, textAlign: 'center' }}>Secure Payment Options</h2>
-          <p style={{ fontSize: 18, color: 'var(--premium-text-secondary)', marginBottom: 48, textAlign: 'center' }}>Choose the method that works best for your institute.</p>
-          
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8 }}>
+              Secure Payment Options
+            </h2>
+            <p style={{ fontSize: 15, color: 'var(--ink-soft)', margin: 0 }}>
+              Instant automated checkout or direct UPI/Bank invoice.
+            </p>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            <div style={{ background: '#fff', padding: 'clamp(24px, 4vw, 40px)', borderRadius: 16, border: '1px solid var(--line)' }}>
-              <div style={{ width: 48, height: 48, background: '#EEF0FF', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--premium-blue)" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <div style={{ background: '#ffffff', padding: '28px', borderRadius: 18, border: '1px solid var(--line)' }}>
+              <div style={{ width: 44, height: 44, background: '#EEF0FF', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--premium-blue)" strokeWidth="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
               </div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Pay with Razorpay</h3>
-              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>Instant credit allocation using our secure Razorpay gateway. Supports UPI, NetBanking, Credit and Debit Cards.</p>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--navy-950)', marginBottom: 8 }}>Pay Online via Razorpay</h3>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.5 }}>
+                Instant credit allocation using Razorpay. Supports UPI (Google Pay, PhonePe, Paytm), NetBanking, Credit and Debit Cards.
+              </p>
               {user ? (
-                <Link to="/recharge" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Recharge via Razorpay</Link>
+                <Link to="/recharge" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: 14 }}>Recharge via Gateway →</Link>
               ) : (
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--premium-blue)' }}>Sign in to use this method →</div>
+                <Link to="/signup" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--premium-blue)', textDecoration: 'none' }}>Sign up to recharge →</Link>
               )}
             </div>
             
-            <div style={{ background: '#fff', padding: 'clamp(24px, 4vw, 40px)', borderRadius: 16, border: '1px solid var(--line)' }}>
-              <div style={{ width: 48, height: 48, background: '#EEF0FF', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--premium-blue)" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
+            <div style={{ background: '#ffffff', padding: '28px', borderRadius: 18, border: '1px solid var(--line)' }}>
+              <div style={{ width: 44, height: 44, background: '#FEF3C7', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
               </div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }}>Pay Manually</h3>
-              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>Scan the QuestionStudio QR code, complete the payment, and submit your transaction number for verification.</p>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--navy-950)', marginBottom: 8 }}>Pay via UPI QR / Bank Transfer</h3>
+              <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.5 }}>
+                Direct UPI QR scan or NEFT/IMPS bank transfer with GST invoice. Credits are credited upon payment UTR verification.
+              </p>
               {user ? (
-                <Link to="/recharge" className="btn-outline-white" style={{ width: '100%', justifyContent: 'center', border: '1px solid var(--line)', color: 'var(--premium-indigo)' }}>View Manual Payment Details</Link>
+                <Link to="/recharge" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: 14, border: '1.5px solid var(--line)' }}>View Bank &amp; UPI Details →</Link>
               ) : (
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--premium-blue)' }}>Sign in to use this method →</div>
+                <Link to="/signup" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--premium-blue)', textDecoration: 'none' }}>Sign up to view details →</Link>
               )}
-              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 12 }}>* Credits will be added after payment verification.</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="pricing-section-pad" style={{ backgroundColor: '#fff' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 48, textAlign: 'center' }}>Frequently Asked Questions</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }} itemScope itemType="https://schema.org/FAQPage">
-            {faqs.map((f, i) => (
-              <div key={i} style={{ paddingBottom: 24, borderBottom: '1px solid var(--line)' }} itemScope itemProp="mainEntity" itemType="https://schema.org/Question">
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--premium-indigo)', marginBottom: 12 }} itemProp="name">{f.q}</h3>
-                <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                  <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }} itemProp="text">{f.a}</p>
+      {/* MODERN INTERACTIVE FAQ ACCORDION */}
+      <section className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              HAVE QUESTIONS?
+            </div>
+            <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+              Frequently Asked Questions
+            </h2>
+            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)' }}>
+              Everything you need to know about QuestionStudio credits and billing.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {faqs.map((f, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div 
+                  key={i} 
+                  style={{ 
+                    border: '1.5px solid',
+                    borderColor: isOpen ? 'var(--premium-blue)' : 'var(--line)', 
+                    borderRadius: 14, 
+                    overflow: 'hidden',
+                    background: isOpen ? '#FBFDFF' : '#ffffff',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(isOpen ? -1 : i)}
+                    style={{
+                      width: '100%',
+                      padding: '18px 22px',
+                      background: 'none',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      gap: 16
+                    }}
+                  >
+                    <span style={{ fontSize: 16, fontWeight: 700, color: isOpen ? 'var(--premium-blue)' : 'var(--navy-950)' }}>
+                      {f.q}
+                    </span>
+                    <span style={{ 
+                      fontSize: 20, 
+                      fontWeight: 700, 
+                      color: isOpen ? 'var(--premium-blue)' : '#94A3B8',
+                      transform: isOpen ? 'rotate(45deg)' : 'none',
+                      transition: 'transform 0.2s ease',
+                      flexShrink: 0
+                    }}>
+                      +
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div style={{ padding: '0 22px 20px', fontSize: 14.5, color: 'var(--ink-soft)', lineHeight: 1.6, borderTop: '1px solid rgba(49, 87, 232, 0.1)' }}>
+                      <p style={{ margin: '14px 0 0' }}>{f.a}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="pricing-section-pad" style={{ background: 'linear-gradient(135deg, #0B1554 0%, #101F66 100%)', textAlign: 'center', color: '#fff' }}>
-        <h2 style={{ fontSize: 'clamp(28px, 6vw, 40px)', fontWeight: 800, marginBottom: 24, fontFamily: 'var(--font-display)' }}>Start Generating Smarter.</h2>
-        <p style={{ fontSize: 'clamp(16px, 3vw, 20px)', color: 'rgba(255,255,255,0.8)', maxWidth: 600, margin: '0 auto 40px' }}>
-          Create your account and get <span style={{ color: '#FDE047', fontWeight: 800 }}>200 free credits</span> to experience QuestionStudio today.
-        </p>
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-          <CtaButton className="btn-primary-yellow" style={{ padding: '16px 32px', fontSize: 16 }} />
+      {/* FINAL HIGH-CONVERTING CTA BANNER */}
+      <section style={{ 
+        background: 'radial-gradient(circle at 15% 20%, rgba(49, 87, 232, 0.35) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.2) 0%, transparent 50%), linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
+        textAlign: 'center', 
+        color: '#ffffff',
+        padding: 'clamp(56px, 8vw, 84px) clamp(20px, 4vw, 40px)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 680, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(28px, 6vw, 44px)', fontWeight: 800, marginBottom: 18, fontFamily: 'var(--font-display)', color: '#ffffff', letterSpacing: '-0.02em' }}>
+            Ready to Start Generating Smarter?
+          </h2>
+          <p style={{ fontSize: 'clamp(15px, 2.8vw, 19px)', color: 'rgba(255, 255, 255, 0.85)', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            Set up your institute account today and receive <strong style={{ color: '#F6C84C' }}>200 free welcome credits</strong> immediately upon verification.
+          </p>
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+            <CtaLink 
+              className="btn btn-primary" 
+              style={{ 
+                padding: '16px 36px', 
+                fontSize: 16, 
+                fontWeight: 800, 
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
+                color: '#07154A',
+                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.45)',
+                border: 'none',
+                textDecoration: 'none'
+              }}
+            >
+              {user ? 'Go to My Dashboard' : 'Get Started Free — 200 Credits Included →'}
+            </CtaLink>
+          </div>
         </div>
       </section>
 
@@ -413,7 +1187,7 @@ export default function PricingPage() {
                 <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--premium-yellow)', letterSpacing: '0.04em', marginTop: 4 }}>Your Questions. Your Standards.</span>
               </div>
             </Link>
-            <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
+            <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes in India.</p>
           </div>
           <div>
             <h4 className="footer-heading">Product</h4>
@@ -443,7 +1217,7 @@ export default function PricingPage() {
           </div>
           <div className="footer-newsletter">
             <h4 className="footer-heading">Stay Updated</h4>
-            <p style={{ fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.7)' }}>Get tips, updates, and new features delivered to your inbox.</p>
+            <p style={{ fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.7)' }}>Get tips, syllabus changes, and new features delivered to your inbox.</p>
             <form onSubmit={e => e.preventDefault()}>
               <input type="email" placeholder="Enter your email" />
               <button type="submit" className="btn-primary-yellow" style={{ width: '100%', padding: '10px' }}>Subscribe</button>
@@ -462,9 +1236,3 @@ export default function PricingPage() {
     </div>
   );
 }
-
-
-
-
-
-
