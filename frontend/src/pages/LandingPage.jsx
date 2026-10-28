@@ -2,6 +2,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import MarketingHeader from '../components/MarketingHeader';
+import MarketingFooter from '../components/MarketingFooter';
 import '../landing.css';
 
 const LogoSvg = () => (
@@ -386,68 +387,7 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="landing-footer">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <Link to="/" className="brand-logo" style={{ marginBottom: 16, color: '#fff' }}>
-              <LogoSvg />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-                <span>QuestionStudio</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--premium-yellow)', letterSpacing: '0.04em', marginTop: 4 }}>Your Questions. Your Standards.</span>
-              </div>
-            </Link>
-            <p>The smarter way to generate exam-ready question papers. Designed exclusively for competitive coaching institutes.</p>
-          </div>
-          
-          <div>
-            <h4 className="footer-heading">Product</h4>
-            <ul className="footer-links">
-              <li><Link to="/features">Features</Link></li>
-              <li><a href="#how-it-works">How It Works</a></li>
-              <li><Link to="/pricing">Pricing</Link></li>
-              <li><Link to="/login">Question Bank</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="footer-heading">Resources</h4>
-            <ul className="footer-links">
-              <li><a href="#">Blog</a></li>
-              <li><a href="#">Help Center</a></li>
-              <li><a href="#">Guides</a></li>
-              <li><a href="#">Updates</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="footer-heading">Company</h4>
-            <ul className="footer-links">
-              <li><a href="#">About Us</a></li>
-              <li><a href="#">Contact Us</a></li>
-              <li><a href="#">Privacy Policy</a></li>
-              <li><a href="#">Terms of Use</a></li>
-            </ul>
-          </div>
-
-          <div className="footer-newsletter">
-            <h4 className="footer-heading">Stay Updated</h4>
-            <p style={{ fontSize: 13, marginBottom: 16, color: 'rgba(255,255,255,0.7)' }}>Get tips, updates, and new features delivered to your inbox.</p>
-            <form onSubmit={e => e.preventDefault()}>
-              <input type="email" placeholder="Enter your email" />
-              <button type="submit" className="btn-primary-yellow" style={{ width: '100%', padding: '10px' }}>Subscribe</button>
-            </form>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <div>© {new Date().getFullYear()} QuestionStudio — Your Questions. Your Standards. All rights reserved.</div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>Twitter</a>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>LinkedIn</a>
-            <a href="#" style={{ color: 'rgba(255,255,255,0.5)' }}>YouTube</a>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }
