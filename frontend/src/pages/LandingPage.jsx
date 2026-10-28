@@ -355,10 +355,10 @@ export default function LandingPage() {
             
             <div className="cta-trust">
               <div className="cta-avatars">
-                <div className="cta-avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/men/43.jpg)', backgroundSize: 'cover' }}></div>
-                <div className="cta-avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/women/44.jpg)', backgroundSize: 'cover' }}></div>
-                <div className="cta-avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/men/22.jpg)', backgroundSize: 'cover' }}></div>
-                <div className="cta-avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/women/34.jpg)', backgroundSize: 'cover' }}></div>
+                <div className="cta-avatar" style={{ backgroundImage: 'url(/images/avatars/educator-indian-1.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} title="Educator"></div>
+                <div className="cta-avatar" style={{ backgroundImage: 'url(/images/avatars/educator-indian-2.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} title="Educator"></div>
+                <div className="cta-avatar" style={{ backgroundImage: 'url(/images/avatars/educator-indian-3.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} title="Educator"></div>
+                <div className="cta-avatar" style={{ backgroundImage: 'url(/images/avatars/educator-indian-4.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }} title="Educator"></div>
               </div>
               <div className="cta-trust-text">
                 <span className="stars">{"\u2605\u2605\u2605\u2605\u2605"}</span>
