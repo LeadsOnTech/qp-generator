@@ -1,4 +1,4 @@
-﻿/* Landing Page Specific Premium CSS */
+/* Landing Page Specific Premium CSS */
 
 .landing-page {
   font-family: var(--font-body);
@@ -39,6 +39,19 @@
   font-size: 24px;
   color: #ffffff;
   text-decoration: none;
+}
+.brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+.brand-name-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .nav-links {
@@ -936,103 +949,313 @@
 
 @media (max-width: 768px) {
   html, body, .landing-page {
-    overflow-x: hidden;
-    max-width: 100vw;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Header */
   .landing-header {
-    padding: 14px 18px;
+    padding: 10px 16px !important;
+    height: 58px !important;
+    box-sizing: border-box !important;
+  }
+  .brand-logo {
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+  .brand-name-text {
+    font-size: 18px !important;
+  }
+  .brand-tagline-header {
+    display: none !important;
   }
   .nav-links, .header-actions {
-    display: none;
+    display: none !important;
   }
   .mobile-header-controls {
-    display: flex;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
   }
+  .mobile-header-signin {
+    white-space: nowrap !important;
+    font-size: 12.5px !important;
+    padding: 6px 12px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+  .mobile-menu-toggle {
+    padding: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Hero Section (fixes Image 1 & Image 2) */
   .hero-section {
-    padding: 32px 18px 60px;
-    overflow: hidden;
+    padding: 28px 16px 36px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .hero-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .hero-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
   }
   .hero-title {
-    font-size: clamp(28px, 8.5vw, 42px);
-    line-height: 1.18;
-    margin-bottom: 16px;
+    font-size: clamp(26px, 7.5vw, 36px) !important;
+    line-height: 1.2 !important;
+    margin-bottom: 14px !important;
+    text-align: center !important;
   }
   .hero-subtitle {
-    font-size: 15px;
-    line-height: 1.5;
-    margin-bottom: 28px;
+    font-size: 14.5px !important;
+    line-height: 1.55 !important;
+    margin-bottom: 24px !important;
+    text-align: center !important;
+    max-width: 100% !important;
+    color: rgba(255, 255, 255, 0.85) !important;
   }
   .hero-actions {
-    flex-direction: column;
-    width: 100%;
-    gap: 12px;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    gap: 10px !important;
+    margin: 0 auto !important;
   }
   .hero-actions .btn-primary-yellow,
   .hero-actions .btn-outline-white {
-    width: 100%;
-    justify-content: center;
-    box-sizing: border-box;
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    padding: 13px 20px !important;
+    font-size: 14.5px !important;
+    border-radius: 10px !important;
   }
+  /* Remove the giant empty void in Image 2 */
   .hero-visual {
-    height: 380px;
-    min-height: 340px;
-    transform: scale(0.85);
-    margin: 10px auto 0;
-    max-width: 100%;
-    overflow: hidden;
-  }
-  .floating-badge {
     display: none !important;
   }
-  .hero-image-shadow-2 {
-    display: none;
-  }
-  .hero-image-shadow-1 {
-    transform: translate(-8px, 12px) rotate(-2deg);
-  }
+
+  /* Trust Strip */
   .trust-strip {
-    padding: 24px 18px;
-    gap: 20px;
-    flex-direction: column;
-    text-align: center;
+    padding: 24px 16px !important;
+    gap: 16px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+  .trust-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    justify-content: center !important;
+  }
+  .trust-text {
+    font-size: 15px !important;
+  }
+  .trust-subtext {
+    font-size: 12px !important;
+  }
+
+  /* Features Section */
   .features-section {
-    padding: 48px 18px !important;
+    padding: 44px 16px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .section-title {
+    font-size: clamp(22px, 6vw, 28px) !important;
+    line-height: 1.25 !important;
+    margin-bottom: 28px !important;
+    text-align: center !important;
+  }
+  .section-eyebrow {
+    font-size: 11px !important;
+    text-align: center !important;
+    margin-bottom: 8px !important;
   }
   .features-grid {
     grid-template-columns: 1fr !important;
-    gap: 20px;
+    gap: 48px 16px !important;
+    margin-top: 40px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .feature-card {
-    padding: 28px 20px !important;
+    padding: 36px 18px 24px !important;
+    border-radius: 16px !important;
+    box-sizing: border-box !important;
   }
-  .steps-section {
-    padding: 48px 18px !important;
+
+  /* How It Works Section */
+  .how-it-works-section {
+    padding: 44px 16px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .steps-container {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 32px !important;
+    margin-top: 32px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .step-card {
+    width: 100% !important;
+    max-width: 320px !important;
+    box-sizing: border-box !important;
+  }
+  .step-connector-container {
+    display: none !important;
+  }
+
+  /* CTA Section (COMPLETE FIX FOR IMAGES 3 & 4) */
+  .cta-section {
+    padding: 40px 16px !important;
+    background-color: #ffffff !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .cta-box {
-    padding: 32px 20px !important;
-    margin: 40px 18px !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 32px 18px !important;
+    border-radius: 20px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 12px 32px rgba(7, 21, 74, 0.12) !important;
+  }
+  .cta-box-content {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .cta-title {
+    font-size: clamp(22px, 6.5vw, 28px) !important;
+    line-height: 1.25 !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+    color: #ffffff !important;
+    word-break: normal !important;
+    hyphens: manual !important;
+  }
+  .cta-subtitle {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 24px !important;
+    text-align: center !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    max-width: 100% !important;
+  }
+  .cta-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+  .cta-btn {
+    width: 100% !important;
+    max-width: 320px !important;
+    justify-content: center !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+  .cta-trust {
+    margin-top: 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    text-align: center !important;
+  }
+  .cta-box-visual {
+    display: none !important;
+  }
+
+  /* Footer (FIX FOR IMAGE 5) */
+  .landing-footer {
+    padding: 40px 16px 28px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .footer-grid {
     grid-template-columns: 1fr !important;
-    gap: 32px;
+    gap: 28px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .footer-brand {
+    max-width: 100% !important;
   }
   .footer-bottom {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
+    flex-direction: column !important;
+    gap: 12px !important;
+    text-align: center !important;
+    padding-top: 20px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  /* Pricing Page Helpers */
   .pricing-recharge-card {
     grid-template-columns: 1fr !important;
-    padding: 24px 18px !important;
-    gap: 32px !important;
-    border-radius: 16px;
+    padding: 24px 16px !important;
+    gap: 24px !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .pricing-section-pad {
-    padding: 48px 18px !important;
+    padding: 40px 16px !important;
+    box-sizing: border-box !important;
   }
   .pricing-hero {
-    padding: 48px 18px 40px !important;
+    padding: 40px 16px 32px !important;
+    box-sizing: border-box !important;
   }
   .hide-on-mobile {
     display: none !important;

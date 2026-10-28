@@ -33,8 +33,8 @@ export default function MarketingHeader({ activePage }) {
     <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
       <Link to="/" className="brand-logo" onClick={() => setMobileOpen(false)}>
         <LogoSvg />
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-          <span>QuestionStudio</span>
+        <div className="brand-text-wrap">
+          <span className="brand-name-text">QuestionStudio</span>
           <span className="brand-tagline-header">Your Questions. Your Standards.</span>
         </div>
       </Link>
