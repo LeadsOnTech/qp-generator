@@ -77,7 +77,8 @@ function renderMath(latex, fontSize, displayMode = false) {
   try {
     let cleanLatex = latex.replace(/\\'|\\"/g, m => m === "\\'" ? "'" : '"')
       .replace(/_{2,}/g, match => '\\_'.repeat(match.length))
-      .replace(/\^([+-]?\d+)/g, "^{$1}");
+      .replace(/\^([+-]?\d+)/g, "^{$1}")
+      .replace(/(^|\s+)\^/g, '$1{}^'); // Auto-heal orphaned superscripts like '10^{-3} ^{\circ}' preventing 'Double exponent' error
 
     // Auto-subscript chemical formulas that were lazily written in math mode without subscripts
     const chemRegexGlob = /\b(\d*)((?:[A-Z][a-z]?|[()[\]]|\d)+)/g;

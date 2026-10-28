@@ -33,7 +33,12 @@ function layoutRichText(doc, text, options) {
 
   const headingRegex = /(Statement I\s*[:\.]|Statement II\s*[:\.]|Statement 1\s*[:\.]|Statement 2\s*[:\.]|Assertion\s*(?:\(A\))?\s*[:\.]|Reason\s*(?:\(R\))?\s*[:\.]|Statement-1\s*[:\.]|Statement-2\s*[:\.]|Statement - 1\s*[:\.]|Statement - 2\s*[:\.])/gi;
 
-  const segments = parseSegments(text);
+  // Sanitize accidental newlines inside parenthetical clauses (e.g. "(\n \alpha = 5 \n)" -> "( \alpha = 5 )")
+  const cleanSourceText = typeof text === 'string'
+    ? text.replace(/\(\s*[\r\n]+\s*/g, ' (').replace(/\s*[\r\n]+\s*\)/g, ') ')
+    : text;
+
+  const segments = parseSegments(cleanSourceText);
   const tokens = [];
 
   for (const segment of segments) {
