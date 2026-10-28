@@ -1,14 +1,20 @@
-require('dotenv').config();
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:./prisma/dev.db';
+const path = require('path');
+const fs = require('fs');
+
+// Ensure .env is loaded from backend directory
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// Resolve absolute path to SQLite dev.db so it works regardless of working directory
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith('file:.')) {
+  const dbPath = path.resolve(__dirname, '..', 'prisma', 'dev.db');
+  process.env.DATABASE_URL = `file:${dbPath.replace(/\\/g, '/')}`;
 }
 if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'qp-generator-prod-jwt-secret-key-2026';
 }
+
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 
 const uploadRoutes = require('./routes/upload');
 const questionRoutes = require('./routes/questions');
