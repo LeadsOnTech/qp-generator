@@ -286,30 +286,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* WHY THIS MODEL */}
-      <section style={{ padding: '80px 64px', backgroundColor: '#f8fafc' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontSize: 36, fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 16 }}>Built Around the Way You Actually Work</h2>
-          <p style={{ fontSize: 18, color: 'var(--premium-text-secondary)' }}>Fair, transparent pricing built for coaching institutes.</p>
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, maxWidth: 1100, margin: '0 auto' }}>
-          {[
-            { title: 'NO MONTHLY SUBSCRIPTION', body: 'Only pay when you generate. No recurring fees weighing you down during off-seasons.' },
-            { title: 'NO CREDIT EXPIRY', body: 'Use your credits whenever you need them. No monthly resets or annual expiry dates.' },
-            { title: 'NO HIDDEN LIMITS', body: 'Your credits are clearly counted. You always know exactly what you are spending.' },
-            { title: 'SIMPLE 1:1 PRICING', body: '₹1 = 1 Credit. Generating 100 questions costs exactly 100 credits. Simple.' },
-            { title: 'FREE PDF GENERATION', body: 'Generate and download the final PDF files without consuming any additional credits.' },
-            { title: '200 FREE CREDITS', body: 'Start generating right away. Every new eligible account starts with 200 credits free.' }
-          ].map((c, i) => (
-            <div key={i} style={{ background: '#fff', padding: 32, borderRadius: 16, border: '1px solid var(--line)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--premium-blue)', marginBottom: 12, letterSpacing: '0.05em' }}>{c.title}</h3>
-              <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', lineHeight: 1.6 }}>{c.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* VALUE HIGHLIGHTS */}
       <section className="pricing-section-pad" style={{ backgroundColor: '#f8fafc' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
