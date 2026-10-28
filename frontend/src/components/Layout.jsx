@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const adminNavItems = [
@@ -40,7 +41,7 @@ const instituteNavItems = [
   { to: '/security', label: 'Security', icon: '🔒' },
 ];
 
-function NavSection({ label, items }) {
+function NavSection({ label, items, onNavigate }) {
   return (
     <nav className="nav-group">
       {label && <p className="nav-label">{label}</p>}
@@ -49,6 +50,7 @@ function NavSection({ label, items }) {
           key={item.to}
           to={item.to}
           end={item.end}
+          onClick={() => onNavigate && onNavigate()}
           className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
         >
           <span>{item.icon}</span>
@@ -62,7 +64,13 @@ function NavSection({ label, items }) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAdmin = user?.role === 'ADMIN';
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   function handleLogout() {
     logout();
@@ -71,21 +79,59 @@ export default function Layout() {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
+      {/* Mobile Top App Bar */}
+      <header className="mobile-app-bar">
+        <button
+          type="button"
+          className="mobile-app-toggle"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className="mobile-app-brand">
           <span className="brand-mark">QuestionStudio</span>
+        </div>
+        <div className="mobile-app-role">
+          {isAdmin ? 'Admin' : (user?.instituteName || 'Institute')}
+        </div>
+      </header>
+
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="brand">
+            <span className="brand-mark">QuestionStudio</span>
+          </div>
+          <button
+            type="button"
+            className="mobile-sidebar-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
         </div>
         <div className="brand-sub">Your Questions. Your Standards.</div>
 
         {isAdmin ? (
           <>
-            <NavSection label="Question Bank" items={adminNavItems} />
-            <NavSection label="Quality &amp; Tagging" items={adminQualityItems} />
-            <NavSection label="Paper Engine" items={paperEngineItems} />
-            <NavSection label="Branding &amp; Media" items={adminOnlyExtras} />
+            <NavSection label="Question Bank" items={adminNavItems} onNavigate={() => setMobileOpen(false)} />
+            <NavSection label="Quality &amp; Tagging" items={adminQualityItems} onNavigate={() => setMobileOpen(false)} />
+            <NavSection label="Paper Engine" items={paperEngineItems} onNavigate={() => setMobileOpen(false)} />
+            <NavSection label="Branding &amp; Media" items={adminOnlyExtras} onNavigate={() => setMobileOpen(false)} />
           </>
         ) : (
-          <NavSection label="Your Account" items={instituteNavItems} />
+          <NavSection label="Your Account" items={instituteNavItems} onNavigate={() => setMobileOpen(false)} />
         )}
 
         <div className="sidebar-footer">

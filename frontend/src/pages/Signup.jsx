@@ -105,10 +105,15 @@ export default function Signup() {
       </div>
 
       {/* RIGHT SIDE - FORM */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: '#fff' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(24px, 5vw, 40px) clamp(16px, 4vw, 24px)', background: '#fff' }}>
         
         {step === 1 && (
           <div style={{ width: '100%', maxWidth: 440 }}>
+            <div className="mobile-only-brand" style={{ marginBottom: 24, textAlign: 'center' }}>
+              <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--premium-indigo)', fontSize: 22, fontWeight: 800 }}>
+                <LogoSvg /> QuestionStudio
+              </Link>
+            </div>
             <h2 style={{ fontSize: 28, fontWeight: 800, color: 'var(--premium-indigo)', marginBottom: 8 }}>Request Access</h2>
             <p style={{ fontSize: 15, color: 'var(--premium-text-secondary)', marginBottom: 32 }}>QuestionStudio is exclusively for institutes and teachers. Please verify your identity to get 200 free credits.</p>
             
@@ -125,7 +130,7 @@ export default function Signup() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                 <div className="field" style={{ margin: 0 }}>
                   <label>Full Name</label>
                   <input type="text" required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="John Doe" />

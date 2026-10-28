@@ -27,8 +27,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)' }}>
-      <div className="card card-pad" style={{ width: 420 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--paper)', padding: '24px 16px', boxSizing: 'border-box' }}>
+      <div className="card card-pad" style={{ width: '100%', maxWidth: 420, boxSizing: 'border-box' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--navy-950)' }}>
             Question<span style={{ color: 'var(--gold-500)' }}>Studio</span>

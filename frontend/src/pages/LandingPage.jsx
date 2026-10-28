@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import MarketingHeader from '../components/MarketingHeader';
 import '../landing.css';
 
 const LogoSvg = () => (
@@ -154,24 +155,7 @@ export default function LandingPage() {
   return (
     <div className="landing-page">
       {/* HEADER */}
-      <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
-        <Link to="/" className="brand-logo">
-          <LogoSvg />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-            <span>QuestionStudio</span>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>Your Questions. Your Standards.</span>
-          </div>
-        </Link>
-        <nav className="nav-links">
-          <Link to="/" className="nav-link">Home</Link>
-          <Link to="/features" className="nav-link">Features</Link>
-          <Link to="/pricing" className="nav-link">Pricing</Link>
-        </nav>
-        <div className="header-actions">
-          <Link to="/login" className="btn-signin">Sign In</Link>
-          <Link to="/signup" className="btn-primary-yellow">Get Started Free</Link>
-        </div>
-      </header>
+      <MarketingHeader activePage="home" />
 
       {/* HERO SECTION */}
       <section className="hero-section">

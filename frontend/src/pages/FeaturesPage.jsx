@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import MarketingHeader from '../components/MarketingHeader';
 import '../landing.css';
 
 const LogoSvg = () => (
@@ -67,27 +68,10 @@ export default function FeaturesPage() {
   return (
     <div className="landing-page">
       {/* HEADER */}
-      <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>
-        <Link to="/" className="brand-logo">
-          <LogoSvg />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-            <span>QuestionStudio</span>
-            <span style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.04em' }}>Your Questions. Your Standards.</span>
-          </div>
-        </Link>
-        <nav className="nav-links">
-          <Link to="/" className="nav-link">Home</Link>
-          <Link to="/features" className="nav-link" style={{ color: 'var(--premium-yellow)' }}>Features</Link>
-          <Link to="/pricing" className="nav-link">Pricing</Link>
-        </nav>
-        <div className="header-actions">
-          <Link to="/login" className="btn-signin">Sign In</Link>
-          <Link to="/signup" className="btn-primary-yellow">Get Started Free</Link>
-        </div>
-      </header>
+      <MarketingHeader activePage="features" />
 
       {/* HERO SECTION FOR FEATURES */}
-      <section className="hero-section" style={{ padding: '80px 64px 40px', textAlign: 'center', minHeight: 'auto', display: 'block' }}>
+      <section className="hero-section" style={{ padding: 'clamp(48px, 6vw, 80px) clamp(16px, 4vw, 64px) 40px', textAlign: 'center', minHeight: 'auto', display: 'block' }}>
         <div className="hero-badge" style={{ marginBottom: 24 }}>Platform Features</div>
         <h1 className="hero-title" style={{ maxWidth: 800, margin: '0 auto 24px' }}>
           Everything you need to automate your <span>examinations</span>
@@ -98,7 +82,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* DETAILED FEATURES LIST */}
-      <section className="features-section" style={{ backgroundColor: '#f8fafc', padding: '100px 64px 120px' }}>
+      <section className="features-section" style={{ backgroundColor: '#f8fafc', padding: 'clamp(48px, 6vw, 100px) clamp(16px, 4vw, 64px)' }}>
         <div className="features-grid">
           {featureDetails.map((f, i) => (
             <div key={i} className="feature-card" style={{ padding: '48px 32px 32px' }}>
