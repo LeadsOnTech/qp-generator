@@ -43,6 +43,7 @@ RUN npx prisma generate
 
 # Create persistent storage directories
 RUN mkdir -p /app/backend/uploads/images /app/backend/uploads/cards /app/backend/prisma
+VOLUME ["/app/backend/prisma", "/app/backend/uploads"]
 
 EXPOSE 4000
 
