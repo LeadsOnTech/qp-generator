@@ -1,4 +1,5 @@
 const { runAIBackgroundAudit } = require('../lib/autoQCAuditor');
+const { distributeQuestionToExams } = require('../lib/multiExamSync');
 const express = require('express');
 const multer = require('multer');
 const prisma = require('../db');
@@ -81,7 +82,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       // we still store the question (never throw away typed data) but
       // it will be excluded from paper generation by default — this is
       // the "auto-filter deleted syllabus" behaviour from planning.
-      await prisma.question.create({
+      const createdQ = await prisma.question.create({
         data: {
           questionText: data.questionText,
           optionA: data.optionA,
@@ -111,6 +112,7 @@ router.post('/', upload.single('file'), async (req, res) => {
           uploadBatchId,
         },
       });
+      await distributeQuestionToExams(createdQ.id, data.exam || req.body.exam);
       successCount++;
     } catch (err) {
       rowErrors.push({ row: rowNum, errors: [`Database error: ${err.message}`] });

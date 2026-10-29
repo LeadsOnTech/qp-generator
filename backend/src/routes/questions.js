@@ -45,12 +45,18 @@ router.get('/', async (req, res) => {
   const subjectWhere = {};
   if (subject) subjectWhere.name = subject;
 
-  const examWhere = {};
-  if (exam) examWhere.name = exam;
-
-  if (Object.keys(examWhere).length || Object.keys(subjectWhere).length) {
-    subjectWhere.exam = examWhere;
+  if (exam) {
+    where.AND = [
+      ...(where.AND || []),
+      {
+        OR: [
+          { chapter: { subject: { exam: { name: exam } } } },
+          { examMappings: { some: { exam: { name: exam }, isActive: true } } },
+        ],
+      },
+    ];
   }
+
   if (Object.keys(subjectWhere).length || Object.keys(chapterWhere).length) {
     chapterWhere.subject = subjectWhere;
   }

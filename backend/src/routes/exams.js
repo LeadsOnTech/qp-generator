@@ -23,10 +23,16 @@ router.get('/', async (req, res) => {
 
   const results = [];
   for (const exam of exams) {
-    const totalQuestions = exam.subjects.reduce(
-      (sum, s) => sum + s.chapters.reduce((cSum, c) => cSum + c._count.questions, 0),
-      0
-    );
+    const totalQuestions = await prisma.question.count({
+      where: {
+        isActive: true,
+        workflowState: 'BANK',
+        OR: [
+          { chapter: { subject: { examId: exam.id } } },
+          { examMappings: { some: { examId: exam.id, isActive: true } } },
+        ],
+      },
+    });
     const paperCountWhere = req.user.role === 'ADMIN'
       ? { examName: exam.name }
       : { examName: exam.name, instituteId: req.user.instituteId };

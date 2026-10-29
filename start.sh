@@ -21,5 +21,8 @@ npx prisma db push --skip-generate
 echo "Seeding default admin and starter syllabus..."
 node prisma/seed.js
 
+echo "Syncing common entrance exams and mappings..."
+node -e "require('./src/lib/multiExamSync').distributeAllExistingQuestions().then(n => console.log('Multi-exam sync done, mapped questions:', n)).catch(console.error)"
+
 echo "Launching application server on port $PORT..."
 exec node src/server.js

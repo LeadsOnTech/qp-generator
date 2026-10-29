@@ -63,11 +63,6 @@ async function recentlyUsedQuestionIds() {
  * with anything still sending the older request shape.
  */
 async function fetchPool({ examName, subjectName, chapters, selection }) {
-  const baseChapterWhere = {
-    syllabusStatus: 'ACTIVE',
-    subject: { name: subjectName, exam: { name: examName } },
-  };
-
   const entries = (selection && selection.length > 0)
     ? selection
     : (chapters && chapters.length > 0) ? chapters.map((name) => ({ chapter: name })) : null;
@@ -82,22 +77,28 @@ async function fetchPool({ examName, subjectName, chapters, selection }) {
           { checkStatus: { not: 'FLAGGED' } },
         ],
       },
+      {
+        OR: [
+          { chapter: { subject: { name: subjectName, exam: { name: examName } } } },
+          {
+            AND: [
+              { chapter: { subject: { name: subjectName } } },
+              { examMappings: { some: { exam: { name: examName }, isActive: true } } },
+            ],
+          },
+        ],
+      },
     ],
   };
 
-  if (!entries) {
-    // No narrowing at all — draw from every active chapter in the subject.
-    where.chapter = baseChapterWhere;
-  } else {
-    // One OR-branch per selected chapter/topic entry, so a topic-only pick
-    // in one chapter and a whole-chapter pick in another can combine freely.
+  if (entries && entries.length > 0) {
     where.AND.push({
       OR: entries.map((entry) => {
-        const chapterWhere = { ...baseChapterWhere, name: entry.chapter };
+        const cond = { chapter: { name: entry.chapter } };
         if (entry.topics && entry.topics.length > 0) {
-          return { chapter: chapterWhere, topic: { name: { in: entry.topics } } };
+          cond.topic = { name: { in: entry.topics } };
         }
-        return { chapter: chapterWhere };
+        return cond;
       }),
     });
   }

@@ -15,6 +15,7 @@ datasource db {
 model Exam {
   id        String     @id @default(cuid())
   name      String     @unique // e.g. "NEET", "JEE", "EAPCET"
+  questionMappings QuestionExamMapping[]
   subjects  Subject[]
   createdAt DateTime   @default(now())
 
@@ -266,6 +267,7 @@ model Question {
   isActive       Boolean  @default(true) // soft-delete flag (e.g. superseded by a corrected question)
 
   papers         PaperQuestion[]
+  examMappings   QuestionExamMapping[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -340,4 +342,21 @@ model RegistrationRequest {
   businessCardUrl String?
   status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
   createdAt     DateTime @default(now())
+}
+
+// ---------- Multi-Exam Mapping ----------
+
+model QuestionExamMapping {
+  id                 String    @id @default(cuid())
+  questionId         String
+  question           Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  examId             String
+  exam               Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  difficultyOverride String?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+
+  @@unique([questionId, examId])
+  @@index([examId])
+  @@index([questionId])
 }

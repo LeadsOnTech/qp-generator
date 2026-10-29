@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { ensureCommonExamsExist } = require('../src/lib/multiExamSync');
 const prisma = new PrismaClient();
 
 // Starter Syllabus Master for NEET
@@ -87,7 +88,8 @@ async function seedExam(name, syllabus) {
 async function main() {
   await seedExam('NEET', NEET_SYLLABUS);
   await seedExam('EAPCET', EAPCET_SYLLABUS);
-  console.log('Seed complete: NEET and EAPCET exams + subjects/chapters created with 0 questions.');
+  await ensureCommonExamsExist();
+  console.log('Seed complete: NEET, EAPCET, TG EAPCET, and KCET exams ready.');
 
   // One-time default admin account — change this password immediately after first login
   const defaultEmail = 'admin@questionstudio.local';

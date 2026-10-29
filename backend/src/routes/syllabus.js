@@ -39,24 +39,36 @@ router.get('/tree', async (req, res) => {
       },
       orderBy: { name: 'asc' },
     }),
-    prisma.question.groupBy({
-      by: ['chapterId', 'questionType'],
-      _count: true,
-      where: { isActive: true, workflowState: 'BANK' }
-    })
+    prisma.question.findMany({
+      where: { isActive: true, workflowState: 'BANK' },
+      select: {
+        id: true,
+        chapterId: true,
+        questionType: true,
+        chapter: { select: { name: true, subject: { select: { name: true } } } },
+        examMappings: { select: { examId: true } },
+      },
+    }),
   ]);
 
-  // Build a lookup map: chapterId -> { mcq: X, nvq: Y }
-  const countsMap = {};
-  for (const group of typeCounts) {
-    if (!countsMap[group.chapterId]) countsMap[group.chapterId] = { mcq: 0, nvq: 0 };
-    const qType = group.questionType;
-    if (qType === 'NVQ' || qType === 'NUMERICAL' || qType === 'DECIMAL' || qType === 'NVT') {
-      countsMap[group.chapterId].nvq += group._count;
-    } else {
-      // Treat everything else as MCQ
-      countsMap[group.chapterId].mcq += group._count;
+  function getCountsForChapter(examId, subjectName, chapterName, chapterId) {
+    let mcq = 0;
+    let nvq = 0;
+    for (const q of typeCounts) {
+      const isDirect = q.chapterId === chapterId;
+      const isMapped = q.examMappings?.some((m) => m.examId === examId) &&
+                       q.chapter?.name === chapterName &&
+                       q.chapter?.subject?.name === subjectName;
+      if (isDirect || isMapped) {
+        const qType = q.questionType;
+        if (qType === 'NVQ' || qType === 'NUMERICAL' || qType === 'DECIMAL' || qType === 'NVT') {
+          nvq++;
+        } else {
+          mcq++;
+        }
+      }
     }
+    return { mcq, nvq, total: mcq + nvq };
   }
 
   res.json(exams.map((exam) => ({
@@ -65,17 +77,20 @@ router.get('/tree', async (req, res) => {
     subjects: exam.subjects.map((s) => ({
       id: s.id,
       name: s.name,
-      chapters: s.chapters.map((c) => ({
-        id: c.id,
-        name: c.name,
-        syllabusStatus: c.syllabusStatus,
-        statusNote: c.statusNote,
-        statusYear: c.statusYear,
-        questionCount: c._count.questions,
-        mcqCount: countsMap[c.id]?.mcq || 0,
-        nvqCount: countsMap[c.id]?.nvq || 0,
-        topics: c.topics.map((t) => ({ id: t.id, name: t.name })),
-      })),
+      chapters: s.chapters.map((c) => {
+        const counts = getCountsForChapter(exam.id, s.name, c.name, c.id);
+        return {
+          id: c.id,
+          name: c.name,
+          syllabusStatus: c.syllabusStatus,
+          statusNote: c.statusNote,
+          statusYear: c.statusYear,
+          questionCount: counts.total,
+          mcqCount: counts.mcq,
+          nvqCount: counts.nvq,
+          topics: c.topics.map((t) => ({ id: t.id, name: t.name })),
+        };
+      }),
     })),
   })));
 });
