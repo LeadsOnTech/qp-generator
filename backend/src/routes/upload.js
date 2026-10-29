@@ -107,7 +107,7 @@ router.post('/', upload.single('file'), async (req, res) => {
           examSource: data.examSource || null,
           sourceFileName: req.file.originalname,
           sourceRow: rowNum,
-          workflowState: 'DRAFT',
+          workflowState: 'BANK',
           uploadBatchId,
         },
       });
