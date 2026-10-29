@@ -1,6 +1,6 @@
 const prisma = require('../db');
 
-// Group of exams that share the common state entrance syllabus
+// Configured blueprints for State CET exams
 const COMMON_CET_EXAMS = [
   {
     name: 'EAPCET',
@@ -22,7 +22,8 @@ const COMMON_CET_EXAMS = [
   },
 ];
 
-const STARTER_CET_SYLLABUS = {
+// AP EAPCET and TG EAPCET follow 100% Intermediate syllabus (including Physical World)
+const EAPCET_STARTER_SYLLABUS = {
   Physics: [
     'Physical World',
     'Units and Measurements',
@@ -45,8 +46,45 @@ const STARTER_CET_SYLLABUS = {
   ],
 };
 
+// KCET strictly OMITS "Physical World" and rationalized NCERT chapters
+const KCET_STARTER_SYLLABUS = {
+  Physics: [
+    'Units and Measurements',
+    'Motion in a Straight Line',
+    'Motion in a Plane',
+    'Laws of Motion',
+    'Work, Energy and Power',
+    'Alternating Current',
+  ],
+  Chemistry: [
+    'Atomic Structure',
+    'Chemical Bonding and Molecular Structure',
+    'Haloalkanes and Haloarenes',
+    'Thermodynamics',
+  ],
+  Mathematics: [
+    'Straight Lines',
+    'Planes',
+    'Matrices and Determinants',
+  ],
+};
+
+// Chapters specifically excluded from KCET / Karnataka PUC syllabus
+const KCET_EXCLUDED_CHAPTERS = [
+  'Physical World',
+  'States of Matter',
+  'Hydrogen',
+  'Solid State',
+  'Surface Chemistry',
+  's-Block Elements',
+  'General Principles and Processes of Isolation of Elements',
+  'Polymers',
+  'Chemistry in Everyday Life',
+  'Mathematical Reasoning',
+];
+
 /**
- * Ensures all three state CET exams exist with proper patterns and syllabus.
+ * Ensures all three state CET exams exist with exam-specific syllabus.
  */
 async function ensureCommonExamsExist() {
   for (const item of COMMON_CET_EXAMS) {
@@ -65,7 +103,10 @@ async function ensureCommonExamsExist() {
       },
     });
 
-    for (const [subjectName, chapters] of Object.entries(STARTER_CET_SYLLABUS)) {
+    const isKcet = item.name === 'KCET';
+    const syllabus = isKcet ? KCET_STARTER_SYLLABUS : EAPCET_STARTER_SYLLABUS;
+
+    for (const [subjectName, chapters] of Object.entries(syllabus)) {
       const subject = await prisma.subject.upsert({
         where: { name_examId: { name: subjectName, examId: exam.id } },
         update: {},
@@ -75,27 +116,66 @@ async function ensureCommonExamsExist() {
       for (const chapterName of chapters) {
         await prisma.chapter.upsert({
           where: { name_subjectId: { name: chapterName, subjectId: subject.id } },
-          update: {},
-          create: { name: chapterName, subjectId: subject.id },
+          update: { syllabusStatus: 'ACTIVE' },
+          create: { name: chapterName, subjectId: subject.id, syllabusStatus: 'ACTIVE' },
         });
+      }
+    }
+
+    // Clean up any excluded chapters from KCET
+    if (isKcet) {
+      for (const excludedChapterName of KCET_EXCLUDED_CHAPTERS) {
+        const excludedChapter = await prisma.chapter.findFirst({
+          where: {
+            name: excludedChapterName,
+            subject: { examId: exam.id },
+          },
+          include: { _count: { select: { questions: true } } },
+        });
+
+        if (excludedChapter) {
+          if (excludedChapter._count.questions === 0) {
+            // Delete unused excluded chapter so it completely vanishes from KCET
+            await prisma.chapter.delete({ where: { id: excludedChapter.id } }).catch(() => {});
+          } else {
+            // Mark REMOVED so paper generator and tree exclude it
+            await prisma.chapter.update({
+              where: { id: excludedChapter.id },
+              data: {
+                syllabusStatus: 'REMOVED',
+                statusNote: 'Not in KCET official syllabus',
+              },
+            }).catch(() => {});
+          }
+        }
       }
     }
   }
 }
 
 /**
- * Distributes a single question to all eligible entrance exams.
+ * Distributes a single question ONLY to exams where its chapter exists and is ACTIVE.
  */
 async function distributeQuestionToExams(questionId, originExamName) {
   const normOrigin = (originExamName || '').toUpperCase().trim();
   const isCommonCet = normOrigin.includes('EAPCET') || normOrigin.includes('EAMCET') || normOrigin.includes('KCET');
+
+  const q = await prisma.question.findUnique({
+    where: { id: questionId },
+    include: { chapter: { include: { subject: true } } },
+  });
+
+  if (!q || !q.chapter) return;
+
+  const chapterName = q.chapter.name;
+  const subjectName = q.chapter.subject.name;
 
   if (!isCommonCet) {
     const originExam = await prisma.exam.findFirst({ where: { name: originExamName } });
     if (originExam) {
       await prisma.questionExamMapping.upsert({
         where: { questionId_examId: { questionId, examId: originExam.id } },
-        update: {},
+        update: { isActive: true },
         create: { questionId, examId: originExam.id },
       });
     }
@@ -113,16 +193,34 @@ async function distributeQuestionToExams(questionId, originExamName) {
   });
 
   for (const exam of cetExams) {
-    await prisma.questionExamMapping.upsert({
-      where: { questionId_examId: { questionId, examId: exam.id } },
-      update: {},
-      create: { questionId, examId: exam.id },
+    // Check if this exam has this chapter as ACTIVE in its syllabus
+    const targetChapter = await prisma.chapter.findFirst({
+      where: {
+        name: chapterName,
+        subject: { name: subjectName, examId: exam.id },
+        syllabusStatus: 'ACTIVE',
+      },
     });
+
+    if (!targetChapter) {
+      // Chapter DOES NOT exist in this exam's syllabus (e.g. Physical World in KCET)
+      // Remove any mapping so it never shows up in this exam
+      await prisma.questionExamMapping.deleteMany({
+        where: { questionId, examId: exam.id },
+      });
+    } else {
+      // Chapter exists and is ACTIVE in this exam -> map it
+      await prisma.questionExamMapping.upsert({
+        where: { questionId_examId: { questionId, examId: exam.id } },
+        update: { isActive: true },
+        create: { questionId, examId: exam.id },
+      });
+    }
   }
 }
 
 /**
- * Backfills / distributes all existing questions in the question bank.
+ * Backfills / redistributes all existing questions in the bank strictly by syllabus.
  */
 async function distributeAllExistingQuestions() {
   await ensureCommonExamsExist();
@@ -151,4 +249,5 @@ module.exports = {
   distributeQuestionToExams,
   distributeAllExistingQuestions,
   COMMON_CET_EXAMS,
+  KCET_EXCLUDED_CHAPTERS,
 };
