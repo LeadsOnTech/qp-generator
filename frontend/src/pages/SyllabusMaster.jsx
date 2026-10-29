@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -8,6 +8,9 @@ export default function SyllabusMaster() {
   const [error, setError] = useState(null);
   const [selectedExam, setSelectedExam] = useState('ALL');
   const [filterMode, setFilterMode] = useState('ALL'); // 'ALL' | 'MISSING' | 'REMOVED' | 'ACTIVE'
+  const fileInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState(null);
 
   useEffect(() => {
     api.syllabusTree()
@@ -15,6 +18,27 @@ export default function SyllabusMaster() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportMessage(null);
+    setError(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await api.importSyllabus(fd);
+      setImportMessage(res.message);
+      const updatedTree = await api.syllabusTree();
+      setTree(updatedTree);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   async function changeStatus(chapterId, examId, subjectId, syllabusStatus) {
     let statusNote = null;
@@ -57,6 +81,7 @@ export default function SyllabusMaster() {
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
+      {importMessage && <div className="alert alert-success">{importMessage}</div>}
 
       {/* Exam & Status Filter Bar */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--line)' }}>
@@ -103,6 +128,25 @@ export default function SyllabusMaster() {
             onClick={() => setFilterMode('REMOVED')}
           >
             ⛔ Removed Chapters
+          </button>
+        </div>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".xlsx,.xls,.csv"
+            onChange={handleImport}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '6px 14px', fontSize: 12.5 }}
+            disabled={importing}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {importing ? 'Importing Syllabus…' : '📥 Import Syllabus (Excel / CSV)'}
           </button>
         </div>
       </div>

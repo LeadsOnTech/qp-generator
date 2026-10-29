@@ -48,6 +48,7 @@ export const api = {
 
   syllabusTree: () => request('/syllabus/tree'),
   updateChapterStatus: (id, data) => request(`/syllabus/chapter/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  importSyllabus: (formData) => request('/syllabus/import', { method: 'POST', body: formData }),
 
   // ---- Phase 2 ----
   runTagging: () => request('/tagging/run', { method: 'POST', body: JSON.stringify({}) }),

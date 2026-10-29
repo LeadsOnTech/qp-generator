@@ -1,8 +1,11 @@
 const express = require('express');
+const multer = require('multer');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
+const { parseSpreadsheet } = require('../lib/extract');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 /**
  * GET /api/syllabus/tree — full Exam -> Subject -> Chapter (with question counts)
@@ -118,6 +121,61 @@ router.patch('/chapter/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(404).json({ error: 'Chapter not found.' });
   }
+});
+
+/**
+ * POST /api/syllabus/import
+ * Bulk imports or updates syllabus chapters from an Excel or CSV file.
+ * Columns: Exam, Subject, Chapter, Status (optional), Note (optional)
+ */
+router.post('/import', requireAdmin, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded. Attach an .xlsx, .xls, or .csv file.' });
+
+  let rows;
+  try {
+    const parsed = parseSpreadsheet(req.file.buffer);
+    rows = parsed.rows;
+  } catch (err) {
+    return res.status(400).json({ error: 'Failed to parse spreadsheet: ' + err.message });
+  }
+
+  if (!rows || rows.length === 0) {
+    return res.status(400).json({ error: 'The file appears to be empty (no rows found).' });
+  }
+
+  let imported = 0;
+  for (const r of rows) {
+    const examName = (r.exam || r.examname || '').trim();
+    const subjectName = (r.subject || r.subjectname || '').trim();
+    const chapterName = (r.chapter || r.chaptername || '').trim();
+    const rawStatus = (r.status || r.syllabusstatus || 'ACTIVE').trim().toUpperCase();
+    const syllabusStatus = ['ACTIVE', 'REMOVED', 'MODIFIED'].includes(rawStatus) ? rawStatus : 'ACTIVE';
+    const statusNote = (r.note || r.statusnote || '').trim() || null;
+
+    if (!examName || !subjectName || !chapterName) continue;
+
+    const exam = await prisma.exam.upsert({
+      where: { name: examName },
+      update: {},
+      create: { name: examName },
+    });
+
+    const subject = await prisma.subject.upsert({
+      where: { name_examId: { name: subjectName, examId: exam.id } },
+      update: {},
+      create: { name: subjectName, examId: exam.id },
+    });
+
+    await prisma.chapter.upsert({
+      where: { name_subjectId: { name: chapterName, subjectId: subject.id } },
+      update: { syllabusStatus, statusNote },
+      create: { name: chapterName, subjectId: subject.id, syllabusStatus, statusNote },
+    });
+
+    imported++;
+  }
+
+  res.json({ ok: true, imported, message: `Successfully imported ${imported} syllabus chapters!` });
 });
 
 /**
