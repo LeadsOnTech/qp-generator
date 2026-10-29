@@ -152,8 +152,9 @@ export default function QualityChecks() {
         <div className="card empty-state">
           <h3>No questions pending review</h3>
           <p>
-            You have no uploaded questions in the Quality Check stage right now. 
-            When you upload questions, they will appear here for final validation and approval.
+            {stats && stats.unchecked > 0
+              ? `You have ${stats.unchecked} question(s) awaiting quality check. Click "Run specialist checks" above to analyze them.`
+              : 'All checked questions have passed quality validation! If any question has errors or data issues, it will be flagged and appear here for your review.'}
           </p>
         </div>
       ) : (

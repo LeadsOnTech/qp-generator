@@ -149,7 +149,11 @@ Solution: ${q.solutionText || 'None'}
               data: { 
                 chapterId: targetChapterId, 
                 topicId: targetTopicId,
-                workflowState: finalState
+                workflowState: finalState,
+                checkStatus: res.isLogicCorrect === false ? 'FLAGGED' : 'PASSED',
+                checkIssues: res.isLogicCorrect === false ? JSON.stringify([res.qcNotes || 'Logic error detected by AI audit']) : null,
+                checkedAt: new Date(),
+                checkEngine: CLAUDE_KEY ? 'CLAUDE' : 'GEMINI',
               }
             });
           }

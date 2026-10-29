@@ -13,7 +13,7 @@ const router = express.Router();
  */
 router.post('/run', async (req, res) => {
   const unchecked = await prisma.question.findMany({
-    where: { isActive: true, workflowState: 'IN_QC', checkStatus: null },
+    where: { isActive: true, checkStatus: null },
     include: { chapter: { include: { subject: true } } },
     take: 500,
   });
@@ -41,7 +41,7 @@ router.post('/run', async (req, res) => {
         checkIssues: results[i].issues.length ? JSON.stringify(results[i].issues) : null,
         checkEngine: results[i].engine,
         checkedAt: new Date(),
-        workflowState: results[i].status === 'PASSED' ? 'BANK' : 'IN_QC',
+        workflowState: 'BANK',
       },
     });
   }
@@ -68,7 +68,7 @@ router.get('/review', async (req, res) => {
   const take = Math.min(parseInt(pageSize, 10) || 25, 200);
   const skip = (Math.max(parseInt(page, 10) || 1, 1) - 1) * take;
 
-  const where = { isActive: true, workflowState: 'IN_QC', checkStatus: 'FLAGGED' };
+  const where = { isActive: true, checkStatus: 'FLAGGED' };
   if (subject) where.chapter = { subject: { name: subject } };
 
   const [items, total] = await Promise.all([
@@ -110,7 +110,7 @@ router.post('/review/:id', async (req, res) => {
   const { action, data } = req.body;
   const q = await prisma.question.findUnique({ where: { id: req.params.id } });
   if (!q) return res.status(404).json({ error: 'Question not found.' });
-  if (q.workflowState !== 'IN_QC' && q.checkStatus !== 'FLAGGED') {
+  if (q.checkStatus !== 'FLAGGED') {
     return res.status(400).json({ error: 'This question is not currently in review.' });
   }
 
@@ -147,11 +147,11 @@ router.post('/review/:id', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
   const [unchecked, passed, flagged, bySubject] = await Promise.all([
-    prisma.question.count({ where: { isActive: true, workflowState: 'IN_QC', checkStatus: null } }),
-    prisma.question.count({ where: { isActive: true, workflowState: 'BANK' } }),
-    prisma.question.count({ where: { isActive: true, workflowState: 'IN_QC', checkStatus: 'FLAGGED' } }),
+    prisma.question.count({ where: { isActive: true, checkStatus: null } }),
+    prisma.question.count({ where: { isActive: true, checkStatus: 'PASSED' } }),
+    prisma.question.count({ where: { isActive: true, checkStatus: 'FLAGGED' } }),
     prisma.question.findMany({
-      where: { isActive: true, workflowState: 'IN_QC', checkStatus: 'FLAGGED' },
+      where: { isActive: true, checkStatus: 'FLAGGED' },
       include: { chapter: { include: { subject: true } } },
     }),
   ]);
