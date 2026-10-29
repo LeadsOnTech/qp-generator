@@ -212,7 +212,23 @@ export default function Upload() {
                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                       })}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }}
+                        onClick={async () => {
+                          try {
+                            const blob = await api.previewBatch(b.id);
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, '_blank');
+                          } catch (e) {
+                            alert(e.message);
+                          }
+                        }}
+                        title="Download/Preview this batch as PDF"
+                      >
+                        📄 Preview PDF
+                      </button>
                       <Link
                         to="/questions"
                         className="btn btn-ghost"

@@ -384,22 +384,24 @@ const { buildPaperPdf } = require('../lib/pdfBuilder');
 router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
   try {
     const questions = await prisma.question.findMany({
-      where: { uploadBatchId: req.params.batchId, workflowState: 'DRAFT', isActive: true },
+      where: { uploadBatchId: req.params.batchId, isActive: true },
       include: { chapter: { include: { subject: { include: { exam: true } } } } },
       orderBy: { id: 'asc' },
     });
 
     if (questions.length === 0) {
-      return res.status(404).send('Batch not found or already submitted.');
+      return res.status(404).send('No questions found for this upload batch.');
     }
+
+    const batch = await prisma.uploadBatch.findUnique({ where: { id: req.params.batchId } });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="preview-${req.params.batchId}.pdf"`);
 
     const paper = {
-      title: 'Batch Upload Preview',
-      instituteName: 'QuestionStudio Drafts',
-      examName: 'Preview Only',
+      title: batch ? `Preview: ${batch.fileName.replace(/\.xlsx?$|\.csv$/i, '')}` : 'Batch Upload Preview',
+      instituteName: 'QuestionStudio',
+      examName: questions[0]?.chapter?.subject?.exam?.name || 'Question Bank',
       paperType: 'PREVIEW'
     };
 
