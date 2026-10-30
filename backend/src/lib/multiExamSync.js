@@ -415,21 +415,22 @@ async function ensureCommonExamsExist() {
  * Distributes a single question ONLY to exams where its chapter exists and is ACTIVE.
  */
 async function distributeQuestionToExams(questionId, originExamName) {
-  const normOrigin = (originExamName || '').toUpperCase().trim();
-  const isCommonCet = normOrigin.includes('EAPCET') || normOrigin.includes('EAMCET') || normOrigin.includes('KCET');
-
   const q = await prisma.question.findUnique({
     where: { id: questionId },
-    include: { chapter: { include: { subject: true } } },
+    include: { chapter: { include: { subject: { include: { exam: true } } } } },
   });
 
   if (!q || !q.chapter) return;
 
-  const chapterName = q.chapter.name;
-  const subjectName = q.chapter.subject.name;
+  const rawOrigin = originExamName || q.chapter?.subject?.exam?.name || '';
+  const normOrigin = rawOrigin.toUpperCase().trim();
+  const isCommonCet = normOrigin.includes('EAPCET') || normOrigin.includes('EAMCET') || normOrigin.includes('KCET');
+
+  const chapterName = q.chapter.name?.trim();
+  const subjectName = q.chapter.subject.name?.trim();
 
   if (!isCommonCet) {
-    const originExam = await prisma.exam.findFirst({ where: { name: originExamName } });
+    const originExam = await prisma.exam.findFirst({ where: { name: rawOrigin } });
     if (originExam) {
       await prisma.questionExamMapping.upsert({
         where: { questionId_examId: { questionId, examId: originExam.id } },
@@ -439,9 +440,6 @@ async function distributeQuestionToExams(questionId, originExamName) {
     }
     return;
   }
-
-  // Ensure destination exams exist
-  await ensureCommonExamsExist();
 
   // Find all CET exams in database
   const cetExams = await prisma.exam.findMany({

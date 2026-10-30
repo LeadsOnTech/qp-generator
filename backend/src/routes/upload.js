@@ -1,5 +1,5 @@
 const { runAIBackgroundAudit } = require('../lib/autoQCAuditor');
-const { distributeQuestionToExams } = require('../lib/multiExamSync');
+const { distributeQuestionToExams, distributeAllExistingQuestions } = require('../lib/multiExamSync');
 const express = require('express');
 const multer = require('multer');
 const prisma = require('../db');
@@ -112,11 +112,16 @@ router.post('/', upload.single('file'), async (req, res) => {
           uploadBatchId,
         },
       });
-      await distributeQuestionToExams(createdQ.id, data.exam || req.body.exam);
+      await distributeQuestionToExams(createdQ.id, data.examName || req.body.exam);
       successCount++;
     } catch (err) {
       rowErrors.push({ row: rowNum, errors: [`Database error: ${err.message}`] });
     }
+  }
+
+  // Ensure full multi-exam distribution across AP EAPCET, TG EAPCET, and KCET
+  if (successCount > 0) {
+    distributeAllExistingQuestions().catch((err) => console.error('Post-upload exam sync error:', err));
   }
 
   const batch = await prisma.uploadBatch.create({

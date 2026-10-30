@@ -9,6 +9,24 @@ export default function ExamHub() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncMessage(null);
+    setError(null);
+    try {
+      const res = await api.syncExams();
+      setSyncMessage(res.message || 'Syllabus and questions synchronized across all exams!');
+      const updated = await api.listExams();
+      setExams(updated);
+    } catch (err) {
+      setError(err.message || 'Failed to sync exams');
+    } finally {
+      setSyncing(false);
+    }
+  }
   
 
   
@@ -31,17 +49,31 @@ export default function ExamHub() {
 
   return (
     <div>
-      <div className="page-header">
-        <p className="eyebrow">Exam Hub</p>
-        <h1 className="page-title">Which exam are you working on?</h1>
-        <p className="page-sub">
-          Each exam has its own dashboard, question counts, and saved paper pattern — NEET, JEE,
-          AP EAPCET, TG EAPCET, and KCET data never mixes. <strong>To add a new exam, just upload a
-          question set with that exam's name in the "Exam" column</strong> — it will appear as its own
-          card here automatically, with its own separate syllabus.
-        </p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ maxWidth: 800 }}>
+          <p className="eyebrow">Exam Hub</p>
+          <h1 className="page-title">Which exam are you working on?</h1>
+          <p className="page-sub">
+            Each exam has its own dashboard, question counts, and saved paper pattern — NEET, JEE,
+            AP EAPCET, TG EAPCET, and KCET data never mixes. <strong>To add a new exam, just upload a
+            question set with that exam's name in the "Exam" column</strong> — it will appear as its own
+            card here automatically, with its own separate syllabus.
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={syncing}
+            onClick={handleSync}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', marginTop: 8 }}
+          >
+            {syncing ? '🔄 Syncing All Exams...' : '🔄 Sync Question Banks'}
+          </button>
+        )}
       </div>
 
+      {syncMessage && <div className="alert alert-success">{syncMessage}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
       {loading ? (

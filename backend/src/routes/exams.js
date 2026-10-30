@@ -62,6 +62,22 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * POST /api/exams/sync
+ * Manually or programmatically triggers complete multi-exam distribution
+ * across AP EAPCET, TG EAPCET, and KCET strictly adhering to official syllabus.
+ */
+router.post('/sync', requireAdmin, async (req, res) => {
+  try {
+    const { distributeAllExistingQuestions } = require('../lib/multiExamSync');
+    const mapped = await distributeAllExistingQuestions();
+    res.json({ ok: true, mapped, message: `Successfully synchronized ${mapped} questions across exams!` });
+  } catch (err) {
+    console.error('Error in /api/exams/sync:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/exams/:name/pattern
  * Returns the saved subject-count / difficulty-mix blueprint for this exam,
  * or null if nothing has been saved yet.

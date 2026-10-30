@@ -149,6 +149,7 @@ export const api = {
 
   // ---- Exam Hub ----
   listExams: () => request('/exams'),
+  syncExams: () => request('/exams/sync', { method: 'POST' }),
   deleteExam: (id) => request(`/exams/${id}`, { method: 'DELETE' }),
   getExamPattern: (examName) => request(`/exams/${encodeURIComponent(examName)}/pattern`),
   saveExamPattern: (examName, data) => request(`/exams/${encodeURIComponent(examName)}/pattern`, { method: 'PUT', body: JSON.stringify(data) }),
