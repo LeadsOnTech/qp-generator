@@ -136,15 +136,17 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
       if (chapterIds.length > 0) {
         // Questions and Topics
-        await prisma.paperQuestion.deleteMany({ where: { question: { chapterId: { in: chapterIds } } } }); // just in case
-        await prisma.question.deleteMany({ where: { chapterId: { in: chapterIds } } });
-        await prisma.topic.deleteMany({ where: { chapterId: { in: chapterIds } } });
-        await prisma.chapter.deleteMany({ where: { id: { in: chapterIds } } });
+        await prisma.paperQuestion.deleteMany({ where: { question: { chapterId: { in: chapterIds } } } }).catch(() => {});
+        await prisma.questionExamMapping.deleteMany({ where: { question: { chapterId: { in: chapterIds } } } }).catch(() => {});
+        await prisma.question.deleteMany({ where: { chapterId: { in: chapterIds } } }).catch(() => {});
+        await prisma.topic.deleteMany({ where: { chapterId: { in: chapterIds } } }).catch(() => {});
+        await prisma.chapter.deleteMany({ where: { id: { in: chapterIds } } }).catch(() => {});
       }
-      await prisma.subject.deleteMany({ where: { id: { in: subjectIds } } });
+      await prisma.subject.deleteMany({ where: { id: { in: subjectIds } } }).catch(() => {});
     }
 
-    // 3. Delete Exam
+    // 3. Delete Exam and its QuestionExamMappings
+    await prisma.questionExamMapping.deleteMany({ where: { examId: id } }).catch(() => {});
     await prisma.exam.delete({ where: { id } });
 
     res.json({ success: true });

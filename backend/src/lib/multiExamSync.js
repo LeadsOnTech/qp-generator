@@ -301,6 +301,50 @@ async function ensureCommonExamsExist() {
     }
   }
 
+  // 3. Purge redundant legacy 'EAMCET' exam completely
+  const legacyEamcet = await prisma.exam.findFirst({ where: { name: 'EAMCET' } });
+  if (legacyEamcet) {
+    await prisma.questionExamMapping.deleteMany({ where: { examId: legacyEamcet.id } }).catch(() => {});
+
+    const eamcetSubjects = await prisma.subject.findMany({
+      where: { examId: legacyEamcet.id },
+      include: { chapters: true },
+    });
+
+    const tgExam = await prisma.exam.findFirst({ where: { name: 'TG EAPCET' } });
+    for (const sub of eamcetSubjects) {
+      const targetSub = tgExam ? await prisma.subject.findUnique({
+        where: { name_examId: { name: sub.name, examId: tgExam.id } },
+      }) : null;
+
+      for (const ch of sub.chapters) {
+        const targetCh = targetSub ? await prisma.chapter.findUnique({
+          where: { name_subjectId: { name: ch.name, subjectId: targetSub.id } },
+        }) : null;
+
+        if (targetCh) {
+          await prisma.question.updateMany({
+            where: { chapterId: ch.id },
+            data: { chapterId: targetCh.id },
+          }).catch(() => {});
+          await prisma.topic.updateMany({
+            where: { chapterId: ch.id },
+            data: { chapterId: targetCh.id },
+          }).catch(() => {});
+        }
+        await prisma.chapter.delete({ where: { id: ch.id } }).catch(() => {});
+      }
+      await prisma.subject.delete({ where: { id: sub.id } }).catch(() => {});
+    }
+
+    await prisma.paper.updateMany({
+      where: { examName: 'EAMCET' },
+      data: { examName: 'TG EAPCET' },
+    }).catch(() => {});
+
+    await prisma.exam.delete({ where: { id: legacyEamcet.id } }).catch(() => {});
+  }
+
   for (const item of COMMON_CET_EXAMS) {
     const exam = await prisma.exam.upsert({
       where: { name: item.name },
