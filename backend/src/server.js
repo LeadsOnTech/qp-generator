@@ -82,10 +82,10 @@ if (frontendDist) {
   });
 }
 
-// Fallback error handler — never leak a raw stack trace to the client
+// Fallback error handler — log error and return readable error message
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Something went wrong on the server.' });
+  console.error('[SERVER ERROR]', err);
+  res.status(500).json({ error: err.message || 'Something went wrong on the server.' });
 });
 
 app.listen(PORT, () => {

@@ -17,32 +17,34 @@ router.get('/tree', async (req, res) => {
   const where = {};
   if (examName) where.name = examName;
 
-  const [exams, typeCounts] = await Promise.all([
-    prisma.exam.findMany({
-      where,
-      include: {
-        subjects: {
-          include: {
-            chapters: {
-              include: {
-                _count: { 
-                  select: { 
-                    questions: {
-                      where: { isActive: true, workflowState: 'BANK' }
-                    } 
+  const exams = await prisma.exam.findMany({
+    where,
+    include: {
+      subjects: {
+        include: {
+          chapters: {
+            include: {
+              _count: { 
+                select: { 
+                  questions: {
+                    where: { isActive: true, workflowState: 'BANK' }
                   } 
-                },
-                topics: true,
+                } 
               },
-              orderBy: { name: 'asc' },
+              topics: true,
             },
+            orderBy: { name: 'asc' },
           },
-          orderBy: { name: 'asc' },
         },
+        orderBy: { name: 'asc' },
       },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.question.findMany({
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  let typeCounts = [];
+  try {
+    typeCounts = await prisma.question.findMany({
       where: { isActive: true, workflowState: 'BANK' },
       select: {
         id: true,
@@ -51,17 +53,32 @@ router.get('/tree', async (req, res) => {
         chapter: { select: { name: true, subject: { select: { name: true } } } },
         examMappings: { select: { examId: true } },
       },
-    }),
-  ]);
+    });
+  } catch (e) {
+    typeCounts = await prisma.question.findMany({
+      where: { isActive: true, workflowState: 'BANK' },
+      select: {
+        id: true,
+        chapterId: true,
+        questionType: true,
+        chapter: { select: { name: true, subject: { select: { name: true } } } },
+      },
+    });
+  }
 
   function getCountsForChapter(examId, subjectName, chapterName, chapterId) {
     let mcq = 0;
     let nvq = 0;
+    const targetC = chapterName?.toLowerCase().trim();
+    const targetS = subjectName?.toLowerCase().trim();
+
     for (const q of typeCounts) {
       const isDirect = q.chapterId === chapterId;
+      const qC = q.chapter?.name?.toLowerCase().trim();
+      const qS = q.chapter?.subject?.name?.toLowerCase().trim();
       const isMapped = q.examMappings?.some((m) => m.examId === examId) &&
-                       q.chapter?.name === chapterName &&
-                       q.chapter?.subject?.name === subjectName;
+                       qC === targetC &&
+                       qS === targetS;
       if (isDirect || isMapped) {
         const qType = q.questionType;
         if (qType === 'NVQ' || qType === 'NUMERICAL' || qType === 'DECIMAL' || qType === 'NVT') {

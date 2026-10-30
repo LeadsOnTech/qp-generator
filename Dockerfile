@@ -24,6 +24,9 @@ RUN cd backend && npm install --production=false
 # Copy backend source
 COPY backend/ ./backend/
 
+# Copy pristine prisma schema and seed outside volume mount so container startup can sync schema into persistent volume
+COPY backend/prisma/ /app/backend/prisma-template/
+
 # Copy compiled frontend from Stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
