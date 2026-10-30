@@ -167,7 +167,7 @@ export default function LandingPage() {
                 Your Questions. Your Standards.
               </div>
               <div className="hero-badge" style={{ marginBottom: 0 }}>
-                NEET · JEE · EAMCET
+                NEET · JEE · AP EAPCET · TG EAPCET · KCET
               </div>
             </div>
             <h1 className="hero-title">

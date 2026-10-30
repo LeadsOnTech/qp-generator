@@ -70,6 +70,27 @@ function validateHeaders(headerMap) {
  * Never throws — row-level problems are collected so one bad row doesn't
  * kill the whole batch (this is the "flag one or two questions" case from planning).
  */
+function normalizeExamName(raw) {
+  const norm = String(raw || '').trim();
+  const clean = norm.toUpperCase().replace(/[\s_\-]+/g, '');
+  if (clean === 'EAPCET' || clean === 'APEAPCET' || clean === 'EAMCET' || clean === 'APEAMCET') {
+    return 'AP EAPCET';
+  }
+  if (clean === 'TGEAPCET' || clean === 'TGEAMCET' || clean === 'TSEAMCET' || clean === 'TSEAPCET' || clean === 'TELANGANAEAPCET') {
+    return 'TG EAPCET';
+  }
+  if (clean === 'KCET' || clean === 'KARNATAKACET') {
+    return 'KCET';
+  }
+  if (clean === 'NEET' || clean === 'NEETUG') {
+    return 'NEET';
+  }
+  if (clean === 'JEE' || clean === 'JEEMAIN') {
+    return 'JEE Main';
+  }
+  return norm;
+}
+
 function stripOptionPrefix(text) {
   if (!text) return text;
   const r1 = /^\s*(?:\([1-4a-dA-D]\)\s*)/i;
@@ -94,7 +115,7 @@ function validateRow(row, rowIndex) {
   const optionD = stripOptionPrefix(String(row.optiond || '').trim());
   let correctOption = String(row.correctoption || '').trim().toUpperCase();
 
-  const examName = String(row.exam || '').trim();
+  const examName = normalizeExamName(String(row.exam || '').trim());
   const subjectName = String(row.subject || '').trim();
   const chapterName = String(row.chapter || '').trim();
   const topicName = row.topic ? String(row.topic).trim() : null;
@@ -201,6 +222,7 @@ module.exports = {
   parseSpreadsheet,
   validateHeaders,
   validateRow,
+  normalizeExamName,
   REQUIRED_COLUMNS,
   VALID_QUESTION_TYPES,
 };

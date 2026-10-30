@@ -35,8 +35,8 @@ export default function ExamHub() {
         <p className="eyebrow">Exam Hub</p>
         <h1 className="page-title">Which exam are you working on?</h1>
         <p className="page-sub">
-          Each exam has its own dashboard, question counts, and saved paper pattern — NEET, JEE, and
-          EAMCET data never mixes. <strong>To add a new exam (e.g. JEE or EAMCET), just upload a
+          Each exam has its own dashboard, question counts, and saved paper pattern — NEET, JEE,
+          AP EAPCET, TG EAPCET, and KCET data never mixes. <strong>To add a new exam, just upload a
           question set with that exam's name in the "Exam" column</strong> — it will appear as its own
           card here automatically, with its own separate syllabus.
         </p>

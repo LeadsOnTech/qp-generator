@@ -239,7 +239,7 @@ export default function Signup() {
           zIndex: 2
         }}>
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#F6C84C', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Supported Competitive Exams</div>
-          <div style={{ fontWeight: 600, fontSize: 13.5, color: 'rgba(255, 255, 255, 0.9)' }}>NEET (UG) • JEE Main • JEE Advanced • AP &amp; TS EAMCET / EAPCET</div>
+          <div style={{ fontWeight: 600, fontSize: 13.5, color: 'rgba(255, 255, 255, 0.9)' }}>NEET (UG) • JEE Main • AP EAPCET • TG EAPCET • KCET</div>
         </div>
       </div>
 

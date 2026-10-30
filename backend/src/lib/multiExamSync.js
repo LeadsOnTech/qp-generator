@@ -1,18 +1,15 @@
 const prisma = require('../db');
 
-// Configured blueprints for State CET exams:
-// Andhra Pradesh conducts "EAPCET"
-// Telangana conducts "EAMCET"
-// Karnataka conducts "KCET"
+// Configured blueprints for State CET exams
 const COMMON_CET_EXAMS = [
   {
-    name: 'EAPCET',
+    name: 'AP EAPCET',
     patternSubjects: [{ name: 'Mathematics', count: 80 }, { name: 'Physics', count: 40 }, { name: 'Chemistry', count: 40 }],
     patternDifficultyMix: { easy: 30, medium: 50, hard: 20 },
     patternPaperType: 'MODEL_PAPER',
   },
   {
-    name: 'EAMCET',
+    name: 'TG EAPCET',
     patternSubjects: [{ name: 'Mathematics', count: 80 }, { name: 'Physics', count: 40 }, { name: 'Chemistry', count: 40 }],
     patternDifficultyMix: { easy: 30, medium: 50, hard: 20 },
     patternPaperType: 'MODEL_PAPER',
@@ -25,7 +22,7 @@ const COMMON_CET_EXAMS = [
   },
 ];
 
-// AP EAPCET and Telangana EAMCET follow 100% Intermediate syllabus (including Physical World)
+// AP EAPCET and TG EAPCET follow 100% Intermediate syllabus (including Physical World)
 const EAPCET_FULL_SYLLABUS = {
   Physics: [
     'Physical World',
@@ -225,26 +222,83 @@ const KCET_EXCLUDED_CHAPTERS = [
  * Ensures all three state CET exams exist with exam-specific syllabus.
  */
 async function ensureCommonExamsExist() {
-  // Automatically migrate/rename old 'TG EAPCET' or 'TS EAMCET' to 'EAMCET' (Telangana)
-  try {
-    const oldTg = await prisma.exam.findFirst({
-      where: { name: { in: ['TG EAPCET', 'TS EAMCET'] } },
-    });
-    if (oldTg) {
-      const existingEamcet = await prisma.exam.findUnique({ where: { name: 'EAMCET' } });
-      if (!existingEamcet) {
-        await prisma.exam.update({
-          where: { id: oldTg.id },
-          data: { name: 'EAMCET' },
+  // 1. Rename / migrate any legacy 'EAPCET' exam to 'AP EAPCET'
+  const legacyEapcet = await prisma.exam.findFirst({ where: { name: 'EAPCET' } });
+  if (legacyEapcet) {
+    const existingAp = await prisma.exam.findFirst({ where: { name: 'AP EAPCET' } });
+    if (!existingAp) {
+      await prisma.exam.update({
+        where: { id: legacyEapcet.id },
+        data: { name: 'AP EAPCET' },
+      });
+      await prisma.paper.updateMany({
+        where: { examName: 'EAPCET' },
+        data: { examName: 'AP EAPCET' },
+      });
+    } else {
+      // Re-assign legacy subjects/chapters/questions to AP EAPCET
+      const legacySubjects = await prisma.subject.findMany({
+        where: { examId: legacyEapcet.id },
+        include: { chapters: true },
+      });
+      for (const legSub of legacySubjects) {
+        let targetSub = await prisma.subject.findUnique({
+          where: { name_examId: { name: legSub.name, examId: existingAp.id } },
         });
-        await prisma.paper.updateMany({
-          where: { examName: oldTg.name },
-          data: { examName: 'EAMCET' },
-        });
+        if (!targetSub) {
+          targetSub = await prisma.subject.create({
+            data: { name: legSub.name, examId: existingAp.id },
+          });
+        }
+        for (const legCh of legSub.chapters) {
+          let targetCh = await prisma.chapter.findUnique({
+            where: { name_subjectId: { name: legCh.name, subjectId: targetSub.id } },
+          });
+          if (!targetCh) {
+            targetCh = await prisma.chapter.create({
+              data: {
+                name: legCh.name,
+                subjectId: targetSub.id,
+                syllabusStatus: legCh.syllabusStatus,
+                statusNote: legCh.statusNote,
+                statusYear: legCh.statusYear,
+              },
+            });
+          }
+          await prisma.question.updateMany({
+            where: { chapterId: legCh.id },
+            data: { chapterId: targetCh.id },
+          });
+          await prisma.topic.updateMany({
+            where: { chapterId: legCh.id },
+            data: { chapterId: targetCh.id },
+          });
+          await prisma.chapter.delete({ where: { id: legCh.id } }).catch(() => {});
+        }
+        await prisma.subject.delete({ where: { id: legSub.id } }).catch(() => {});
       }
+      await prisma.paper.updateMany({
+        where: { examName: 'EAPCET' },
+        data: { examName: 'AP EAPCET' },
+      });
+      await prisma.exam.delete({ where: { id: legacyEapcet.id } }).catch(() => {});
     }
-  } catch (err) {
-    console.warn('Exam migration note:', err.message);
+  }
+
+  // 2. Rename / migrate any legacy 'TS EAMCET' exam to 'TG EAPCET'
+  const legacyTs = await prisma.exam.findFirst({ where: { name: 'TS EAMCET' } });
+  if (legacyTs) {
+    const existingTg = await prisma.exam.findFirst({ where: { name: 'TG EAPCET' } });
+    if (!existingTg) {
+      await prisma.exam.update({
+        where: { id: legacyTs.id },
+        data: { name: 'TG EAPCET' },
+      });
+      await prisma.paper.updateMany({
+        where: { examName: 'TS EAMCET' },
+        data: { examName: 'TG EAPCET' },
+      });
+    }
   }
 
   for (const item of COMMON_CET_EXAMS) {
@@ -348,7 +402,7 @@ async function distributeQuestionToExams(questionId, originExamName) {
   // Find all CET exams in database
   const cetExams = await prisma.exam.findMany({
     where: {
-      name: { in: ['EAPCET', 'AP EAPCET', 'EAMCET', 'TG EAPCET', 'TS EAMCET', 'KCET'] },
+      name: { in: ['AP EAPCET', 'TG EAPCET', 'KCET'] },
     },
   });
 

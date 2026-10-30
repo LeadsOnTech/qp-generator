@@ -100,7 +100,7 @@ export default function TermsAndConditions() {
               2. Eligibility &amp; Institutional Verification
             </h2>
             <p>
-              QuestionStudio is designed exclusively as a <strong>B2B academic productivity tool</strong> for recognized coaching institutions, colleges, schools, and independent teachers preparing students for Indian competitive entrance examinations (including NEET UG, JEE Main, JEE Advanced, AP &amp; TS EAMCET / EAPCET).
+              QuestionStudio is designed exclusively as a <strong>B2B academic productivity tool</strong> for recognized coaching institutions, colleges, schools, and independent teachers preparing students for Indian competitive entrance examinations (including NEET UG, JEE Main, AP EAPCET, TG EAPCET, KCET).
             </p>
             <ul style={{ paddingLeft: 22 }}>
               <li><strong>No Direct Student Access:</strong> Underage minors, individual students, and candidates are strictly prohibited from creating accounts. The platform is restricted to faculty, directors, and institutional administrators.</li>

@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
-const { parseSpreadsheet } = require('../lib/extract');
+const { parseSpreadsheet, normalizeExamName } = require('../lib/extract');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -162,7 +162,8 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
 
   let imported = 0;
   for (const r of rows) {
-    const examName = (r.exam || r.examname || '').trim();
+    const rawExam = (r.exam || r.examname || '').trim();
+    const examName = normalizeExamName(rawExam);
     const subjectName = (r.subject || r.subjectname || '').trim();
     const chapterName = (r.chapter || r.chaptername || '').trim();
     const rawStatus = (r.status || r.syllabusstatus || 'ACTIVE').trim().toUpperCase();

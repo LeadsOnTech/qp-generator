@@ -1,7 +1,7 @@
 {
   "name": "QuestionStudio — Your Questions. Your Standards.",
   "short_name": "QuestionStudio",
-  "description": "Generate exam-ready question papers in minutes for NEET, JEE, and EAMCET.",
+  "description": "Generate exam-ready question papers in minutes for NEET, JEE, AP EAPCET, TG EAPCET, and KCET.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07154A",

@@ -36,8 +36,8 @@ const faqs = [
     a: "The minimum recharge is ₹5,000, giving you 5,000 credits. There is no maximum limit, and larger bundles include bonus credits." 
   },
   { 
-    q: "Can I use credits across NEET, JEE Main, and EAMCET?", 
-    a: "Yes! Your single credit balance works across all supported competitive exams including NEET (UG), JEE Main, JEE Advanced, and AP/TS EAMCET & EAPCET." 
+    q: "Can I use credits across NEET, JEE, AP EAPCET, TG EAPCET, and KCET?", 
+    a: "Yes! Your single credit balance works across all supported competitive exams including NEET (UG), JEE Main, AP EAPCET, TG EAPCET, and KCET." 
   },
   { 
     q: "How does this compare to hiring a DTP typing agency?", 
@@ -69,7 +69,7 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
-    document.title = "QuestionStudio Pricing — Simple Pay-As-You-Go Credits | NEET, JEE, EAMCET";
+    document.title = "QuestionStudio Pricing — Simple Pay-As-You-Go Credits | NEET, JEE, AP EAPCET, TG EAPCET, KCET";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
       meta.setAttribute("content", "Pay only for what you generate at ₹1/question. Zero subscriptions, lifetime credit validity, and 200 free welcome credits for Indian coaching institutes and colleges.");
@@ -190,7 +190,7 @@ export default function PricingPage() {
             margin: '0 auto 36px', 
             lineHeight: 1.6 
           }}>
-            No lock-in contracts. No credit expiry. Assemble error-free NEET, JEE, and EAMCET papers with your custom logo and branding in 2 minutes.
+            No lock-in contracts. No credit expiry. Assemble error-free NEET, JEE, AP EAPCET, TG EAPCET, and KCET papers with your custom logo and branding in 2 minutes.
           </p>
           
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -337,7 +337,7 @@ export default function PricingPage() {
                     <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> 5,000 Verified Questions or Solutions
                   </li>
                   <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Full NEET, JEE Main &amp; EAMCET Syllabus
+                    <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Full NEET, JEE, AP EAPCET, TG EAPCET &amp; KCET Syllabuses
                   </li>
                   <li style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <span style={{ color: '#16A34A', fontWeight: 800 }}>✓</span> Unlimited PDF Exports with Custom Logo

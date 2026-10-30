@@ -50,7 +50,7 @@ export default function MarketingFooter() {
             <li>NEET (UG) Medical</li>
             <li>JEE Main (Physics, Chem, Math)</li>
             <li>JEE Advanced Standards</li>
-            <li>AP &amp; TS EAMCET / EAPCET</li>
+            <li>AP EAPCET &amp; TG EAPCET / KCET</li>
             <li>Custom DPP &amp; Topic Tests</li>
           </ul>
         </div>
