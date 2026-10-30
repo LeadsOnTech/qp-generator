@@ -80,6 +80,10 @@ function renderMath(latex, fontSize, displayMode = false) {
       .replace(/\^([+-]?\d+)/g, "^{$1}")
       .replace(/(^|\s+)\^/g, '$1{}^'); // Auto-heal orphaned superscripts like '10^{-3} ^{\circ}' preventing 'Double exponent' error
 
+    // Auto-heal missing space between Greek command and adjacent variable (e.g. \pix -> \pi x, \pit -> \pi t, \thetai -> \theta i)
+    const greekCmds = 'pi|alpha|beta|gamma|theta|lambda|mu|omega|sigma|phi|rho|tau|delta|epsilon|eta|nu|xi|zeta';
+    cleanLatex = cleanLatex.replace(new RegExp('\\\\(' + greekCmds + ')([a-zA-Z])', 'g'), (m, g, v) => '\\' + g + ' ' + v);
+
     // Auto-subscript chemical formulas that were lazily written in math mode without subscripts
     const chemRegexGlob = /\b(\d*)((?:[A-Z][a-z]?|[()[\]]|\d)+)/g;
     cleanLatex = cleanLatex.replace(chemRegexGlob, (match, p1, p2) => {

@@ -91,6 +91,12 @@ function normalizeExamName(raw) {
   return norm;
 }
 
+function autoHealMathTypo(text) {
+  if (!text || typeof text !== 'string') return text;
+  const greekCmds = 'pi|alpha|beta|gamma|theta|lambda|mu|omega|sigma|phi|rho|tau|delta|epsilon|eta|nu|xi|zeta';
+  return text.replace(new RegExp('\\\\(' + greekCmds + ')([a-zA-Z])', 'g'), (m, g, v) => '\\' + g + ' ' + v);
+}
+
 function stripOptionPrefix(text) {
   if (!text) return text;
   const r1 = /^\s*(?:\([1-4a-dA-D]\)\s*)/i;
@@ -108,11 +114,11 @@ function stripOptionPrefix(text) {
 function validateRow(row, rowIndex) {
   const errors = [];
 
-  const questionText = String(row.question || '').trim();
-  const optionA = stripOptionPrefix(String(row.optiona || '').trim());
-  const optionB = stripOptionPrefix(String(row.optionb || '').trim());
-  const optionC = stripOptionPrefix(String(row.optionc || '').trim());
-  const optionD = stripOptionPrefix(String(row.optiond || '').trim());
+  const questionText = autoHealMathTypo(String(row.question || '').trim());
+  const optionA = autoHealMathTypo(stripOptionPrefix(String(row.optiona || '').trim()));
+  const optionB = autoHealMathTypo(stripOptionPrefix(String(row.optionb || '').trim()));
+  const optionC = autoHealMathTypo(stripOptionPrefix(String(row.optionc || '').trim()));
+  const optionD = autoHealMathTypo(stripOptionPrefix(String(row.optiond || '').trim()));
   let correctOption = String(row.correctoption || '').trim().toUpperCase();
 
   const examName = normalizeExamName(String(row.exam || '').trim());
@@ -144,7 +150,7 @@ function validateRow(row, rowIndex) {
   // the column header. Blank is fine — that question simply has no
   // solution available to include.
   const solutionText = (row.solution || row.solutions)
-    ? String(row.solution || row.solutions).trim()
+    ? autoHealMathTypo(String(row.solution || row.solutions).trim())
     : null;
 
   // PYQ provenance. Accept an explicit "ExamYear" and/or "ExamSource"
