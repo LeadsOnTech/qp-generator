@@ -39,6 +39,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({
   ok: true,
+  version: 'multi-exam-sync-v2',
   phase: 'Phase 5 — Authentication & Institute Accounts',
   aiMode: process.env.ANTHROPIC_API_KEY ? 'CLAUDE' : 'RULE_BASED',
 }));
