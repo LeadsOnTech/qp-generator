@@ -89,7 +89,7 @@ async function main() {
   await seedExam('NEET', NEET_SYLLABUS);
   await seedExam('EAPCET', EAPCET_SYLLABUS);
   await ensureCommonExamsExist();
-  console.log('Seed complete: NEET, EAPCET, TG EAPCET, and KCET exams ready.');
+  console.log('Seed complete: NEET, EAPCET (AP), EAMCET (TS), and KCET (Karnataka) exams ready.');
 
   // One-time default admin account — change this password immediately after first login
   const defaultEmail = 'admin@questionstudio.local';

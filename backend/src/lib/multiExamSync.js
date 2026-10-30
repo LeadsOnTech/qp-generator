@@ -1,6 +1,9 @@
 const prisma = require('../db');
 
-// Configured blueprints for State CET exams
+// Configured blueprints for State CET exams:
+// Andhra Pradesh conducts "EAPCET"
+// Telangana conducts "EAMCET"
+// Karnataka conducts "KCET"
 const COMMON_CET_EXAMS = [
   {
     name: 'EAPCET',
@@ -9,7 +12,7 @@ const COMMON_CET_EXAMS = [
     patternPaperType: 'MODEL_PAPER',
   },
   {
-    name: 'TG EAPCET',
+    name: 'EAMCET',
     patternSubjects: [{ name: 'Mathematics', count: 80 }, { name: 'Physics', count: 40 }, { name: 'Chemistry', count: 40 }],
     patternDifficultyMix: { easy: 30, medium: 50, hard: 20 },
     patternPaperType: 'MODEL_PAPER',
@@ -22,7 +25,7 @@ const COMMON_CET_EXAMS = [
   },
 ];
 
-// AP EAPCET and TG EAPCET follow 100% Intermediate syllabus (including Physical World)
+// AP EAPCET and Telangana EAMCET follow 100% Intermediate syllabus (including Physical World)
 const EAPCET_FULL_SYLLABUS = {
   Physics: [
     'Physical World',
@@ -222,6 +225,28 @@ const KCET_EXCLUDED_CHAPTERS = [
  * Ensures all three state CET exams exist with exam-specific syllabus.
  */
 async function ensureCommonExamsExist() {
+  // Automatically migrate/rename old 'TG EAPCET' or 'TS EAMCET' to 'EAMCET' (Telangana)
+  try {
+    const oldTg = await prisma.exam.findFirst({
+      where: { name: { in: ['TG EAPCET', 'TS EAMCET'] } },
+    });
+    if (oldTg) {
+      const existingEamcet = await prisma.exam.findUnique({ where: { name: 'EAMCET' } });
+      if (!existingEamcet) {
+        await prisma.exam.update({
+          where: { id: oldTg.id },
+          data: { name: 'EAMCET' },
+        });
+        await prisma.paper.updateMany({
+          where: { examName: oldTg.name },
+          data: { examName: 'EAMCET' },
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Exam migration note:', err.message);
+  }
+
   for (const item of COMMON_CET_EXAMS) {
     const exam = await prisma.exam.upsert({
       where: { name: item.name },
@@ -323,7 +348,7 @@ async function distributeQuestionToExams(questionId, originExamName) {
   // Find all CET exams in database
   const cetExams = await prisma.exam.findMany({
     where: {
-      name: { in: ['EAPCET', 'AP EAPCET', 'TG EAPCET', 'TS EAMCET', 'KCET'] },
+      name: { in: ['EAPCET', 'AP EAPCET', 'EAMCET', 'TG EAPCET', 'TS EAMCET', 'KCET'] },
     },
   });
 
