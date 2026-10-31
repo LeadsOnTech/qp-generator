@@ -175,6 +175,17 @@ function drawFractionGlyph(doc, numerator, denominator, x, y, fontSize, color) {
   return width;
 }
 
+function formatExamTypography(text) {
+  if (typeof text !== 'string') return text;
+  // 1. Prevent awkward breaks on axis and coordinate notations (e.g. x-axis, y-axis, z-axis):
+  let cleaned = text.replace(/\b([xyzXYZ0-9])\s*-\s*([aA]xis|[pP]lane|[rR]ay|[rR]ays|[jJ]unction|[gG]raph|[cC]urve)\b/g, '$1\u2011$2');
+  // 2. Prevent breaks on 1- or 2-letter scientific prefixes with hyphens (e.g. p-n, v-t, s-t, P-V, V-I):
+  cleaned = cleaned.replace(/\b([a-zA-Z0-9]{1,2})-([a-zA-Z0-9]+)\b/g, '$1\u2011$2');
+  // 3. Prevent orphan opening parentheses/brackets in plain text (e.g. "about ( "):
+  cleaned = cleaned.replace(/([\(\[\{])\s+/g, '$1\u00A0');
+  return cleaned;
+}
+
 function formatChemicalFormulas(text) {
   if (typeof text !== 'string') return text;
   // Unicode subscript digits (₀-₉) are now safe to use unconditionally —
@@ -191,9 +202,8 @@ function formatChemicalFormulas(text) {
   });
   // Chained here (rather than requiring every call site to remember to
   // call both functions) so every question/option automatically gets
-  // both chemical-subscript AND caret-exponent formatting, with no risk
-  // of a call site accidentally applying only one of the two.
-  return formatExponents(withSubscripts);
+  // chemical-subscripts, caret-exponents, and non-breaking scientific typography.
+  return formatExamTypography(formatExponents(withSubscripts));
 }
 
 // Only these exponent characters have a verified-safe Unicode superscript

@@ -34,9 +34,16 @@ function layoutRichText(doc, text, options) {
   const headingRegex = /(Statement I\s*[:\.]|Statement II\s*[:\.]|Statement 1\s*[:\.]|Statement 2\s*[:\.]|Assertion\s*(?:\(A\))?\s*[:\.]|Reason\s*(?:\(R\))?\s*[:\.]|Statement-1\s*[:\.]|Statement-2\s*[:\.]|Statement - 1\s*[:\.]|Statement - 2\s*[:\.])/gi;
 
   // Sanitize accidental newlines inside parenthetical clauses (e.g. "(\n \alpha = 5 \n)" -> "( \alpha = 5 )")
-  const cleanSourceText = typeof text === 'string'
+  let cleanSourceText = typeof text === 'string'
     ? text.replace(/\(\s*[\r\n]+\s*/g, ' (').replace(/\s*[\r\n]+\s*\)/g, ') ')
     : text;
+
+  if (typeof cleanSourceText === 'string') {
+    // Prevent awkward hyphenation on coordinate axes (x-axis, y-axis, z-axis)
+    cleanSourceText = cleanSourceText.replace(/\b([xyzXYZ0-9])\s*-\s*([aA]xis|[pP]lane|[rR]ay|[rR]ays|[jJ]unction|[gG]raph|[cC]urve)\b/g, '$1\u2011$2');
+    // Prevent breaks on 1- or 2-letter prefixes (p-n, v-t, s-t, P-V, V-I, 1-D, 2-D)
+    cleanSourceText = cleanSourceText.replace(/\b([a-zA-Z0-9]{1,2})-([a-zA-Z0-9]+)\b/g, '$1\u2011$2');
+  }
 
   const segments = parseSegments(cleanSourceText);
   const tokens = [];
@@ -148,8 +155,72 @@ function layoutRichText(doc, text, options) {
     if (isWhitespace && current.items.length === 0) continue;
 
     if (current.width + tokenWidth > width && current.items.length > 0) {
-      pushLine(false);
-      if (isWhitespace) continue; // don't start the new line with the space
+      const isClosingPunct = token.type === 'text' && /^[\)\]\},;:\.\?!]+$/.test(token.value.trim());
+      let squeezed = false;
+
+      // If adding a closing delimiter would overflow by a small amount,
+      // squeeze it onto the current line by scaling down any math item or taking up to 5pt overflow,
+      // rather than leaving a lonely ')' stranded on a line by itself!
+      if (isClosingPunct) {
+        const mathItem = current.items.find(it => it.type === 'math');
+        const overflow = (current.width + tokenWidth) - width;
+        if (mathItem && overflow > 0 && overflow <= 25) {
+          const newMathW = mathItem.rendered.width - overflow - 1;
+          const scale = newMathW / mathItem.rendered.width;
+          mathItem.rendered.width *= scale;
+          mathItem.rendered.height *= scale;
+          mathItem.rendered.depth *= scale;
+          mathItem.rendered.scale = (mathItem.rendered.scale || 1) * scale;
+          current.width -= (overflow + 1);
+          squeezed = true;
+        } else if (overflow > 0 && overflow <= 5) {
+          squeezed = true;
+        }
+      }
+
+      if (!squeezed) {
+        // Check if current.items ends with an opening delimiter (e.g. '(', '[', '{')
+        // If so, pull it down to the next line so it never hangs alone at the end of a line!
+        const carriedOver = [];
+        while (current.items.length > 0) {
+          const last = current.items[current.items.length - 1];
+          if (last.type === 'text' && /^\s+$/.test(last.value)) {
+            current.width -= current.items.pop().width;
+            continue;
+          }
+          if (last.type === 'text' && /^[\(\[\{]$/.test(last.value.trim())) {
+            current.width -= last.width;
+            carriedOver.unshift(current.items.pop());
+            continue;
+          }
+          if (last.type === 'text' && /[\(\[\{]$/.test(last.value) && last.value.length > 1) {
+            const delim = last.value.slice(-1);
+            const stem = last.value.slice(0, -1);
+            doc.font(last.type === 'bold' && fontBold ? fontBold : font).fontSize(fontSize);
+            const stemWidth = doc.widthOfString(stem);
+            const delimWidth = doc.widthOfString(delim);
+            last.value = stem;
+            current.width -= (last.width - stemWidth);
+            last.width = stemWidth;
+            carriedOver.unshift({ type: last.type, value: delim, width: delimWidth });
+            continue;
+          }
+          break;
+        }
+
+        pushLine(false);
+
+        if (carriedOver.length > 0) {
+          for (const item of carriedOver) {
+            current.items.push(item);
+            current.width += item.width;
+            current.maxAscent = Math.max(current.maxAscent, textAscent);
+            current.maxDescent = Math.max(current.maxDescent, textHeight - textAscent);
+          }
+        }
+
+        if (isWhitespace) continue; // don't start the new line with the space
+      }
     }
 
     current.items.push({ ...token, width: tokenWidth });
