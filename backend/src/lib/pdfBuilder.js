@@ -191,7 +191,10 @@ function formatExamTypography(text) {
   // 4. Ensure space before opening bracket if attached to preceding word: e.g. "about(" -> "about ("
   cleaned = cleaned.replace(/([a-zA-Z0-9])\(/g, '$1 (');
 
-  // 5. Clean up duplicate spaces
+  // 5. Prevent space before closing punctuation marks: e.g. " )" -> ")", " ]" -> "]"
+  cleaned = cleaned.replace(/\s+([\)\]\},;:\.\?!])/g, '$1');
+
+  // 6. Clean up duplicate spaces
   cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
 
   // 6. Bind common units to preceding number using non-breaking space (\u00A0)
@@ -252,7 +255,7 @@ const SUPERSCRIPT_MAP = {
  */
 function formatExponents(text) {
   if (typeof text !== 'string') return text;
-  return text.replace(/\^(-?[0-9a-zA-Z]+)/g, (match, exponent) => {
+  return text.replace(/\^\{?(-?[0-9a-zA-Z]+)\}?/g, (match, exponent) => {
     const converted = exponent.split('').map((ch) => SUPERSCRIPT_MAP[ch]).join('');
     const allSafe = exponent.split('').every((ch) => ch in SUPERSCRIPT_MAP);
     return allSafe ? converted : match;

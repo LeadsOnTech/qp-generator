@@ -47,6 +47,8 @@ function layoutRichText(doc, text, options) {
     cleanSourceText = cleanSourceText.replace(/([\(\[\{])\s+/g, '$1\u00A0');
     // Ensure space before opening bracket if attached to preceding word: e.g. "about(" -> "about ("
     cleanSourceText = cleanSourceText.replace(/([a-zA-Z0-9])\(/g, '$1 (');
+    // Prevent awkward space before closing punctuation marks (e.g. " )" -> ")", " ]" -> "]")
+    cleanSourceText = cleanSourceText.replace(/\s+([\)\]\},;:\.\?!])/g, '$1');
   }
 
   const segments = parseSegments(cleanSourceText);
@@ -59,7 +61,7 @@ function layoutRichText(doc, text, options) {
         tokens.push({ type: 'math', rendered, value: segment.value });
       } else {
         const fallback = "$" + segment.value + "$";
-        for (const word of fallback.split(/(\s+)/)) {
+        for (const word of fallback.split(/([ \t\r\n]+)/)) {
           if (word.length) tokens.push({ type: 'text', value: word });
         }
       }
@@ -70,7 +72,7 @@ function layoutRichText(doc, text, options) {
       for (let i = 0; i < parts.length; i++) {
         if (!parts[i]) continue;
         const type = (i % 2 === 1) ? 'bold' : 'text';
-        for (const word of parts[i].split(/(\s+)/)) {
+        for (const word of parts[i].split(/([ \t\r\n]+)/)) {
           if (word.length) tokens.push({ type, value: word });
         }
       }
@@ -88,7 +90,7 @@ function layoutRichText(doc, text, options) {
     if (current.items.length === 0) return;
     // Trim a trailing space so it doesn't affect alignment/width.
     while (current.items.length && current.items[current.items.length - 1].type === 'text'
-           && /^\s+$/.test(current.items[current.items.length - 1].value)) {
+           && /^[ \t\r\n]+$/.test(current.items[current.items.length - 1].value)) {
       current.width -= current.items.pop().width;
     }
     
@@ -97,7 +99,7 @@ function layoutRichText(doc, text, options) {
       const extraSpace = width - current.width;
       // Only justify if the line is at least 60% full to prevent huge gaps
       if (extraSpace > 0 && extraSpace < width * 0.4) {
-        const spaces = current.items.filter(item => item.type === 'text' && /^\s+$/.test(item.value));
+        const spaces = current.items.filter(item => item.type === 'text' && /^[ \t\r\n]+$/.test(item.value));
         if (spaces.length > 0) {
           const addPerSpace = extraSpace / spaces.length;
           if (addPerSpace <= 6) { // Strict cap: max 6 points stretch per space
@@ -143,7 +145,7 @@ function layoutRichText(doc, text, options) {
       tokenDescent = textHeight - textAscent;
     }
 
-    const isWhitespace = token.type === 'text' && /^\s+$/.test(token.value);
+    const isWhitespace = token.type === 'text' && /^[ \t\r\n]+$/.test(token.value);
 
     if (token.type === 'text' && token.value.includes('\n')) {
       pushLine(true);
@@ -188,26 +190,31 @@ function layoutRichText(doc, text, options) {
         const carriedOver = [];
         while (current.items.length > 0) {
           const last = current.items[current.items.length - 1];
-          if (last.type === 'text' && /^\s+$/.test(last.value)) {
+          if (last.type === 'text' && /^[ \t\r\n]+$/.test(last.value)) {
             current.width -= current.items.pop().width;
             continue;
           }
-          if (last.type === 'text' && /^[\(\[\{]$/.test(last.value.trim())) {
-            current.width -= last.width;
-            carriedOver.unshift(current.items.pop());
-            continue;
-          }
-          if (last.type === 'text' && /[\(\[\{]$/.test(last.value) && last.value.length > 1) {
-            const delim = last.value.slice(-1);
-            const stem = last.value.slice(0, -1);
-            doc.font(last.type === 'bold' && fontBold ? fontBold : font).fontSize(fontSize);
-            const stemWidth = doc.widthOfString(stem);
-            const delimWidth = doc.widthOfString(delim);
-            last.value = stem;
-            current.width -= (last.width - stemWidth);
-            last.width = stemWidth;
-            carriedOver.unshift({ type: last.type, value: delim, width: delimWidth });
-            continue;
+          if (last.type === 'text') {
+            const m = last.value.match(/^([\s\S]*?)([\(\[\{])[\s\u00A0]*$/);
+            if (m && m[2]) {
+              const stem = m[1].trimEnd();
+              const delim = m[2];
+              doc.font(last.type === 'bold' && fontBold ? fontBold : font).fontSize(fontSize);
+              const delimWidth = doc.widthOfString(delim);
+              if (!stem) {
+                current.width -= last.width;
+                carriedOver.unshift({ type: last.type, value: delim, width: delimWidth });
+                current.items.pop();
+                continue;
+              } else {
+                const stemWidth = doc.widthOfString(stem);
+                last.value = stem;
+                current.width -= (last.width - stemWidth);
+                last.width = stemWidth;
+                carriedOver.unshift({ type: last.type, value: delim, width: delimWidth });
+                continue;
+              }
+            }
           }
           break;
         }

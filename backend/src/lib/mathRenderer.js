@@ -160,15 +160,20 @@ function convertMathFormula(text) {
 }
 
 const blacklist = new Set([
-  'for', 'in',
-  'evaluate', 'indefinite', 'integral', 'using', 'formulation', 'limit', 'value', 'equal', 'then',
-  'the', 'of', 'is', 'and', 'with', 'respect', 'parameters', 'substitute', 'gives', 'differentiating',
+  'for', 'in', 'to', 'and', 'or', 'at', 'is', 'as', 'by', 'on', 'if', 'be', 'an', 'a',
+  'so', 'we', 'do', 'up', 'no', 'of', 'from', 'with', 'then', 'than', 'into', 'each',
+  'all', 'both', 'has', 'had', 'have', 'are', 'was', 'were', 'will', 'can', 'may', 'when',
+  'where', 'which', 'who', 'whom', 'whose', 'why', 'how', 'what', 'such', 'that', 'this',
+  'these', 'those', 'between', 'among', 'about', 'above', 'below', 'under', 'over', 'after',
+  'before', 'during', 'through', 'across', 'against', 'per', 'via',
+  'evaluate', 'indefinite', 'integral', 'using', 'formulation', 'limit', 'value', 'equal',
+  'respect', 'parameters', 'substitute', 'gives', 'differentiating',
   'thus', 'comparing', 'coefficients', 'test', 'symmetry', 'since', 'odd', 'function', 'integrated',
-  'over', 'symmetric', 'limits', 'by', 'standard', 'property', 'correct', 'answer', 'jee', 'main',
+  'symmetric', 'limits', 'standard', 'property', 'correct', 'answer', 'jee', 'main',
   'shift', 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
-  'test', 'weekly', 'paper', 'question', 'options', 'correctoption', 'exam', 'subject', 'chapter',
-  'topic', 'difficulty', 'solution', 'solutions', 'correct', 'answer', 'key', 'provided', 'not',
-  'let', 'show', 'shows', 'find', 'choose', 'correctly', 'where', 'denotes', 'greatest', 'fractional',
+  'weekly', 'paper', 'question', 'options', 'correctoption', 'exam', 'subject', 'chapter',
+  'topic', 'difficulty', 'solution', 'solutions', 'key', 'provided', 'not',
+  'let', 'show', 'shows', 'find', 'choose', 'correctly', 'denotes', 'greatest', 'fractional',
   'part', 'satisfying', 'differentiable', 'point', 'local', 'maximum', 'simplifies'
 ]);
 
@@ -192,8 +197,8 @@ function autoWrapMathSegment(text) {
   const isContextToken = (t) => {
     if (/^\s+$/.test(t)) return true;
     
-    // Don't merge option prefixes
-    if (/^\([1-4]\)$/.test(t.trim())) return false;
+    // Don't merge option prefixes (e.g. (A), (B), (1), (2), (i), (ii), A), 1))
+    if (/^(\([1-4A-Za-z]\)|[1-4A-Za-z]\)|\([ivxIVX]+\))$/.test(t.trim())) return false;
 
     const cleanWord = t.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (blacklist.has(cleanWord)) return false;
