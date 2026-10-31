@@ -200,7 +200,7 @@ export default function PaperPreview() {
             className={`btn ${activeAnswerFormat === 'STANDARD' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ padding: '3px 8px', fontSize: 12 }}
             onClick={() => setAnswerFormatOverride('STANDARD')}
-            title="Clean question paper layout without answer boxes"
+            title="Clean question paper layout without brackets"
           >
             Standard
           </button>
@@ -209,9 +209,9 @@ export default function PaperPreview() {
             className={`btn ${activeAnswerFormat === 'STUDENT_ANSWER' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ padding: '3px 8px', fontSize: 12 }}
             onClick={() => setAnswerFormatOverride('STUDENT_ANSWER')}
-            title="Includes [  ] answer box next to each question"
+            title="Includes square brackets [   ] next to each question"
           >
-            Student Answer [  ]
+            Student Brackets [&nbsp;&nbsp;&nbsp;]
           </button>
         </div>
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
@@ -236,25 +236,18 @@ export default function PaperPreview() {
                     </p>
                     {activeAnswerFormat === 'STUDENT_ANSWER' && (
                       <div
-                        title="Student answer box (printed on PDF)"
+                        title="Student answer bracket (printed on PDF)"
                         style={{
-                          minWidth: 38,
-                          height: 22,
-                          border: '1.5px solid var(--ink)',
-                          borderRadius: 3,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 10,
+                          fontSize: 14,
                           fontWeight: 700,
-                          color: 'var(--ink-soft)',
-                          background: 'var(--paper)',
+                          fontFamily: 'monospace',
+                          color: 'var(--ink)',
                           marginLeft: 12,
                           flexShrink: 0,
                           letterSpacing: 2
                         }}
                       >
-                        [&nbsp;]
+                        [&nbsp;&nbsp;&nbsp;&nbsp;]
                       </div>
                     )}
                   </div>

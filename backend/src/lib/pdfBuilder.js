@@ -355,7 +355,7 @@ function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'A
   doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
   const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
   const instruction3 = answerFormat === 'STUDENT_ANSWER'
-    ? `3. Write your selected option ${optionsRange} in the answer box [  ] provided next to each question.`
+    ? `3. Write your selected option ${optionsRange} in the brackets [   ] provided next to each question.`
     : `3. Mark your answers clearly.`;
   doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
     .text(
@@ -461,9 +461,9 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionG
   if (q.isHeader) return 34;
   const numWidth = 22;
   const showAnswerBox = (answerFormat === 'STUDENT_ANSWER' && !q.isHeader);
-  const boxWidth = 22;
-  const boxGap = 6;
-  const textRightReserve = showAnswerBox ? (boxWidth + boxGap) : 0;
+  const bracketWidth = 24;
+  const bracketGap = 6;
+  const textRightReserve = showAnswerBox ? (bracketWidth + bracketGap) : 0;
   const availTextWidth = colWidth - numWidth - textRightReserve;
 
   doc.font(FONT_REGULAR).fontSize(fontSize);
@@ -540,19 +540,34 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionG
 function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap = 5, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   const numWidth = 22;
   const showAnswerBox = (answerFormat === 'STUDENT_ANSWER' && !q.isHeader);
-  const boxWidth = 22;
-  const boxHeight = 14;
-  const boxGap = 6;
-  const textRightReserve = showAnswerBox ? (boxWidth + boxGap) : 0;
+  const bracketWidth = 24;
+  const bracketHeight = 13.5;
+  const bracketArm = 3.5;
+  const bracketGap = 6;
+  const textRightReserve = showAnswerBox ? (bracketWidth + bracketGap) : 0;
   const availTextWidth = colWidth - numWidth - textRightReserve;
 
   if (showAnswerBox) {
-    const boxX = x + colWidth - boxWidth;
-    const boxY = y;
-    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2)
-       .lineWidth(0.75)
-       .strokeColor('#000000')
+    const bx = x + colWidth - bracketWidth;
+    const by = y;
+    doc.save();
+    doc.lineWidth(0.85).strokeColor('#000000');
+    
+    // Left square bracket [
+    doc.moveTo(bx + bracketArm, by)
+       .lineTo(bx, by)
+       .lineTo(bx, by + bracketHeight)
+       .lineTo(bx + bracketArm, by + bracketHeight)
        .stroke();
+
+    // Right square bracket ]
+    doc.moveTo(bx + bracketWidth - bracketArm, by)
+       .lineTo(bx + bracketWidth, by)
+       .lineTo(bx + bracketWidth, by + bracketHeight)
+       .lineTo(bx + bracketWidth - bracketArm, by + bracketHeight)
+       .stroke();
+
+    doc.restore();
   }
 
   doc.font(FONT_BOLD).fontSize(fontSize);
@@ -576,7 +591,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap 
   }
 
   if (showAnswerBox) {
-    textBottomY = Math.max(textBottomY, y + boxHeight);
+    textBottomY = Math.max(textBottomY, y + bracketHeight);
   }
 
   let cursorY = textBottomY + 1;

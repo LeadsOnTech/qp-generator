@@ -230,13 +230,13 @@ export default function GeneratePaper() {
         <div className="field">
           <label>Question Paper Layout / Answer Format</label>
           <select value={answerFormat} onChange={(e) => setAnswerFormat(e.target.value)}>
-            <option value="STANDARD">Standard Format — Clean layout without answer boxes (Best for OMR sheets)</option>
-            <option value="STUDENT_ANSWER">Student Answer Format [  ] — With answer box on right side of each question</option>
+            <option value="STANDARD">Standard Format — Clean layout without brackets (Best for OMR sheets)</option>
+            <option value="STUDENT_ANSWER">Student Answer Format [   ] — With square brackets on right side of each question</option>
           </select>
           <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>
             {answerFormat === 'STUDENT_ANSWER'
-              ? 'Adds a neat [  ] answer box next to every question for students to write their option directly (ideal when colleges do not provide OMR sheets).'
-              : 'Standard exam paper format without answer boxes. Best suited when students mark answers on separate OMR sheets.'}
+              ? 'Adds neat square brackets [   ] next to every question for students to write their option directly (ideal when colleges do not provide OMR sheets).'
+              : 'Standard exam paper format without brackets. Best suited when students mark answers on separate OMR sheets.'}
           </div>
         </div>
 
