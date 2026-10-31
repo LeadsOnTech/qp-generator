@@ -41,9 +41,14 @@ export default function PaperPreview() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [swapping, setSwapping] = useState({});
   const [finalizing, setFinalizing] = useState(false);
-  const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers'
+  const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers' | 'bundle' | 'masterKey'
   const [optionFormatOverride, setOptionFormatOverride] = useState(null);
   const [answerFormatOverride, setAnswerFormatOverride] = useState(null);
+  const [activeSet, setActiveSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'MASTER_KEY'
+  const [masterKeyData, setMasterKeyData] = useState(null);
+  const [masterKeyLoading, setMasterKeyLoading] = useState(false);
+  const [masterKeyViewMode, setMasterKeyViewMode] = useState('grid'); // 'grid' | 'crossref'
+  const [crossRefSearch, setCrossRefSearch] = useState('');
 
   const isNumericExam = (paper?.examName || '').toUpperCase().includes('NEET') || (paper?.examName || '').toUpperCase().includes('JEE');
   const activeOptionFormat = optionFormatOverride || paper?.optionFormat || (isNumericExam ? 'NUMERIC' : 'ALPHA');
@@ -57,15 +62,47 @@ export default function PaperPreview() {
     return { A: 'A', B: 'B', C: 'C', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[k] || k;
   };
 
-  const load = useCallback(() => {
+  const loadPaper = useCallback((set = 'A') => {
     setLoading(true);
-    api.getPaper(id)
-      .then(setPaper)
+    api.getPaper(id, set)
+      .then((data) => {
+        setPaper(data);
+        setError(null);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadMasterKey = useCallback((optFmt) => {
+    setMasterKeyLoading(true);
+    api.getMasterKey(id, optFmt)
+      .then((res) => {
+        setMasterKeyData(res.matrix);
+        setError(null);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setMasterKeyLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    loadPaper('A');
+  }, [loadPaper]);
+
+  const handleSelectSet = (newSet) => {
+    setActiveSet(newSet);
+    if (newSet === 'MASTER_KEY') {
+      loadMasterKey(activeOptionFormat);
+    } else {
+      loadPaper(newSet);
+    }
+  };
+
+  const handleOptionFormatChange = (fmt) => {
+    setOptionFormatOverride(fmt);
+    if (activeSet === 'MASTER_KEY') {
+      loadMasterKey(fmt);
+    }
+  };
 
   async function swap(questionId) {
     setSwapping((s) => ({ ...s, [questionId]: true }));
@@ -94,7 +131,15 @@ export default function PaperPreview() {
     try {
       await api.finalizePaper(id);
       setPaper((p) => ({ ...p, status: 'FINALIZED' }));
-      await api.downloadPaperPdf(id, false, `${(paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_')}.pdf`, activeOptionFormat, activeAnswerFormat);
+      const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
+      await api.downloadPaperPdf(
+        id,
+        false,
+        `${safeName}_SET_A.pdf`,
+        activeOptionFormat,
+        activeAnswerFormat,
+        'A'
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -102,12 +147,23 @@ export default function PaperPreview() {
     }
   }
 
-  async function handleDownload(withAnswers) {
+  async function handleDownloadSet(withAnswers) {
+    const setChar = (activeSet === 'MASTER_KEY' ? 'A' : activeSet);
     setDownloading(withAnswers ? 'answers' : 'plain');
     setError(null);
     try {
       const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
-      await api.downloadPaperPdf(id, withAnswers, `${safeName}${withAnswers ? '_with_answer_key' : ''}.pdf`, activeOptionFormat, activeAnswerFormat);
+      const filename = `${safeName}_SET_${setChar}${withAnswers ? '_with_answer_key' : ''}.pdf`;
+      await api.downloadPaperPdf(
+        id,
+        withAnswers,
+        filename,
+        activeOptionFormat,
+        activeAnswerFormat,
+        setChar,
+        false,
+        false
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -115,7 +171,53 @@ export default function PaperPreview() {
     }
   }
 
-  if (loading) return <div className="skeleton" style={{ height: 400 }} />;
+  async function handleDownloadBundle() {
+    setDownloading('bundle');
+    setError(null);
+    try {
+      const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
+      const filename = `${safeName}_all_sets_bundle_A_B_C_D.pdf`;
+      await api.downloadPaperPdf(
+        id,
+        false,
+        filename,
+        activeOptionFormat,
+        activeAnswerFormat,
+        'A',
+        false,
+        true
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  async function handleDownloadMasterKey() {
+    setDownloading('masterKey');
+    setError(null);
+    try {
+      const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
+      const filename = `${safeName}_synced_master_key.pdf`;
+      await api.downloadPaperPdf(
+        id,
+        true,
+        filename,
+        activeOptionFormat,
+        activeAnswerFormat,
+        'A',
+        true,
+        false
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  if (loading && !paper && !masterKeyData) return <div className="skeleton" style={{ height: 400 }} />;
   if (error && !paper) return <div className="alert alert-danger">{error}</div>;
   if (!paper) return null;
 
@@ -128,17 +230,17 @@ export default function PaperPreview() {
         <p className="eyebrow">Phase 3 — {isDraft ? 'Preview & Confirm' : 'Finalized Paper'}</p>
         <h1 className="page-title">{paper.title}</h1>
         <p className="page-sub">
-          {paper.examName} · {paper.questions.length} questions
+          {paper.examName} · {paper.questions?.length || 0} questions
           {paper.instituteName ? ` · ${paper.instituteName}` : ''} ·{' '}
           {isDraft
             ? 'Review below — swap any question you dislike, then confirm to lock and download.'
-            : 'This paper is locked. Download the PDF or the version with the answer key any time.'}
+            : 'This paper is locked. Download individual sets, all-sets bundle, or the synced master key.'}
         </p>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {paper.shortages.length > 0 && (
+      {paper.shortages?.length > 0 && (
         <div className="alert alert-danger">
           The bank couldn't fully satisfy this request:{' '}
           {paper.shortages.map((s, i) => (
@@ -148,39 +250,141 @@ export default function PaperPreview() {
         </div>
       )}
 
+      {/* Set Selector Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        marginBottom: 16,
+        padding: '10px 14px',
+        background: 'var(--paper-dim)',
+        borderRadius: 8,
+        border: '1px solid var(--line)',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy-900)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Exam Sets:
+          </span>
+          {['A', 'B', 'C', 'D'].map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`btn ${activeSet === s ? 'btn-primary' : 'btn-ghost'}`}
+              style={{
+                padding: '4px 14px',
+                fontSize: 13,
+                fontWeight: activeSet === s ? 700 : 500,
+                background: activeSet === s ? undefined : 'var(--paper)',
+              }}
+              onClick={() => handleSelectSet(s)}
+            >
+              Set {s}
+            </button>
+          ))}
+          <div style={{ width: 1, height: 22, background: 'var(--line)', margin: '0 4px' }} />
+          <button
+            type="button"
+            className={`btn ${activeSet === 'MASTER_KEY' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{
+              padding: '4px 14px',
+              fontSize: 13,
+              fontWeight: activeSet === 'MASTER_KEY' ? 700 : 500,
+              background: activeSet === 'MASTER_KEY' ? undefined : 'var(--paper)',
+            }}
+            onClick={() => handleSelectSet('MASTER_KEY')}
+          >
+            📑 Synced Master Key (4 Sets)
+          </button>
+        </div>
+
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+          {activeSet === 'MASTER_KEY' ? (
+            <span>Synchronized evaluation matrix across all sets</span>
+          ) : (
+            <span>Active View: <strong>Set {activeSet}</strong> {activeSet !== 'A' ? '(Deterministically shuffled)' : '(Master Canonical Order)'}</span>
+          )}
+        </div>
+      </div>
+
+      {isDraft && activeSet !== 'A' && activeSet !== 'MASTER_KEY' && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 13 }}>
+          💡 You are viewing <strong>Set {activeSet}</strong>. Questions are deterministically shuffled to maintain section integrity. To swap any question, switch to <strong>Set A</strong>.
+        </div>
+      )}
+
+      {/* Action Toolbar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
         {isDraft ? (
           <button className="btn btn-primary" onClick={finalizeAndDownload} disabled={finalizing}>
-            {finalizing ? 'Finalizing…' : 'Confirm & Download PDF'}
+            {finalizing ? 'Finalizing…' : 'Confirm & Download PDF (Set A)'}
           </button>
         ) : (
           <>
-            <button
-              className="btn btn-primary"
-              disabled={downloading}
-              onClick={() => handleDownload(false)}
-            >
-              {downloading === 'plain' ? 'Downloading…' : 'Download Question Paper'}
-            </button>
+            {activeSet !== 'MASTER_KEY' ? (
+              <>
+                <button
+                  className="btn btn-primary"
+                  disabled={!!downloading}
+                  onClick={() => handleDownloadSet(false)}
+                >
+                  {downloading === 'plain' ? 'Downloading…' : `Download Set ${activeSet} QP`}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  disabled={!!downloading}
+                  onClick={() => handleDownloadSet(true)}
+                >
+                  {downloading === 'answers' ? 'Downloading…' : `Download Set ${activeSet} with Keys`}
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn btn-primary"
+                disabled={!!downloading}
+                onClick={handleDownloadMasterKey}
+              >
+                {downloading === 'masterKey' ? 'Downloading…' : '📑 Download Master Key PDF'}
+              </button>
+            )}
+
             <button
               className="btn btn-ghost"
-              disabled={downloading}
-              onClick={() => handleDownload(true)}
+              disabled={!!downloading}
+              onClick={handleDownloadBundle}
+              title="Download merged PDF of all 4 sets (A, B, C, D) + Master Key in one printable file"
             >
-              {downloading === 'answers' ? 'Downloading…' : 'Download with Answer Key'}
+              {downloading === 'bundle' ? 'Generating Bundle…' : '📦 All Sets Bundle (A-D)'}
             </button>
+
+            {activeSet !== 'MASTER_KEY' && (
+              <button
+                className="btn btn-ghost"
+                disabled={!!downloading}
+                onClick={handleDownloadMasterKey}
+                title="Download 1-page Synced Master Key PDF for evaluators"
+              >
+                {downloading === 'masterKey' ? 'Downloading…' : '📑 Master Key PDF'}
+              </button>
+            )}
           </>
         )}
-        <button className="btn btn-ghost" onClick={() => setShowAnswers((v) => !v)}>
-          {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
-        </button>
+
+        {activeSet !== 'MASTER_KEY' && (
+          <button className="btn btn-ghost" onClick={() => setShowAnswers((v) => !v)}>
+            {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
+          </button>
+        )}
+
+        {/* Option Style Selector */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
           <span style={{ color: 'var(--ink-soft)' }}>Option Style:</span>
           <button
             type="button"
             className={`btn ${activeOptionFormat === 'ALPHA' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ padding: '3px 8px', fontSize: 12 }}
-            onClick={() => setOptionFormatOverride('ALPHA')}
+            onClick={() => handleOptionFormatChange('ALPHA')}
           >
             (A, B, C, D)
           </button>
@@ -188,11 +392,13 @@ export default function PaperPreview() {
             type="button"
             className={`btn ${activeOptionFormat === 'NUMERIC' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ padding: '3px 8px', fontSize: 12 }}
-            onClick={() => setOptionFormatOverride('NUMERIC')}
+            onClick={() => handleOptionFormatChange('NUMERIC')}
           >
             (1, 2, 3, 4)
           </button>
         </div>
+
+        {/* Format Selector */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
           <span style={{ color: 'var(--ink-soft)' }}>Format:</span>
           <button
@@ -214,99 +420,287 @@ export default function PaperPreview() {
             Student Brackets [&nbsp;&nbsp;&nbsp;]
           </button>
         </div>
+
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
       </div>
 
-      <div className="card card-pad">
-        {paper.questions.map((q, i) => {
-          const subjectHeader = q.subject !== lastSubject;
-          lastSubject = q.subject;
-          return (
-            <div key={q.id}>
-              {subjectHeader && (
-                <h3 style={{ margin: '18px 0 12px', fontSize: 18, borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
-                  {q.subject}
-                </h3>
-              )}
-              <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '0 0 8px' }}>
-                    <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.5, flex: 1 }}>
-                      {i + 1}. {formatHeadingText(q.questionText)}
-                    </p>
-                    {activeAnswerFormat === 'STUDENT_ANSWER' && (
-                      <div
-                        title="Student answer bracket (printed on PDF)"
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          fontFamily: 'monospace',
-                          color: 'var(--ink)',
-                          marginLeft: 12,
-                          flexShrink: 0,
-                          letterSpacing: 2
-                        }}
-                      >
-                        [&nbsp;&nbsp;&nbsp;&nbsp;]
-                      </div>
-                    )}
-                  </div>
-                  {q.imageUrl && (
-                    <img
-                      src={`${api.imageBase()}${q.imageUrl}`}
-                      alt="Question diagram"
-                      style={{ maxWidth: 260, maxHeight: 160, objectFit: 'contain', marginBottom: 10, borderRadius: 6, background: 'var(--paper-dim)', display: 'block' }}
-                    />
-                  )}
-                  {!(q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL' || q.questionType === 'NVQ') ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 18px', fontSize: 13.5 }}>
-                      {['A', 'B', 'C', 'D'].map((key) => (
-                        <div
-                          key={key}
-                          style={{
-                            color: showAnswers && q.correctOption === key ? 'var(--success)' : 'var(--ink-soft)',
-                            fontWeight: showAnswers && q.correctOption === key ? 700 : 400,
-                          }}
-                        >
-                          {q.optionImageUrls?.[key] && (
-                            <img
-                              src={`${api.imageBase()}${q.optionImageUrls[key]}`}
-                              alt={`Option ${key}`}
-                              style={{ maxWidth: 140, maxHeight: 70, objectFit: 'contain', marginBottom: 6, display: 'block', borderRadius: 4, background: 'var(--paper-dim)' }}
-                            />
-                          )}
-                          <div>({getOptionLabel(key)}) {q.options[key]}</div>
-                        </div>
-                      ))}
-                    </div>
-                    ) : (
-                    <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--paper-dim)', borderRadius: 4, display: 'inline-block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                      {showAnswers ? `Answer: ${getOptionLabel(q.correctOption)}` : 'Numerical Answer Box'}
-                    </div>
-                    )}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                    <span className="badge badge-neutral">{q.chapter}</span>
-                    <span className="badge badge-gold">{q.difficulty}</span>
-                    {q.questionType !== 'MCQ' && <span className="badge badge-warn">{q.questionType.replace(/_/g, ' ')}</span>}
-                  </div>
+      {/* Main Content Area: Master Key View vs Question List View */}
+      {activeSet === 'MASTER_KEY' ? (
+        <div className="card card-pad">
+          {masterKeyLoading ? (
+            <div className="skeleton" style={{ height: 260 }} />
+          ) : !masterKeyData ? (
+            <div className="alert alert-danger">Could not load Master Key matrix.</div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: 'var(--navy-950)' }}>
+                    Synced Master Answer Key (Sets A, B, C, D)
+                  </h2>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                    Total Questions: {masterKeyData.questionCount} · Option Style: ({activeOptionFormat === 'NUMERIC' ? '1, 2, 3, 4' : 'A, B, C, D'}) · Deterministic Seed Synchronized
+                  </p>
                 </div>
-                {isDraft && (
-                  <div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'inline-flex', background: 'var(--paper-dim)', padding: 3, borderRadius: 6, border: '1px solid var(--line)' }}>
                     <button
-                      className="btn btn-ghost"
-                      style={{ padding: '6px 12px', fontSize: 13 }}
-                      disabled={swapping[q.id]}
-                      onClick={() => swap(q.id)}
+                      type="button"
+                      className={`btn ${masterKeyViewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => setMasterKeyViewMode('grid')}
                     >
-                      {swapping[q.id] ? 'Swapping…' : 'Swap'}
+                      Side-by-Side Key Grid
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${masterKeyViewMode === 'crossref' ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => setMasterKeyViewMode('crossref')}
+                    >
+                      Cross-Reference Map
                     </button>
                   </div>
-                )}
+                </div>
               </div>
+
+              {masterKeyViewMode === 'grid' ? (
+                <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--line)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#1e293b', color: '#fff', textAlign: 'center' }}>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>Question #</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>SET A Key</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>SET B Key</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>SET C Key</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>SET D Key</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {masterKeyData.rows.map((row, idx) => (
+                        <tr
+                          key={row.qNumber}
+                          style={{
+                            background: idx % 2 === 0 ? '#ffffff' : 'var(--paper-dim)',
+                            borderBottom: '1px solid var(--line)',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <td style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--navy-900)' }}>
+                            Question {row.qNumber}
+                          </td>
+                          <td style={{ padding: '8px 14px' }}>
+                            <span style={{ display: 'inline-block', width: 28, height: 28, lineHeight: '28px', borderRadius: 4, background: '#fef3c7', color: '#92400e', fontWeight: 700 }}>
+                              {row.keyA}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 14px' }}>
+                            <span style={{ display: 'inline-block', width: 28, height: 28, lineHeight: '28px', borderRadius: 4, background: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>
+                              {row.keyB}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 14px' }}>
+                            <span style={{ display: 'inline-block', width: 28, height: 28, lineHeight: '28px', borderRadius: 4, background: '#f3e8ff', color: '#6b21a8', fontWeight: 700 }}>
+                              {row.keyC}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 14px' }}>
+                            <span style={{ display: 'inline-block', width: 28, height: 28, lineHeight: '28px', borderRadius: 4, background: '#dcfce7', color: '#15803d', fontWeight: 700 }}>
+                              {row.keyD}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: 12 }}>
+                    <input
+                      type="text"
+                      placeholder="Search question # in any set..."
+                      value={crossRefSearch}
+                      onChange={(e) => setCrossRefSearch(e.target.value)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 6,
+                        border: '1px solid var(--line)',
+                        fontSize: 13,
+                        maxWidth: 260,
+                      }}
+                    />
+                  </div>
+                  <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--line)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: '#0f172a', color: '#fff', textAlign: 'center' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600 }}>Set A Question</th>
+                          <th style={{ padding: '10px 14px', fontWeight: 600 }}>Correct Key</th>
+                          <th style={{ padding: '10px 14px', fontWeight: 600 }}>Appears as in Set B</th>
+                          <th style={{ padding: '10px 14px', fontWeight: 600 }}>Appears as in Set C</th>
+                          <th style={{ padding: '10px 14px', fontWeight: 600 }}>Appears as in Set D</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {masterKeyData.rows
+                          .filter((row) => {
+                            if (!crossRefSearch) return true;
+                            const s = crossRefSearch.trim();
+                            return (
+                              String(row.crossRef.A) === s ||
+                              String(row.crossRef.B) === s ||
+                              String(row.crossRef.C) === s ||
+                              String(row.crossRef.D) === s
+                            );
+                          })
+                          .map((row, idx) => (
+                            <tr
+                              key={row.qNumber}
+                              style={{
+                                background: idx % 2 === 0 ? '#ffffff' : 'var(--paper-dim)',
+                                borderBottom: '1px solid var(--line)',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <td style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--navy-900)' }}>
+                                Question #{row.crossRef.A}
+                              </td>
+                              <td style={{ padding: '8px 14px' }}>
+                                <span style={{ display: 'inline-block', width: 28, height: 28, lineHeight: '28px', borderRadius: 4, background: '#fef3c7', color: '#92400e', fontWeight: 700 }}>
+                                  {row.crossRef.key}
+                                </span>
+                              </td>
+                              <td style={{ padding: '8px 14px', color: '#0369a1', fontWeight: 600 }}>
+                                Question #{row.crossRef.B}
+                              </td>
+                              <td style={{ padding: '8px 14px', color: '#6b21a8', fontWeight: 600 }}>
+                                Question #{row.crossRef.C}
+                              </td>
+                              <td style={{ padding: '8px 14px', color: '#15803d', fontWeight: 600 }}>
+                                Question #{row.crossRef.D}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      ) : (
+        <div className="card card-pad">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '2px solid var(--line)', paddingBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                background: activeSet === 'A' ? '#1e293b' : activeSet === 'B' ? '#0369a1' : activeSet === 'C' ? '#6b21a8' : '#15803d',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 13,
+                padding: '4px 12px',
+                borderRadius: 4,
+                letterSpacing: 1
+              }}>
+                SET - {activeSet}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+                {paper.questions?.length || 0} Questions {activeSet !== 'A' ? '(Deterministically Scrambled)' : '(Canonical Order)'}
+              </span>
+            </div>
+          </div>
+
+          {paper.questions?.map((q, i) => {
+            const subjectHeader = q.subject !== lastSubject;
+            lastSubject = q.subject;
+            return (
+              <div key={q.id}>
+                {subjectHeader && (
+                  <h3 style={{ margin: '18px 0 12px', fontSize: 18, borderBottom: '1px solid var(--line)', paddingBottom: 8 }}>
+                    {q.subject}
+                  </h3>
+                )}
+                <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '0 0 8px' }}>
+                      <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.5, flex: 1 }}>
+                        {i + 1}. {formatHeadingText(q.questionText)}
+                      </p>
+                      {activeAnswerFormat === 'STUDENT_ANSWER' && (
+                        <div
+                          title="Student answer bracket (printed on PDF)"
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 700,
+                            fontFamily: 'monospace',
+                            color: 'var(--ink)',
+                            marginLeft: 12,
+                            flexShrink: 0,
+                            letterSpacing: 2
+                          }}
+                        >
+                          [&nbsp;&nbsp;&nbsp;&nbsp;]
+                        </div>
+                      )}
+                    </div>
+                    {q.imageUrl && (
+                      <img
+                        src={`${api.imageBase()}${q.imageUrl}`}
+                        alt="Question diagram"
+                        style={{ maxWidth: 260, maxHeight: 160, objectFit: 'contain', marginBottom: 10, borderRadius: 6, background: 'var(--paper-dim)', display: 'block' }}
+                      />
+                    )}
+                    {!(q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL' || q.questionType === 'NVQ') ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 18px', fontSize: 13.5 }}>
+                        {['A', 'B', 'C', 'D'].map((key) => (
+                          <div
+                            key={key}
+                            style={{
+                              color: showAnswers && q.correctOption === key ? 'var(--success)' : 'var(--ink-soft)',
+                              fontWeight: showAnswers && q.correctOption === key ? 700 : 400,
+                            }}
+                          >
+                            {q.optionImageUrls?.[key] && (
+                              <img
+                                src={`${api.imageBase()}${q.optionImageUrls[key]}`}
+                                alt={`Option ${key}`}
+                                style={{ maxWidth: 140, maxHeight: 70, objectFit: 'contain', marginBottom: 6, display: 'block', borderRadius: 4, background: 'var(--paper-dim)' }}
+                              />
+                            )}
+                            <div>({getOptionLabel(key)}) {q.options[key]}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--paper-dim)', borderRadius: 4, display: 'inline-block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                        {showAnswers ? `Answer: ${getOptionLabel(q.correctOption)}` : 'Numerical Answer Box'}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                      <span className="badge badge-neutral">{q.chapter}</span>
+                      <span className="badge badge-gold">{q.difficulty}</span>
+                      {q.questionType !== 'MCQ' && <span className="badge badge-warn">{q.questionType.replace(/_/g, ' ')}</span>}
+                    </div>
+                  </div>
+                  {isDraft && activeSet === 'A' && (
+                    <div>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '6px 12px', fontSize: 13 }}
+                        disabled={swapping[q.id]}
+                        onClick={() => swap(q.id)}
+                      >
+                        {swapping[q.id] ? 'Swapping…' : 'Swap'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

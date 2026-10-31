@@ -1,5 +1,6 @@
 const PDFDocument = require('pdfkit');
 const { layoutRichText, drawRichText, containsMath } = require('./richTextLayout');
+const { generateSetQuestions, generateMasterKeyMatrix } = require('./multiSetEngine');
 const fs = require('fs');
 const path = require('path');
 
@@ -354,6 +355,23 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
     }
   }
 
+  const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
+  if (setLabel) {
+    const badgeW = 68;
+    const badgeH = 22;
+    const badgeX = pageWidth - 36 - badgeW;
+    const badgeY = 16;
+    doc.save();
+    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 4).fillAndStroke('#f8fafc', '#0f172a');
+    doc.fill('#0f172a').font(FONT_BOLD).fontSize(10)
+      .text(setLabel.startsWith('SET') ? setLabel : `SET ${setLabel}`, badgeX, badgeY + 5.5, {
+        width: badgeW,
+        align: 'center',
+        lineBreak: false,
+      });
+    doc.restore();
+  }
+
   doc.fill('#000000')
     .font(FONT_BOLD).fontSize(18)
     .text(paper.instituteName || 'Question Paper', 36, 18, { width: pageWidth - 72, align: 'center' });
@@ -374,9 +392,13 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
     .text(`${paper.examName || 'Exam'} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || 'Test'}`, 36, y, { width: pageWidth - 72, align: 'center' });
   y += 18;
 
+  const titleText = setLabel
+    ? `${paper.title || 'Question Paper'} — ${questionCount} Questions (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})`
+    : `${paper.title || 'Question Paper'} — ${questionCount} Questions`;
+
   doc.fill('#000000')
     .font(FONT_REGULAR).fontSize(10)
-    .text(`${paper.title || 'Question Paper'} — ${questionCount} Questions`, 36, y, { width: pageWidth - 72, align: 'center' });
+    .text(titleText, 36, y, { width: pageWidth - 72, align: 'center' });
   y += 18;
 
   const rawDate = paper.createdAt ? new Date(paper.createdAt) : new Date();
@@ -390,16 +412,17 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
   return y; // bottom edge of the header block, for the instructions box to start below
 }
 
-function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
+function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA', answerFormat = 'STANDARD', setLabel = null) {
   doc.roundedRect(36, topY, pageWidth - 72, 50, 6).stroke(LINE);
   doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
   const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
   const instruction3 = answerFormat === 'STUDENT_ANSWER'
     ? `3. Write your selected option ${optionsRange} in the brackets [   ] provided next to each question.`
     : `3. Mark your answers clearly.`;
+  const setMention = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
   doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
     .text(
-      `1. This paper contains ${questionCount} questions, all compulsory.   ` +
+      `1. This paper contains ${questionCount} questions${setMention}, all compulsory.   ` +
       `2. Each question has four options ${optionsRange} with exactly one correct answer.   ` +
       instruction3,
       48, topY + 21, { width: pageWidth - 96, lineGap: 1.5 }
@@ -879,11 +902,12 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
   doc.switchToPage(endPageIndex);
 }
 
-function drawAnswerKey(doc, questions, pageWidth, optionFormat = 'ALPHA') {
+function drawAnswerKey(doc, questions, pageWidth, optionFormat = 'ALPHA', setLabel = null) {
   doc.addPage();
   doc.y = 54;
+  const heading = setLabel ? `Answer Key — ${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel}` : 'Answer Key';
   doc.fill(NAVY).font(FONT_BOLD).fontSize(15)
-    .text('Answer Key', 36, doc.y, { width: pageWidth - 72, align: 'center' });
+    .text(heading, 36, doc.y, { width: pageWidth - 72, align: 'center' });
   doc.moveDown(1);
 
   const cols = 5;
@@ -957,15 +981,17 @@ function drawHeadersAndFooters(doc, paper) {
   const totalPages = range.count;
   const savedBottomMargin = doc.page.margins.bottom;
   const savedTopMargin = doc.page.margins.top;
+  const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
 
   for (let i = range.start; i < range.start + totalPages; i++) {
     doc.switchToPage(i);
     
     // 1. Footer
     doc.page.margins.bottom = 0; // writing inside the margin area — prevent pdfkit auto-adding a page
+    const setFooter = setLabel ? `   ·   ${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel}` : '';
     doc.fill(SOFT).font(FONT_REGULAR).fontSize(8)
       .text(
-        `${paper.instituteName || ''}   ·   Page ${i + 1} of ${totalPages}`,
+        `${paper.instituteName || ''}${setFooter}   ·   Page ${i + 1} of ${totalPages}`,
         36, doc.page.height - 36,
         { width: doc.page.width - 72, align: 'center', lineBreak: false }
       );
@@ -976,7 +1002,8 @@ function drawHeadersAndFooters(doc, paper) {
       doc.page.margins.top = 0;
       doc.fill('#000000').font(FONT_BOLD).fontSize(8.5);
       
-      const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''}`;
+      const setRun = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
+      const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''}${setRun}`;
       // Left text: Exam Name
       doc.text(examLabel, 36, 30, { width: doc.page.width / 2 - 36, align: 'left', lineBreak: false });
       // Right text: Institute Name
@@ -993,9 +1020,100 @@ function drawHeadersAndFooters(doc, paper) {
   }
 }
 
+function drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight) {
+  doc.addPage();
+  const margin = 36;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Header
+  doc.fill('#0f172a').font(FONT_BOLD).fontSize(15)
+    .text(paper.instituteName || 'LEADSON ACADEMY', margin, 36, { width: contentWidth, align: 'center' });
+
+  doc.fill(NAVY).font(FONT_BOLD).fontSize(11)
+    .text(`${paper.title || 'Question Paper'} — Synced Master Answer Key (Sets A, B, C, D)`, margin, 56, { width: contentWidth, align: 'center' });
+
+  doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
+    .text(`Evaluation & Grading Matrix   ·   ${matrix.questionCount} Questions   ·   Generated: ${new Date().toLocaleDateString('en-IN')}`, margin, 72, { width: contentWidth, align: 'center' });
+
+  // Divider line
+  doc.strokeColor('#cbd5e1').lineWidth(0.75)
+    .moveTo(margin, 88)
+    .lineTo(pageWidth - margin, 88)
+    .stroke();
+
+  // Grid Layout
+  const totalQ = matrix.rows.length;
+  const numBlocks = 3;
+  const blockWidth = 160;
+  const gutter = (contentWidth - blockWidth * numBlocks) / (numBlocks - 1);
+  const rowHeight = 15;
+  const headerHeight = 18;
+  const startY = 100;
+  const maxRowsPerPage = Math.floor((pageHeight - startY - 50) / rowHeight);
+  // Balance questions evenly across blocks on the page
+  const rowsPerBlock = Math.min(maxRowsPerPage, Math.max(15, Math.ceil(totalQ / numBlocks)));
+  const colSubWidth = blockWidth / 5; // Q#, A, B, C, D
+
+  function drawBlockHeader(bx, by) {
+    doc.save();
+    doc.rect(bx, by, blockWidth, headerHeight).fill('#1e293b');
+    doc.fill('#ffffff').font(FONT_BOLD).fontSize(8);
+
+    const headers = ['Q#', 'SET A', 'SET B', 'SET C', 'SET D'];
+    headers.forEach((h, idx) => {
+      doc.text(h, bx + idx * colSubWidth, by + 4.5, { width: colSubWidth, align: 'center', lineBreak: false });
+    });
+    doc.restore();
+  }
+
+  // Draw initial headers
+  for (let b = 0; b < numBlocks; b++) {
+    const bx = margin + b * (blockWidth + gutter);
+    drawBlockHeader(bx, startY);
+  }
+
+  matrix.rows.forEach((row, i) => {
+    const itemOnPage = i % (rowsPerBlock * numBlocks);
+    const block = Math.floor(itemOnPage / rowsPerBlock);
+    const rowInBlock = itemOnPage % rowsPerBlock;
+
+    if (i > 0 && itemOnPage === 0) {
+      doc.addPage();
+      for (let b = 0; b < numBlocks; b++) {
+        const bx = margin + b * (blockWidth + gutter);
+        drawBlockHeader(bx, startY);
+      }
+    }
+
+    const bx = margin + block * (blockWidth + gutter);
+    const ry = startY + headerHeight + rowInBlock * rowHeight;
+
+    doc.save();
+    // Alternating row background
+    if (rowInBlock % 2 === 1) {
+      doc.rect(bx, ry, blockWidth, rowHeight).fill('#f8fafc');
+    }
+
+    // Border
+    doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(bx, ry, blockWidth, rowHeight).stroke();
+
+    // Text
+    doc.fill('#0f172a').font(FONT_BOLD).fontSize(8.5)
+      .text(String(row.qNumber), bx, ry + 3, { width: colSubWidth, align: 'center', lineBreak: false });
+
+    const keys = [row.keyA, row.keyB, row.keyC, row.keyD];
+    keys.forEach((k, kIdx) => {
+      doc.fill(GOLD).font(FONT_BOLD).fontSize(8.5)
+        .text(k || '-', bx + (kIdx + 1) * colSubWidth, ry + 3, { width: colSubWidth, align: 'center', lineBreak: false });
+    });
+
+    doc.restore();
+  });
+}
+
 /**
  * Writes the paper PDF into the given writable stream.
- * @param paper  { title, instituteName, examName, paperType, createdAt, optionFormat }
+ * @param paper  { title, instituteName, examName, paperType, createdAt, optionFormat, setLabel }
  * @param questions  ordered [{ questionText, options: {A,B,C,D}, correctOption }]
  * @param withAnswers  include the answer-key page
  */
@@ -1010,12 +1128,12 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   const pageHeight = doc.page.height;
 
   const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length);
-  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat);
+  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, paper.setLabel);
   const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
 
   layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat);
 
-  if (withAnswers) drawAnswerKey(doc, questions, pageWidth, optionFormat);
+  if (withAnswers) drawAnswerKey(doc, questions, pageWidth, optionFormat, paper.setLabel);
 
   // Solutions section, only when this paper was generated with solutions
   // included (charged 1 credit each at finalize). The answer key above is
@@ -1026,6 +1144,65 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   doc.end();
 }
 
-module.exports = { buildPaperPdf };
+/**
+ * Writes the Synced Master Answer Key PDF (Sets A, B, C, D) into stream.
+ */
+function buildMasterKeyPdf(stream, paper, baseQuestions, optionFormat = 'ALPHA') {
+  const doc = new PDFDocument({ size: 'A4', margin: 36, autoFirstPage: false, bufferPages: true });
+  ensureFontsRegistered(doc);
+  doc.pipe(stream);
+
+  const resolvedOptionFormat = optionFormat || resolveOptionFormat(paper);
+  const matrix = generateMasterKeyMatrix(paper.id, baseQuestions, resolvedOptionFormat);
+  drawMasterKeyTable(doc, matrix, paper, 595.28, 841.89);
+
+  drawHeadersAndFooters(doc, { ...paper, setLabel: 'MASTER KEY' });
+  doc.end();
+}
+
+/**
+ * Writes a multi-set printable bundle (Set A, B, C, D + Synced Master Key) into stream.
+ */
+function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
+  const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
+  ensureFontsRegistered(doc);
+  doc.pipe(stream);
+
+  const optionFormat = resolveOptionFormat(paper);
+  const answerFormat = resolveAnswerFormat(paper);
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
+  const sets = ['A', 'B', 'C', 'D'];
+
+  sets.forEach((setChar, setIdx) => {
+    if (setIdx > 0) doc.addPage();
+    const setQuestions = generateSetQuestions(paper.id, baseQuestions, setChar);
+    const setPaper = { ...paper, setLabel: `SET ${setChar}` };
+
+    const headerBottomY = drawHeader(doc, setPaper, pageWidth, setQuestions.length);
+    const instructionsBottomY = drawInstructions(doc, setQuestions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, setPaper.setLabel);
+    const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
+
+    layoutQuestionsTwoColumn(doc, setQuestions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat);
+
+    if (withAnswers) {
+      drawAnswerKey(doc, setQuestions, pageWidth, optionFormat, setPaper.setLabel);
+    }
+  });
+
+  // Append Synced Master Answer Key at the end
+  const matrix = generateMasterKeyMatrix(paper.id, baseQuestions, optionFormat);
+  drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight);
+
+  drawHeadersAndFooters(doc, paper);
+  doc.end();
+}
+
+module.exports = {
+  buildPaperPdf,
+  buildMasterKeyPdf,
+  buildPaperBundlePdf,
+};
 
 

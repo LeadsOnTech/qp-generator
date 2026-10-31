@@ -1,7 +1,8 @@
 const express = require('express');
 const prisma = require('../db');
 const { selectQuestions, findReplacement, shuffle } = require('../lib/paperEngine');
-const { buildPaperPdf } = require('../lib/pdfBuilder');
+const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf } = require('../lib/pdfBuilder');
+const { generateSetQuestions, generateMasterKeyMatrix } = require('../lib/multiSetEngine');
 const { adjustCredits, hasEnoughCredits } = require('../lib/credits');
 
 const router = express.Router();
@@ -147,7 +148,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/papers/:id — full preview data
+ * GET /api/papers/:id — full preview data (supports ?set=A|B|C|D)
  */
 router.get('/:id', async (req, res) => {
   const paper = await prisma.paper.findUnique({
@@ -174,6 +175,10 @@ router.get('/:id', async (req, res) => {
     } catch (e) {}
   }
 
+  const requestedSet = (req.query.set || 'A').toUpperCase();
+  const rawQuestions = paper.questions.map(formatPaperQuestion);
+  const questions = generateSetQuestions(paper.id, rawQuestions, requestedSet);
+
   res.json({
     id: paper.id,
     title: paper.title,
@@ -183,6 +188,8 @@ router.get('/:id', async (req, res) => {
     paperType: paper.paperType,
     optionFormat,
     answerFormat,
+    activeSet: `SET ${requestedSet}`,
+    availableSets: ['A', 'B', 'C', 'D'],
     status: paper.status,
     includeSolutions: paper.includeSolutions,
     // How many of this paper's questions actually have a solution — this
@@ -193,7 +200,46 @@ router.get('/:id', async (req, res) => {
     createdAt: paper.createdAt,
     finalizedAt: paper.finalizedAt,
     shortages: paper.shortagesNote ? JSON.parse(paper.shortagesNote) : [],
-    questions: paper.questions.map(formatPaperQuestion),
+    questions,
+  });
+});
+
+/**
+ * GET /api/papers/:id/master-key — Synced Master Answer Key (Sets A, B, C, D)
+ */
+router.get('/:id/master-key', async (req, res) => {
+  const paper = await prisma.paper.findUnique({
+    where: { id: req.params.id },
+    include: {
+      institute: true,
+      questions: {
+        orderBy: { order: 'asc' },
+        include: { question: { include: { chapter: { include: { subject: true } } } } },
+      },
+    },
+  });
+  if (!paper) return res.status(404).json({ error: 'Paper not found.' });
+  const denied = assertPaperAccess(req, paper);
+  if (denied) return res.status(denied.status).json({ error: denied.error });
+
+  let optionFormat = req.query.optionFormat || null;
+  if (!optionFormat && paper.config) {
+    try {
+      const cfg = JSON.parse(paper.config);
+      optionFormat = cfg.optionFormat || null;
+    } catch (e) {}
+  }
+
+  const baseQuestions = paper.questions.map(formatPaperQuestion);
+  const matrix = generateMasterKeyMatrix(paper.id, baseQuestions, optionFormat);
+
+  res.json({
+    paperId: paper.id,
+    title: paper.title,
+    instituteName: paper.institute?.name || paper.instituteName,
+    examName: paper.examName,
+    optionFormat,
+    ...matrix,
   });
 });
 
@@ -353,7 +399,10 @@ router.get('/:id/pdf', async (req, res) => {
   if (denied) return res.status(denied.status).json({ error: denied.error });
 
   const withAnswers = req.query.answers === '1';
-  const questions = paper.questions.map(formatPaperQuestion);
+  const isBundle = req.query.bundle === '1';
+  const isMasterKey = req.query.masterKey === '1';
+  const setChar = (req.query.set || 'A').toUpperCase();
+  const rawQuestions = paper.questions.map(formatPaperQuestion);
 
   let optionFormat = req.query.optionFormat || null;
   let answerFormat = req.query.answerFormat || null;
@@ -384,12 +433,30 @@ router.get('/:id/pdf', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+
+  if (isBundle) {
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeTitle}_all_sets_bundle.pdf"`
+    );
+    return buildPaperBundlePdf(res, brandedPaper, rawQuestions, withAnswers);
+  }
+
+  if (isMasterKey) {
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeTitle}_synced_master_key.pdf"`
+    );
+    return buildMasterKeyPdf(res, brandedPaper, rawQuestions, optionFormat);
+  }
+
+  const setQuestions = generateSetQuestions(paper.id, rawQuestions, setChar);
   res.setHeader(
     'Content-Disposition',
-    `attachment; filename="${safeTitle}${withAnswers ? '_with_answer_key' : ''}.pdf"`
+    `attachment; filename="${safeTitle}_Set_${setChar}${withAnswers ? '_with_answer_key' : ''}.pdf"`
   );
 
-  buildPaperPdf(res, brandedPaper, questions, withAnswers);
+  buildPaperPdf(res, { ...brandedPaper, setLabel: `SET ${setChar}` }, setQuestions, withAnswers);
 });
 
 

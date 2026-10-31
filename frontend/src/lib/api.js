@@ -73,7 +73,8 @@ export const api = {
   // ---- Phase 3 ----
   generatePaper: (data) => request('/papers/generate', { method: 'POST', body: JSON.stringify(data) }),
   listPapers: () => request('/papers'),
-  getPaper: (id) => request(`/papers/${id}`),
+  getPaper: (id, set = 'A') => request(`/papers/${id}${set ? `?set=${set}` : ''}`),
+  getMasterKey: (id, optionFormat) => request(`/papers/${id}/master-key${optionFormat ? `?optionFormat=${optionFormat}` : ''}`),
   swapQuestion: (paperId, questionId) => request(`/papers/${paperId}/swap`, { method: 'POST', body: JSON.stringify({ questionId }) }),
   finalizePaper: (id) => request(`/papers/${id}/finalize`, { method: 'POST', body: JSON.stringify({}) }),
   deletePaper: (id) => request(`/papers/${id}`, { method: 'DELETE' }),
@@ -85,16 +86,17 @@ export const api = {
    * navigation to this URL would get a 401 "not logged in" error even
    * for a properly logged-in user). This fetches the PDF as binary data
    * with the Authorization header attached, then triggers a real file
-   * save using a temporary in-browser link — the user still gets an
-   * actual downloaded/openable PDF, exactly as before, just via a request
-   * that's allowed to succeed.
+   * save using a temporary in-browser link.
    */
-  downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat, answerFormat) => {
+  downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat, answerFormat, set = 'A', isMasterKey = false, isBundle = false) => {
     const token = localStorage.getItem(TOKEN_KEY);
     const params = new URLSearchParams();
     if (withAnswers) params.set('answers', '1');
     if (optionFormat) params.set('optionFormat', optionFormat);
     if (answerFormat) params.set('answerFormat', answerFormat);
+    if (set && !isMasterKey && !isBundle) params.set('set', set);
+    if (isMasterKey) params.set('masterKey', '1');
+    if (isBundle) params.set('bundle', '1');
     const query = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE}/papers/${id}/pdf${query}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
