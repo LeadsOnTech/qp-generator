@@ -43,6 +43,10 @@ function layoutRichText(doc, text, options) {
     cleanSourceText = cleanSourceText.replace(/\b([xyzXYZ0-9])\s*-\s*([aA]xis|[pP]lane|[rR]ay|[rR]ays|[jJ]unction|[gG]raph|[cC]urve)\b/g, '$1\u2011$2');
     // Prevent breaks on 1- or 2-letter prefixes (p-n, v-t, s-t, P-V, V-I, 1-D, 2-D)
     cleanSourceText = cleanSourceText.replace(/\b([a-zA-Z0-9]{1,2})-([a-zA-Z0-9]+)\b/g, '$1\u2011$2');
+    // Prevent orphan opening brackets
+    cleanSourceText = cleanSourceText.replace(/([\(\[\{])\s+/g, '$1\u00A0');
+    // Ensure space before opening bracket if attached to preceding word: e.g. "about(" -> "about ("
+    cleanSourceText = cleanSourceText.replace(/([a-zA-Z0-9])\(/g, '$1 (');
   }
 
   const segments = parseSegments(cleanSourceText);

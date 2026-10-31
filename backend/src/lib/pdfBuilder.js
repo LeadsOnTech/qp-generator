@@ -177,12 +177,39 @@ function drawFractionGlyph(doc, numerator, denominator, x, y, fontSize, color) {
 
 function formatExamTypography(text) {
   if (typeof text !== 'string') return text;
+  let cleaned = text;
+
   // 1. Prevent awkward breaks on axis and coordinate notations (e.g. x-axis, y-axis, z-axis):
-  let cleaned = text.replace(/\b([xyzXYZ0-9])\s*-\s*([aA]xis|[pP]lane|[rR]ay|[rR]ays|[jJ]unction|[gG]raph|[cC]urve)\b/g, '$1\u2011$2');
-  // 2. Prevent breaks on 1- or 2-letter scientific prefixes with hyphens (e.g. p-n, v-t, s-t, P-V, V-I):
+  cleaned = cleaned.replace(/\b([xyzXYZ0-9])\s*-\s*([aA]xis|[pP]lane|[rR]ay|[rR]ays|[jJ]unction|[gG]raph|[cC]urve)\b/g, '$1\u2011$2');
+
+  // 2. Prevent breaks on 1- or 2-letter scientific prefixes with hyphens (e.g. p-n, v-t, s-t, P-V, V-I, 1-D, 2-D):
   cleaned = cleaned.replace(/\b([a-zA-Z0-9]{1,2})-([a-zA-Z0-9]+)\b/g, '$1\u2011$2');
-  // 3. Prevent orphan opening parentheses/brackets in plain text (e.g. "about ( "):
+
+  // 3. Prevent orphan opening parentheses/brackets/braces (e.g. "about ( " or "is [ "):
   cleaned = cleaned.replace(/([\(\[\{])\s+/g, '$1\u00A0');
+
+  // 4. Ensure space before opening bracket if attached to preceding word: e.g. "about(" -> "about ("
+  cleaned = cleaned.replace(/([a-zA-Z0-9])\(/g, '$1 (');
+
+  // 5. Clean up duplicate spaces
+  cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+
+  // 6. Bind common units to preceding number using non-breaking space (\u00A0)
+  // so numbers never get separated from their units (e.g. "10 m/s", "50 kg", "20 cm", "5 eV")
+  cleaned = cleaned.replace(
+    /\b(\d+(?:\.\d+)?)\s+(m\/s²?|km\/h|cm|mm|nm|μm|km|kg|mg|μg|ms|ns|μs|mV|kV|mA|μA|kW|MW|kJ|eV|keV|MeV|kHz|MHz|kN|kPa|MPa|kΩ|MΩ|μF|pF|nF|°C|K|mol|cal|kcal|bar|atm|rad|m|s|g|V|A|W|J|N|T|F|H|Ω|Pa)\b/g,
+    '$1\u00A0$2'
+  );
+
+  // 7. Bind compound units (e.g. "m s^-1", "kg m/s", "J s")
+  cleaned = cleaned.replace(/\b(m|kg|J|N|V|W|A)\s+(s⁻¹|s⁻²|m⁻¹|m⁻²|m⁻³|kg⁻¹|mol⁻¹)\b/g, '$1\u00A0$2');
+
+  // 8. Bind relational and equality operators to avoid trailing "= " at end of line (e.g. "E = 10" -> "E\u00A0=\u00A010")
+  cleaned = cleaned.replace(/([a-zA-Z0-9])\s*(=|≈|≠|≤|≥)\s*([a-zA-Z0-9])/g, '$1\u00A0$2\u00A0$3');
+
+  // 9. Prevent orphan single word at the end of the question text (e.g. "... (x-axis) is" -> "... (x-axis)\u00A0is")
+  cleaned = cleaned.replace(/\s+([a-zA-Z]{1,4}[.:?!]?)$/, '\u00A0$1');
+
   return cleaned;
 }
 
@@ -196,7 +223,7 @@ function formatChemicalFormulas(text) {
     '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
     '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
   };
-  const withSubscripts = text.replace(/([A-Z][a-z]?)([0-9]+)/g, (match, element, digits) => {
+  const withSubscripts = text.replace(/([A-Z][a-z]?|\))([0-9]+)/g, (match, element, digits) => {
     const subs = digits.split('').map(d => subscriptMap[d] || d).join('');
     return element + subs;
   });
