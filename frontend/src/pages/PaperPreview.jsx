@@ -42,6 +42,18 @@ export default function PaperPreview() {
   const [swapping, setSwapping] = useState({});
   const [finalizing, setFinalizing] = useState(false);
   const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers'
+  const [optionFormatOverride, setOptionFormatOverride] = useState(null);
+
+  const isNumericExam = (paper?.examName || '').toUpperCase().includes('NEET') || (paper?.examName || '').toUpperCase().includes('JEE');
+  const activeOptionFormat = optionFormatOverride || paper?.optionFormat || (isNumericExam ? 'NUMERIC' : 'ALPHA');
+
+  const getOptionLabel = (key) => {
+    const k = String(key || '').trim().toUpperCase();
+    if (activeOptionFormat === 'NUMERIC') {
+      return { A: '1', B: '2', C: '3', D: '4', '1': '1', '2': '2', '3': '3', '4': '4' }[k] || k;
+    }
+    return { A: 'A', B: 'B', C: 'C', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[k] || k;
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -80,7 +92,7 @@ export default function PaperPreview() {
     try {
       await api.finalizePaper(id);
       setPaper((p) => ({ ...p, status: 'FINALIZED' }));
-      await api.downloadPaperPdf(id, false, `${(paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_')}.pdf`);
+      await api.downloadPaperPdf(id, false, `${(paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_')}.pdf`, activeOptionFormat);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -93,7 +105,7 @@ export default function PaperPreview() {
     setError(null);
     try {
       const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
-      await api.downloadPaperPdf(id, withAnswers, `${safeName}${withAnswers ? '_with_answer_key' : ''}.pdf`);
+      await api.downloadPaperPdf(id, withAnswers, `${safeName}${withAnswers ? '_with_answer_key' : ''}.pdf`, activeOptionFormat);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -160,6 +172,25 @@ export default function PaperPreview() {
         <button className="btn btn-ghost" onClick={() => setShowAnswers((v) => !v)}>
           {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
         </button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
+          <span style={{ color: 'var(--ink-soft)' }}>Option Style:</span>
+          <button
+            type="button"
+            className={`btn ${activeOptionFormat === 'ALPHA' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 8px', fontSize: 12 }}
+            onClick={() => setOptionFormatOverride('ALPHA')}
+          >
+            (A, B, C, D)
+          </button>
+          <button
+            type="button"
+            className={`btn ${activeOptionFormat === 'NUMERIC' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 8px', fontSize: 12 }}
+            onClick={() => setOptionFormatOverride('NUMERIC')}
+          >
+            (1, 2, 3, 4)
+          </button>
+        </div>
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
       </div>
 
@@ -203,13 +234,13 @@ export default function PaperPreview() {
                               style={{ maxWidth: 140, maxHeight: 70, objectFit: 'contain', marginBottom: 6, display: 'block', borderRadius: 4, background: 'var(--paper-dim)' }}
                             />
                           )}
-                          <div>({key}) {q.options[key]}</div>
+                          <div>({getOptionLabel(key)}) {q.options[key]}</div>
                         </div>
                       ))}
                     </div>
                     ) : (
                     <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--paper-dim)', borderRadius: 4, display: 'inline-block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
-                      {showAnswers ? `Answer: ${q.correctOption}` : 'Numerical Answer Box'}
+                      {showAnswers ? `Answer: ${getOptionLabel(q.correctOption)}` : 'Numerical Answer Box'}
                     </div>
                     )}
                   <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>

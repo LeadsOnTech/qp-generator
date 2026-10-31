@@ -89,9 +89,13 @@ export const api = {
    * actual downloaded/openable PDF, exactly as before, just via a request
    * that's allowed to succeed.
    */
-  downloadPaperPdf: async (id, withAnswers, filenameHint) => {
+  downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat) => {
     const token = localStorage.getItem(TOKEN_KEY);
-    const res = await fetch(`${API_BASE}/papers/${id}/pdf${withAnswers ? '?answers=1' : ''}`, {
+    const params = new URLSearchParams();
+    if (withAnswers) params.set('answers', '1');
+    if (optionFormat) params.set('optionFormat', optionFormat);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/papers/${id}/pdf${query}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {

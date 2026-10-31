@@ -164,6 +164,14 @@ router.get('/:id', async (req, res) => {
   const denied = assertPaperAccess(req, paper);
   if (denied) return res.status(denied.status).json({ error: denied.error });
 
+  let optionFormat = null;
+  if (paper.config) {
+    try {
+      const cfg = JSON.parse(paper.config);
+      optionFormat = cfg.optionFormat || null;
+    } catch (e) {}
+  }
+
   res.json({
     id: paper.id,
     title: paper.title,
@@ -171,6 +179,7 @@ router.get('/:id', async (req, res) => {
     instituteLogoUrl: paper.institute?.logoFilename ? `/uploads/images/${paper.institute.logoFilename}` : null,
     examName: paper.examName,
     paperType: paper.paperType,
+    optionFormat,
     status: paper.status,
     includeSolutions: paper.includeSolutions,
     // How many of this paper's questions actually have a solution — this
@@ -343,6 +352,14 @@ router.get('/:id/pdf', async (req, res) => {
   const withAnswers = req.query.answers === '1';
   const questions = paper.questions.map(formatPaperQuestion);
 
+  let optionFormat = req.query.optionFormat || null;
+  if (!optionFormat && paper.config) {
+    try {
+      const cfg = JSON.parse(paper.config);
+      optionFormat = cfg.optionFormat || null;
+    } catch (e) {}
+  }
+
   // If a saved Institute is linked, its logo/phone/address/tagline take
   // priority for the letterhead; instituteName stays as a plain-text
   // fallback for papers with no saved profile attached.
@@ -353,6 +370,7 @@ router.get('/:id/pdf', async (req, res) => {
     institutePhone: paper.institute?.phone || null,
     instituteAddress: paper.institute?.address || null,
     instituteTagline: paper.institute?.tagline || null,
+    optionFormat,
   };
 
   const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);

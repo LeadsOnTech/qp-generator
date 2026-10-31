@@ -27,6 +27,7 @@ export default function GeneratePaper() {
   const [mix, setMix] = useState({ easy: 40, medium: 40, hard: 20 });
   const [avoidRepeats, setAvoidRepeats] = useState(true);
   const [includeSolutions, setIncludeSolutions] = useState(false);
+  const [optionFormat, setOptionFormat] = useState('AUTO');
 
   useEffect(() => {
     api.syllabusTree().then((t) => {
@@ -114,6 +115,7 @@ export default function GeneratePaper() {
         instituteId: instituteId || undefined,
         paperType,
         examName,
+        optionFormat,
         subjects,
         difficultyMix: { easy: Number(mix.easy), medium: Number(mix.medium), hard: Number(mix.hard) },
         avoidRepeats,
@@ -209,6 +211,18 @@ export default function GeneratePaper() {
           <select value={examName} onChange={(e) => { setExamName(e.target.value); setSubjectCounts({}); }}>
             {tree.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
           </select>
+        </div>
+
+        <div className="field">
+          <label>Options format</label>
+          <select value={optionFormat} onChange={(e) => setOptionFormat(e.target.value)}>
+            <option value="AUTO">Automatic by Exam (A, B, C, D for EAPCET/KCET; 1, 2, 3, 4 for NEET/JEE)</option>
+            <option value="ALPHA">(A), (B), (C), (D) — EAPCET & State CET standard</option>
+            <option value="NUMERIC">(1), (2), (3), (4) — NEET & JEE standard</option>
+          </select>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>
+            The question options, instructions, and answer key will all match this exact format.
+          </div>
         </div>
 
         {exam && (

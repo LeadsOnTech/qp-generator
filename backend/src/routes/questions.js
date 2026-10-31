@@ -404,16 +404,18 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="preview-${req.params.batchId}.pdf"`);
 
+    const examName = questions[0]?.chapter?.subject?.exam?.name || 'Question Bank';
     const paper = {
       title: batch ? `Preview: ${batch.fileName.replace(/\.xlsx?$|\.csv$/i, '')}` : 'Batch Upload Preview',
       instituteName: 'QuestionStudio',
-      examName: questions[0]?.chapter?.subject?.exam?.name || 'Question Bank',
-      paperType: 'PREVIEW'
+      examName,
+      paperType: 'PREVIEW',
+      createdAt: batch?.createdAt || new Date(),
     };
 
     const formattedQuestions = questions.map(formatQuestion);
 
-    buildPaperPdf(res, paper, formattedQuestions, false);
+    buildPaperPdf(res, paper, formattedQuestions, req.query.answers === '1');
   } catch (err) {
     res.status(500).json({ error: 'Error generating preview: ' + err.message });
   }

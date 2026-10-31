@@ -67,6 +67,48 @@ const TEST_TYPE_LABELS = {
 };
 
 // ---------------------------------------------------------------------------
+// Option format resolver:
+// - AP EAPCET / TG EAPCET / TS EAPCET / KCET and state CETs use (A), (B), (C), (D)
+// - NEET and JEE use (1), (2), (3), (4)
+// - Can also be overridden explicitly via paper.optionFormat ('ALPHA' | 'NUMERIC')
+// ---------------------------------------------------------------------------
+function resolveOptionFormat(paper) {
+  if (paper && paper.optionFormat) {
+    const fmt = String(paper.optionFormat).toUpperCase();
+    if (fmt.includes('NUM') || fmt === '1234' || fmt === '1') return 'NUMERIC';
+    if (fmt.includes('ALPHA') || fmt.includes('LETTER') || fmt === 'ABCD' || fmt === 'A') return 'ALPHA';
+  }
+  const exam = String(paper?.examName || '').toUpperCase();
+  if (exam.includes('EAPCET') || exam.includes('EAMCET') || exam.includes('KCET') || exam.includes('CET')) {
+    return 'ALPHA';
+  }
+  if (exam.includes('NEET') || exam.includes('JEE')) {
+    return 'NUMERIC';
+  }
+  return 'ALPHA';
+}
+
+function getOptionLabel(key, format = 'ALPHA') {
+  const upper = String(key != null ? key : '').trim().toUpperCase();
+  const alphaMap = { A: 'A', B: 'B', C: 'C', D: 'D', '0': 'A', '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+  const numericMap = { A: '1', B: '2', C: '3', D: '4', '0': '1', '1': '1', '2': '2', '3': '3', '4': '4' };
+  if (format === 'NUMERIC') {
+    return numericMap[upper] || upper;
+  }
+  return alphaMap[upper] || upper;
+}
+
+function formatAnswerKeyOption(correctOption, format = 'ALPHA') {
+  if (!correctOption) return '-';
+  const str = String(correctOption).trim();
+  const upper = str.toUpperCase();
+  if (['A', 'B', 'C', 'D', '1', '2', '3', '4'].includes(upper)) {
+    return getOptionLabel(upper, format);
+  }
+  return str;
+}
+
+// ---------------------------------------------------------------------------
 // Derivative notation ("d/dx", "dy/dx", "dv/dt", etc.) at the START of a
 // question reads as flat, casual text when printed as a plain slash — real
 // textbooks always show this as a proper stacked fraction (numerator over
@@ -171,7 +213,7 @@ function formatExponents(text) {
   });
 }
 
-function getOptionsLayoutType(doc, q, colWidth, fontSize = 11) {
+function getOptionsLayoutType(doc, q, colWidth, fontSize = 11, optionFormat = 'ALPHA') {
   if (!q.options) return 'NORMAL';
   doc.font(FONT_REGULAR).fontSize(fontSize);
   
@@ -188,7 +230,7 @@ function getOptionsLayoutType(doc, q, colWidth, fontSize = 11) {
     // equation, so measuring the raw string would wrongly conclude nothing
     // fits and push every option onto its own line. Measure the RENDERED
     // width instead.
-    const raw = `(${i + 1}) ` + (q.options[keys[i]] || '');
+    const raw = `(${getOptionLabel(keys[i], optionFormat)}) ` + (q.options[keys[i]] || '');
     const w = richWidth(doc, raw, fontSize);
     if (w > quarterWidth - 4) fitsQuarter = false; // 4 points padding safety
     if (w > halfWidth - 4) fitsHalf = false;
@@ -280,29 +322,33 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
 
   doc.fill(GOLD)
     .font(FONT_BOLD).fontSize(11)
-    .text(`${paper.examName} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType}`, 36, y, { width: pageWidth - 72, align: 'center' });
+    .text(`${paper.examName || 'Exam'} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || 'Test'}`, 36, y, { width: pageWidth - 72, align: 'center' });
   y += 18;
 
   doc.fill('#000000')
     .font(FONT_REGULAR).fontSize(10)
-    .text(`${paper.title} — ${questionCount} Questions`, 36, y, { width: pageWidth - 72, align: 'center' });
+    .text(`${paper.title || 'Question Paper'} — ${questionCount} Questions`, 36, y, { width: pageWidth - 72, align: 'center' });
   y += 18;
 
+  const rawDate = paper.createdAt ? new Date(paper.createdAt) : new Date();
+  const validDate = !isNaN(rawDate.getTime()) ? rawDate : new Date();
+  const dateFormatted = validDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
   doc.fill('#000000').fontSize(8)
-    .text(new Date(paper.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-      36, y, { width: pageWidth - 72, align: 'center' });
+    .text(dateFormatted, 36, y, { width: pageWidth - 72, align: 'center' });
   y += 13;
 
   return y; // bottom edge of the header block, for the instructions box to start below
 }
 
-function drawInstructions(doc, questionCount, pageWidth, topY) {
+function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA') {
   doc.roundedRect(36, topY, pageWidth - 72, 50, 6).stroke(LINE);
   doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
+  const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
   doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
     .text(
       `1. This paper contains ${questionCount} questions, all compulsory.   ` +
-      `2. Each question has four options (1-4) with exactly one correct answer.   ` +
+      `2. Each question has four options ${optionsRange} with exactly one correct answer.   ` +
       `3. Mark your answers clearly.`,
       48, topY + 21, { width: pageWidth - 96, lineGap: 1.5 }
     );
@@ -399,7 +445,7 @@ function formatQuestionTextForLayout(text) {
   return text.replace(headingRegex, '\n$1').trim();
 }
 
-function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionGap = 6) {
+function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionGap = 6, optionFormat = 'ALPHA') {
   if (q.isHeader) return 34;
   const numWidth = 22;
   doc.font(FONT_REGULAR).fontSize(fontSize);
@@ -428,23 +474,30 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
   let optionsHeight = 0;
 
   if (!isNVQ) {
-    const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize);
+    const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize, optionFormat);
+    const labelA = getOptionLabel('A', optionFormat);
+    const labelB = getOptionLabel('B', optionFormat);
+    const labelC = getOptionLabel('C', optionFormat);
+    const labelD = getOptionLabel('D', optionFormat);
+
     if (hasOptionImages) {
       const rowAB = Math.max(optImgA?.height || 0, optImgB?.height || 0) + 26; // diagram + 4pt + 14pt text + 8pt gap
       const rowCD = Math.max(optImgC?.height || 0, optImgD?.height || 0) + 22; // diagram + 4pt + 14pt text + 4pt gap
       optionsHeight = rowAB + rowCD + 6;
     } else if (layoutType === 'VERY_COMPACT') {
       const qw = (colWidth - numWidth - 4) / 4;
-      optionsHeight = Math.max(14, ...['A','B','C','D'].map((k, j) => richMeasure(doc, `(${j + 1}) ${q.options[k] || ''}`, qw, fontSize, 'left')));
+      optionsHeight = Math.max(14, ...['A','B','C','D'].map((k) =>
+        richMeasure(doc, `(${getOptionLabel(k, optionFormat)}) ${q.options[k] || ''}`, qw, fontSize, 'left')
+      ));
     } else if (layoutType === 'COMPACT') {
       const hw = (colWidth - numWidth - 4) / 2;
       const rowAB = Math.max(
-        richMeasure(doc, `(1) ${q.options.A || ''}`, hw, fontSize, 'left'),
-        richMeasure(doc, `(2) ${q.options.B || ''}`, hw, fontSize, 'left')
+        richMeasure(doc, `(${labelA}) ${q.options.A || ''}`, hw, fontSize, 'left'),
+        richMeasure(doc, `(${labelB}) ${q.options.B || ''}`, hw, fontSize, 'left')
       );
       const rowCD = Math.max(
-        richMeasure(doc, `(3) ${q.options.C || ''}`, hw, fontSize, 'left'),
-        richMeasure(doc, `(4) ${q.options.D || ''}`, hw, fontSize, 'left')
+        richMeasure(doc, `(${labelC}) ${q.options.C || ''}`, hw, fontSize, 'left'),
+        richMeasure(doc, `(${labelD}) ${q.options.D || ''}`, hw, fontSize, 'left')
       );
       optionsHeight = Math.max(14, rowAB) + Math.max(14, rowCD);
     } else {
@@ -452,8 +505,7 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
       doc.font(FONT_REGULAR).fontSize(optFontSize);
       const avail = colWidth - numWidth - 4;
       optionsHeight = ['A', 'B', 'C', 'D'].reduce((sum, k) => {
-        const numeral = { A: '1', B: '2', C: '3', D: '4' }[k];
-        const raw = `(${numeral}) ${q.options[k] || ''}`;
+        const raw = `(${getOptionLabel(k, optionFormat)}) ${q.options[k] || ''}`;
         const h = richMeasure(doc, raw, avail, optFontSize, 'left');
         return sum + h + 1;
       }, 0);
@@ -463,7 +515,7 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
   return textHeight + imageHeight + optionsHeight + questionGap; // spacing after the question
 }
 
-function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap = 6) {
+function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap = 6, optionFormat = 'ALPHA') {
   const numWidth = 22;
   doc.font(FONT_BOLD).fontSize(fontSize);
   const prefix = `${index}. `;
@@ -493,7 +545,10 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     cursorY += image.height + 4;
   }
 
-  const numeralFor = { A: '1', B: '2', C: '3', D: '4' };
+  const labelA = getOptionLabel('A', optionFormat);
+  const labelB = getOptionLabel('B', optionFormat);
+  const labelC = getOptionLabel('C', optionFormat);
+  const labelD = getOptionLabel('D', optionFormat);
 
   const optImgA = resolveOptionImage(doc, q.optionAImage || q.optionImages?.A);
   const optImgB = resolveOptionImage(doc, q.optionBImage || q.optionImages?.B);
@@ -521,8 +576,8 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     // Row 1 (A & B) — Option text below diagrams
     const textY1 = cursorY + maxImgH1 + 4;
     doc.font(FONT_REGULAR).fontSize(fontSize).fill(SOFT);
-    doc.text(`(1) ${q.options.A || ''}`, x + numWidth, textY1, { width: halfWidth, align: 'center' });
-    doc.text(`(2) ${q.options.B || ''}`, x + numWidth + halfWidth + optionGutter, textY1, { width: halfWidth, align: 'center' });
+    doc.text(`(${labelA}) ${q.options.A || ''}`, x + numWidth, textY1, { width: halfWidth, align: 'center' });
+    doc.text(`(${labelB}) ${q.options.B || ''}`, x + numWidth + halfWidth + optionGutter, textY1, { width: halfWidth, align: 'center' });
 
     cursorY = textY1 + 18; // clear vertical gap between Row 1 and Row 2
 
@@ -540,32 +595,32 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     // Row 2 (C & D) — Option text below diagrams
     const textY2 = cursorY + maxImgH2 + 4;
     doc.font(FONT_REGULAR).fontSize(fontSize).fill(SOFT);
-    doc.text(`(3) ${q.options.C || ''}`, x + numWidth, textY2, { width: halfWidth, align: 'center' });
-    doc.text(`(4) ${q.options.D || ''}`, x + numWidth + halfWidth + optionGutter, textY2, { width: halfWidth, align: 'center' });
+    doc.text(`(${labelC}) ${q.options.C || ''}`, x + numWidth, textY2, { width: halfWidth, align: 'center' });
+    doc.text(`(${labelD}) ${q.options.D || ''}`, x + numWidth + halfWidth + optionGutter, textY2, { width: halfWidth, align: 'center' });
 
     cursorY = textY2 + 16;
   } else if (q.options && Object.keys(q.options).length) {
-    const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize);
+    const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize, optionFormat);
     if (layoutType === 'VERY_COMPACT') {
       const quarterWidth = (colWidth - numWidth - 4) / 4;
       let vcBottom = cursorY;
-      ['A','B','C','D'].forEach((k, j) => {
-        const b = richDraw(doc, `(${j + 1}) ${q.options[k] || ''}`, x + numWidth + quarterWidth * j, cursorY, quarterWidth, fontSize, SOFT, 'left');
+      ['A','B','C','D'].forEach((k) => {
+        const b = richDraw(doc, `(${getOptionLabel(k, optionFormat)}) ${q.options[k] || ''}`, x + numWidth + quarterWidth * ['A','B','C','D'].indexOf(k), cursorY, quarterWidth, fontSize, SOFT, 'left');
         vcBottom = Math.max(vcBottom, b);
       });
       cursorY = Math.max(cursorY + 14, vcBottom);
     } else if (layoutType === 'COMPACT') {
       const halfWidth = (colWidth - numWidth - 4) / 2;
-      const bA = richDraw(doc, `(1) ${q.options.A || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
-      const bB = richDraw(doc, `(2) ${q.options.B || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bA = richDraw(doc, `(${labelA}) ${q.options.A || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bB = richDraw(doc, `(${labelB}) ${q.options.B || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
       cursorY = Math.max(cursorY + 14, bA, bB);
-      const bC = richDraw(doc, `(3) ${q.options.C || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
-      const bD = richDraw(doc, `(4) ${q.options.D || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bC = richDraw(doc, `(${labelC}) ${q.options.C || ''}`, x + numWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
+      const bD = richDraw(doc, `(${labelD}) ${q.options.D || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
       cursorY = Math.max(cursorY + 14, bC, bD);
     } else {
       const optFontSize = Math.min(fontSize, 10.5);
       for (const key of ['A', 'B', 'C', 'D']) {
-        const raw = `(${numeralFor[key]}) ${q.options[key] || ''}`;
+        const raw = `(${getOptionLabel(key, optionFormat)}) ${q.options[key] || ''}`;
         const avail = colWidth - numWidth - 4;
         cursorY = richDraw(doc, raw, x + numWidth, cursorY, avail, optFontSize, SOFT, 'left') + 1;
       }
@@ -581,7 +636,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
  * then wraps to a fresh page (both columns reset) — the standard printed
  * exam-paper reading order.
  */
-function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY) {
+function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY, optionFormat = 'ALPHA') {
   const margin = 36;
   const gutter = 36;
   const colWidth = (pageWidth - margin * 2 - gutter) / 2;
@@ -614,7 +669,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
     for (let i = 0; i < renderItems.length; i++) {
       const q = renderItems[i];
-      const h = measureQuestionHeight(doc, q, q._renderIndex, colWidth, fontSize, gap);
+      const h = measureQuestionHeight(doc, q, q._renderIndex, colWidth, fontSize, gap, optionFormat);
       
       if (colY[col] + h > bottomLimit) {
         if (col === 0) {
@@ -685,7 +740,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
   renderItems.forEach((q, i) => {
     const index = q._renderIndex;
-    const h = measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap);
+    const h = measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap, optionFormat);
 
     if (colY[col] + h > (col === 0 ? currentActiveBottomLimit : bottomLimit)) {
       if (col === 0) {
@@ -708,7 +763,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
     const bottomY = q.isHeader ? 
       drawSectionHeader(doc, q.text, colX[col], colY[col], colWidth) : 
-      drawQuestion(doc, q, index, colX[col], colY[col], colWidth, best.fontSize, best.gap);
+      drawQuestion(doc, q, index, colX[col], colY[col], colWidth, best.fontSize, best.gap, optionFormat);
       
     colY[col] = bottomY;
   });
@@ -725,14 +780,13 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
   doc.switchToPage(endPageIndex);
 }
 
-  function drawAnswerKey(doc, questions, pageWidth) {
+function drawAnswerKey(doc, questions, pageWidth, optionFormat = 'ALPHA') {
   doc.addPage();
   doc.y = 54;
   doc.fill(NAVY).font(FONT_BOLD).fontSize(15)
     .text('Answer Key', 36, doc.y, { width: pageWidth - 72, align: 'center' });
   doc.moveDown(1);
 
-  const numeralFor = { A: '1', B: '2', C: '3', D: '4' };
   const cols = 5;
   const colWidth = (pageWidth - 72) / cols;
   const rowHeight = 20;
@@ -744,8 +798,9 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
       doc.addPage();
       y = 54;
     }
+    const ansKey = formatAnswerKeyOption(q.correctOption, optionFormat);
     doc.fill(INK).font(FONT_REGULAR).fontSize(11).text(`${i + 1}.`, x, y, { width: 30 });
-    doc.fill(GOLD).font(FONT_BOLD).text(numeralFor[q.correctOption], x + 30, y);
+    doc.fill(GOLD).font(FONT_BOLD).text(ansKey, x + 30, y);
     x += colWidth;
     if ((i + 1) % cols === 0) {
       x = 36;
@@ -754,7 +809,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
   });
 }
 
-function drawSolutions(doc, questions, pageWidth) {
+function drawSolutions(doc, questions, pageWidth, optionFormat = 'ALPHA') {
   const contentWidth = pageWidth - 72;
   doc.addPage();
   doc.y = 54;
@@ -762,7 +817,6 @@ function drawSolutions(doc, questions, pageWidth) {
     .text('Solutions', 36, doc.y, { width: contentWidth, align: 'center' });
   doc.moveDown(1);
 
-  const numeralFor = { A: '1', B: '2', C: '3', D: '4' };
   const bottomLimit = doc.page.height - 60;
 
   questions.forEach((q, i) => {
@@ -787,8 +841,9 @@ function drawSolutions(doc, questions, pageWidth) {
     doc.fill(INK).font(FONT_BOLD).fontSize(11).text(`${i + 1}.`, 36, top, { width: numberWidth, lineBreak: false });
 
     // Correct answer line (free — part of the answer key, shown here for context)
+    const ansKey = formatAnswerKeyOption(q.correctOption, optionFormat);
     doc.fill(GOLD).font(FONT_BOLD).fontSize(10.5)
-      .text(`Correct answer: (${numeralFor[q.correctOption] || '?'})`, 36 + numberWidth, top, { width: contentWidth - numberWidth });
+      .text(`Correct answer: (${ansKey || '?'})`, 36 + numberWidth, top, { width: contentWidth - numberWidth });
 
     // Worked solution body, rendered math-aware so LaTeX ($...$) typesets.
     const bodyY = doc.y + 2;
@@ -841,7 +896,7 @@ function drawHeadersAndFooters(doc, paper) {
 
 /**
  * Writes the paper PDF into the given writable stream.
- * @param paper  { title, instituteName, examName, paperType, createdAt }
+ * @param paper  { title, instituteName, examName, paperType, createdAt, optionFormat }
  * @param questions  ordered [{ questionText, options: {A,B,C,D}, correctOption }]
  * @param withAnswers  include the answer-key page
  */
@@ -850,21 +905,22 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   ensureFontsRegistered(doc);
   doc.pipe(stream);
 
+  const optionFormat = resolveOptionFormat(paper);
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
   const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length);
-  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4);
+  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat);
   const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
 
-  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY);
+  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat);
 
-  if (withAnswers) drawAnswerKey(doc, questions, pageWidth);
+  if (withAnswers) drawAnswerKey(doc, questions, pageWidth, optionFormat);
 
   // Solutions section, only when this paper was generated with solutions
   // included (charged 1 credit each at finalize). The answer key above is
   // always free; this is the paid add-on.
-  if (paper.includeSolutions) drawSolutions(doc, questions, pageWidth);
+  if (paper.includeSolutions) drawSolutions(doc, questions, pageWidth, optionFormat);
 
   drawHeadersAndFooters(doc, paper);
   doc.end();
