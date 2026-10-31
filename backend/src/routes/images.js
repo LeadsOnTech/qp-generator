@@ -67,18 +67,48 @@ router.post('/upload', (req, res) => {
 /**
  * GET /api/images — list every uploaded image (so users can check exact
  * saved filenames to reference in their Excel's ImageFilename column).
+ * Includes file sizes, upload timestamps, and defaults to newest-first.
  */
 router.get('/', (req, res) => {
-  const files = fs.readdirSync(UPLOAD_DIR).filter((f) => {
-    const ext = f.split('.').pop().toLowerCase();
-    return ALLOWED_EXTENSIONS.includes(ext);
-  });
-  res.json({
-    images: files.map((f) => ({
-      filename: f,
-      url: `/uploads/images/${f}`,
-    })),
-  });
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR).filter((f) => {
+      const ext = f.split('.').pop().toLowerCase();
+      return ALLOWED_EXTENSIONS.includes(ext);
+    });
+
+    let totalBytes = 0;
+    const imageList = files.map((f) => {
+      let sizeBytes = 0;
+      let mtime = null;
+      try {
+        const stat = fs.statSync(path.join(UPLOAD_DIR, f));
+        sizeBytes = stat.size;
+        mtime = stat.mtime;
+        totalBytes += stat.size;
+      } catch (e) {}
+
+      return {
+        filename: f,
+        url: `/uploads/images/${f}`,
+        sizeBytes,
+        mtime,
+      };
+    });
+
+    // Sort by upload/modification date descending (newest first)
+    imageList.sort((a, b) => {
+      if (!a.mtime || !b.mtime) return 0;
+      return new Date(b.mtime).getTime() - new Date(a.mtime).getTime();
+    });
+
+    res.json({
+      images: imageList,
+      totalCount: imageList.length,
+      totalBytes,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read images: ' + err.message });
+  }
 });
 
 /**
