@@ -52,6 +52,10 @@ export default function ImageLibrary() {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [lightboxBg, setLightboxBg] = useState('light'); // 'light' | 'dark'
 
+  // Library duplicate scanning
+  const [scanningDuplicates, setScanningDuplicates] = useState(false);
+  const [duplicateScanModal, setDuplicateScanModal] = useState(null); // { duplicateGroups, totalDuplicateFiles } | null
+
   function load() {
     setLoading(true);
     api.listImages()
@@ -78,7 +82,10 @@ export default function ImageLibrary() {
     try {
       const res = await api.uploadImages(files);
       setLastUploadBatch({
-        count: res.uploaded.length,
+        count: res.totalProcessed || res.uploaded.length,
+        newCount: res.newCount ?? res.uploaded.length,
+        duplicateCount: res.duplicateCount || 0,
+        duplicates: res.duplicates || [],
         files: res.uploaded,
         timestamp: new Date(),
       });
@@ -91,6 +98,19 @@ export default function ImageLibrary() {
       setError(err.message);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleScanDuplicates() {
+    setScanningDuplicates(true);
+    setError(null);
+    try {
+      const res = await api.scanImageDuplicates();
+      setDuplicateScanModal(res);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setScanningDuplicates(false);
     }
   }
 
@@ -343,44 +363,83 @@ export default function ImageLibrary() {
         />
       </div>
 
-      {/* Modern Upload Success Notification Card */}
+      {/* Modern Upload Success / Duplicate Notification Card */}
       {lastUploadBatch && (
         <div className="card" style={{
           marginBottom: 24,
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          border: '1px solid #86efac',
+          background: (lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0)
+            ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'
+            : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          border: `1px solid ${lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0 ? '#fde68a' : '#86efac'}`,
           padding: 20,
           borderRadius: 12,
-          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.12)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
               <div style={{
-                width: 44, height: 44, borderRadius: '50%', background: '#22c55e', color: '#fff',
+                width: 44, height: 44, borderRadius: '50%',
+                background: (lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0) ? '#f59e0b' : '#22c55e',
+                color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700,
-                boxShadow: '0 2px 8px rgba(34,197,94,0.35)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
               }}>
-                ✓
+                {(lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0) ? '⚠️' : '✓'}
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, color: '#14532d', fontWeight: 700 }}>
-                  Successfully Uploaded {lastUploadBatch.count} Image{lastUploadBatch.count !== 1 ? 's' : ''}!
+                <h3 style={{
+                  margin: 0, fontSize: 18,
+                  color: (lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0) ? '#92400e' : '#14532d',
+                  fontWeight: 700
+                }}>
+                  {lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0
+                    ? `All ${lastUploadBatch.duplicateCount} Images Already Exist in Library!`
+                    : lastUploadBatch.duplicateCount > 0
+                    ? `${lastUploadBatch.newCount} New Uploaded · ${lastUploadBatch.duplicateCount} Duplicate Detected`
+                    : `Successfully Uploaded ${lastUploadBatch.count} Image${lastUploadBatch.count !== 1 ? 's' : ''}!`}
                 </h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#166534' }}>
-                  All filenames are now active in the library and ready to link into your Excel sheet.
+                <p style={{
+                  margin: '4px 0 0', fontSize: 13,
+                  color: (lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0) ? '#78350f' : '#166534'
+                }}>
+                  {lastUploadBatch.duplicateCount > 0
+                    ? 'Duplicate diagrams were recognized and verified — all filenames are ready to reference in your Excel sheet.'
+                    : 'All filenames are now active in the library and ready to link into your Excel sheet.'}
                 </p>
               </div>
             </div>
             <button
               type="button"
               className="btn btn-ghost"
-              style={{ padding: '4px 10px', fontSize: 13, color: '#166534', background: 'rgba(255,255,255,0.6)' }}
+              style={{ padding: '4px 10px', fontSize: 13, color: 'var(--ink-soft)', background: 'rgba(255,255,255,0.7)' }}
               onClick={() => setLastUploadBatch(null)}
               title="Dismiss"
             >
               ✕ Dismiss
             </button>
           </div>
+
+          {/* Duplicate Warnings Details */}
+          {lastUploadBatch.duplicateCount > 0 && (
+            <div style={{
+              marginTop: 14, padding: '12px 14px', borderRadius: 8,
+              background: 'rgba(255,255,255,0.92)', border: '1px solid #fcd34d'
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>⚠️ Duplicate Information ({lastUploadBatch.duplicateCount} file{lastUploadBatch.duplicateCount !== 1 ? 's' : ''}):</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 110, overflowY: 'auto' }}>
+                {lastUploadBatch.duplicates.map((dup, i) => (
+                  <div key={i} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, color: '#78350f' }}>
+                    <span className="mono" style={{ fontWeight: 600, color: '#1e293b' }}>{dup.savedFilename}</span>
+                    <span style={{ fontSize: 11, background: '#fef3c7', padding: '1px 6px', borderRadius: 4, color: '#92400e' }}>
+                      {dup.reason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Action Toolbar */}
           <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -515,6 +574,20 @@ export default function ImageLibrary() {
               <option value="120">120</option>
               <option value="ALL">All ({filteredImages.length})</option>
             </select>
+          </div>
+
+          {/* Scan Duplicates Button */}
+          <div>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: '6px 12px', fontSize: 13 }}
+              onClick={handleScanDuplicates}
+              disabled={scanningDuplicates}
+              title="Scan entire library for identical diagrams uploaded under different filenames"
+            >
+              {scanningDuplicates ? 'Scanning…' : '🔍 Scan for Duplicates'}
+            </button>
           </div>
         </div>
 
@@ -921,6 +994,121 @@ export default function ImageLibrary() {
                   🗑️ Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Duplicate Scan Modal */}
+      {duplicateScanModal && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0, 0, 0, 0.72)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+          }}
+          onClick={() => setDuplicateScanModal(null)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 640, width: '100%', maxHeight: '85vh',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              padding: 0, borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              background: '#fff'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '14px 20px', borderBottom: '1px solid var(--line)', background: 'var(--paper-dim)'
+            }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>
+                🔍 Library Duplicate Diagram Inspector
+              </h3>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ fontSize: 16, padding: '4px 8px' }}
+                onClick={() => setDuplicateScanModal(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: 20, overflowY: 'auto' }}>
+              {duplicateScanModal.duplicateGroups.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px' }}>
+                  <div style={{ fontSize: 44, marginBottom: 8 }}>✅</div>
+                  <h4 style={{ margin: '0 0 6px', color: '#166534' }}>No Duplicate Images Found</h4>
+                  <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>
+                    Every one of your {images.length} diagram files contains distinct, unique image content!
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div style={{
+                    padding: '10px 14px', borderRadius: 8, background: '#fffbeb',
+                    border: '1px solid #fcd34d', marginBottom: 16, fontSize: 13, color: '#92400e'
+                  }}>
+                    Found <strong>{duplicateScanModal.duplicateGroups.length}</strong> group(s) of identical images (same image pixels saved under different filenames).
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {duplicateScanModal.duplicateGroups.map((group, idx) => (
+                      <div key={idx} style={{
+                        border: '1px solid var(--line)', borderRadius: 8, padding: 12,
+                        background: 'var(--paper-dim)'
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>
+                          Duplicate Group #{idx + 1} ({group.count} files · {formatBytes(group.sizeBytes)})
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+                          {group.files.map((f) => (
+                            <div key={f.filename} style={{
+                              background: '#fff', border: '1px solid var(--line)', borderRadius: 6,
+                              padding: 8, textAlign: 'center'
+                            }}>
+                              <img
+                                src={`${api.imageBase()}/uploads/images/${f.filename}`}
+                                alt={f.filename}
+                                style={{ width: '100%', height: 70, objectFit: 'contain', marginBottom: 6 }}
+                              />
+                              <div className="mono" style={{ fontSize: 11, wordBreak: 'break-all', fontWeight: 600, color: 'var(--ink)' }}>
+                                {f.filename}
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-ghost"
+                                style={{ fontSize: 10.5, padding: '2px 6px', marginTop: 6, color: '#ef4444' }}
+                                onClick={async () => {
+                                  await handleDelete(f.filename);
+                                  handleScanDuplicates();
+                                }}
+                              >
+                                🗑️ Remove copy
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              padding: '12px 20px', borderTop: '1px solid var(--line)',
+              background: 'var(--paper-dim)', display: 'flex', justifyContent: 'flex-end'
+            }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setDuplicateScanModal(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

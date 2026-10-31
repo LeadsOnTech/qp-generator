@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -19,13 +20,8 @@ function sanitizeFilename(original) {
   return { base, ext };
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename: (req, file, cb) => {
-    const { base, ext } = sanitizeFilename(file.originalname);
-    cb(null, `${base}.${ext}`);
-  },
-});
+// In-memory buffer allows computing SHA-256 hash before saving to disk to detect duplicate uploads
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -41,27 +37,167 @@ const upload = multer({
 
 /**
  * POST /api/images/upload
- * Body: multipart/form-data, field "images" — accepts MULTIPLE files at once,
- * since a chapter's diagrams are usually uploaded as a batch alongside the Excel.
- * Each file's saved (sanitized) filename is what you reference in the Excel's
- * ImageFilename column.
+ * Body: multipart/form-data, field "images" — accepts MULTIPLE files at once.
+ * Intelligently detects duplicates by both filename and SHA-256 pixel content hash.
  */
 router.post('/upload', (req, res) => {
-  upload.array('images', 100)(req, res, (err) => {
+  upload.array('images', 200)(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No images uploaded. Attach one or more files under field "images".' });
     }
+
+    const existingFiles = fs.readdirSync(UPLOAD_DIR).filter((f) => {
+      const ext = f.split('.').pop().toLowerCase();
+      return ALLOWED_EXTENSIONS.includes(ext);
+    });
+
+    const existingHashMap = new Map(); // hash -> filename
+    for (const f of existingFiles) {
+      try {
+        const filePath = path.join(UPLOAD_DIR, f);
+        const buf = fs.readFileSync(filePath);
+        const h = crypto.createHash('sha256').update(buf).digest('hex');
+        existingHashMap.set(h, f);
+      } catch (e) {}
+    }
+
+    const uploaded = [];
+    const duplicates = [];
+    const newlyUploaded = [];
+
+    for (const file of req.files) {
+      const { base, ext } = sanitizeFilename(file.originalname);
+      const savedFilename = `${base}.${ext}`;
+      const filePath = path.join(UPLOAD_DIR, savedFilename);
+      const incomingHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
+      const exists = fs.existsSync(filePath);
+
+      if (exists) {
+        let existingHash = null;
+        try {
+          const existingBuf = fs.readFileSync(filePath);
+          existingHash = crypto.createHash('sha256').update(existingBuf).digest('hex');
+        } catch (e) {}
+
+        if (existingHash === incomingHash) {
+          // Exact identical file already in library
+          duplicates.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            reason: 'Exact duplicate: already exists in library with identical image content.',
+            status: 'EXACT_DUPLICATE',
+          });
+          uploaded.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            isDuplicate: true,
+          });
+        } else {
+          // Same filename uploaded with updated image content
+          fs.writeFileSync(filePath, file.buffer);
+          existingHashMap.set(incomingHash, savedFilename);
+          duplicates.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            reason: 'Updated version: replaced previous image with new version.',
+            status: 'UPDATED',
+          });
+          uploaded.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            isUpdated: true,
+          });
+        }
+      } else {
+        // File does not exist under this name
+        const contentMatch = existingHashMap.get(incomingHash);
+        if (contentMatch) {
+          duplicates.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            reason: `Content duplicate: identical to existing file "${contentMatch}" under a different name.`,
+            status: 'CONTENT_DUPLICATE',
+          });
+        }
+        // Write the new file
+        fs.writeFileSync(filePath, file.buffer);
+        existingHashMap.set(incomingHash, savedFilename);
+        newlyUploaded.push({
+          savedFilename,
+          originalName: file.originalname,
+          sizeBytes: file.size,
+        });
+        uploaded.push({
+          savedFilename,
+          originalName: file.originalname,
+          sizeBytes: file.size,
+          isNew: !contentMatch,
+          isDuplicate: Boolean(contentMatch),
+        });
+      }
+    }
+
     res.json({
-      uploaded: req.files.map((f) => ({
-        originalName: f.originalname,
-        savedFilename: f.filename,
-        sizeBytes: f.size,
-      })),
+      uploaded,
+      totalProcessed: req.files.length,
+      newCount: newlyUploaded.length,
+      duplicateCount: duplicates.length,
+      duplicates,
     });
   });
+});
+
+/**
+ * GET /api/images/duplicates — scans the entire library for identical images
+ * sharing the same content hash under different filenames.
+ */
+router.get('/duplicates', (req, res) => {
+  try {
+    const files = fs.readdirSync(UPLOAD_DIR).filter((f) => {
+      const ext = f.split('.').pop().toLowerCase();
+      return ALLOWED_EXTENSIONS.includes(ext);
+    });
+
+    const hashMap = new Map(); // hash -> array of { filename, sizeBytes, mtime }
+    for (const f of files) {
+      try {
+        const filePath = path.join(UPLOAD_DIR, f);
+        const stat = fs.statSync(filePath);
+        const buf = fs.readFileSync(filePath);
+        const h = crypto.createHash('sha256').update(buf).digest('hex');
+        if (!hashMap.has(h)) hashMap.set(h, []);
+        hashMap.get(h).push({ filename: f, sizeBytes: stat.size, mtime: stat.mtime });
+      } catch (e) {}
+    }
+
+    const duplicateGroups = [];
+    for (const [hash, group] of hashMap.entries()) {
+      if (group.length > 1) {
+        duplicateGroups.push({
+          hash,
+          sizeBytes: group[0].sizeBytes,
+          count: group.length,
+          files: group,
+        });
+      }
+    }
+
+    res.json({
+      duplicateGroups,
+      totalDuplicateFiles: duplicateGroups.reduce((acc, g) => acc + g.count, 0),
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to scan duplicates: ' + err.message });
+  }
 });
 
 /**

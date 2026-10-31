@@ -128,6 +128,7 @@ export const api = {
     return request('/images/upload', { method: 'POST', body: form });
   },
   listImages: () => request('/images'),
+  scanImageDuplicates: () => request('/images/duplicates'),
   deleteImage: (filename) => request(`/images/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
   bulkDeleteImages: (filenames) => request('/images/bulk-delete', { method: 'POST', body: JSON.stringify({ filenames }) }),
   renameImage: (oldFilename, newFilename) => request('/images/rename', { method: 'POST', body: JSON.stringify({ oldFilename, newFilename }) }),
