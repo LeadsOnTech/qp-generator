@@ -406,11 +406,22 @@ router.get('/:id/pdf', async (req, res) => {
 
   let optionFormat = req.query.optionFormat || null;
   let answerFormat = req.query.answerFormat || null;
-  if ((!optionFormat || !answerFormat) && paper.config) {
+  let watermark = req.query.watermark !== undefined ? req.query.watermark === '1' : null;
+  let watermarkText = req.query.wmText || null;
+  let watermarkType = req.query.wmType || null;
+  let watermarkOpacity = req.query.wmOpacity || null;
+  let watermarkTagline = req.query.wmTagline || null;
+
+  if (paper.config) {
     try {
       const cfg = JSON.parse(paper.config);
       if (!optionFormat) optionFormat = cfg.optionFormat || null;
       if (!answerFormat) answerFormat = cfg.answerFormat || null;
+      if (watermark === null && cfg.watermark !== undefined) watermark = !!cfg.watermark;
+      if (!watermarkText) watermarkText = cfg.watermarkText || null;
+      if (!watermarkType) watermarkType = cfg.watermarkType || null;
+      if (!watermarkOpacity) watermarkOpacity = cfg.watermarkOpacity || null;
+      if (!watermarkTagline) watermarkTagline = cfg.watermarkTagline || null;
     } catch (e) {}
   }
 
@@ -426,6 +437,11 @@ router.get('/:id/pdf', async (req, res) => {
     instituteTagline: paper.institute?.tagline || null,
     optionFormat,
     answerFormat,
+    watermark: watermark !== null ? watermark : true,
+    watermarkText: watermarkText || paper.institute?.name || paper.instituteName || '',
+    watermarkType: watermarkType || 'TEXT',
+    watermarkOpacity: watermarkOpacity || 'standard',
+    watermarkTagline: watermarkTagline || paper.institute?.tagline || null,
   };
 
   const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);

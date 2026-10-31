@@ -88,7 +88,7 @@ export const api = {
    * with the Authorization header attached, then triggers a real file
    * save using a temporary in-browser link.
    */
-  downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat, answerFormat, set = 'A', isMasterKey = false, isBundle = false) => {
+  downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat, answerFormat, set = 'A', isMasterKey = false, isBundle = false, watermarkOpts = {}) => {
     const token = localStorage.getItem(TOKEN_KEY);
     const params = new URLSearchParams();
     if (withAnswers) params.set('answers', '1');
@@ -97,6 +97,15 @@ export const api = {
     if (set && !isMasterKey && !isBundle) params.set('set', set);
     if (isMasterKey) params.set('masterKey', '1');
     if (isBundle) params.set('bundle', '1');
+
+    if (watermarkOpts.watermark !== undefined) {
+      params.set('watermark', watermarkOpts.watermark ? '1' : '0');
+    }
+    if (watermarkOpts.wmText) params.set('wmText', watermarkOpts.wmText);
+    if (watermarkOpts.wmType) params.set('wmType', watermarkOpts.wmType);
+    if (watermarkOpts.wmOpacity) params.set('wmOpacity', watermarkOpts.wmOpacity);
+    if (watermarkOpts.wmTagline) params.set('wmTagline', watermarkOpts.wmTagline);
+
     const query = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE}/papers/${id}/pdf${query}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

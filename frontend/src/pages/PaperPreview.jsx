@@ -50,9 +50,25 @@ export default function PaperPreview() {
   const [masterKeyViewMode, setMasterKeyViewMode] = useState('grid'); // 'grid' | 'crossref'
   const [crossRefSearch, setCrossRefSearch] = useState('');
 
+  // Anti-Piracy Watermarking state
+  const [watermarkEnabled, setWatermarkEnabled] = useState(true);
+  const [watermarkText, setWatermarkText] = useState('');
+  const [watermarkTagline, setWatermarkTagline] = useState('');
+  const [watermarkType, setWatermarkType] = useState('TEXT'); // 'TEXT' | 'LOGO' | 'BOTH'
+  const [watermarkOpacity, setWatermarkOpacity] = useState('standard'); // 'faint' | 'standard' | 'prominent'
+  const [showWatermarkConfig, setShowWatermarkConfig] = useState(false);
+
   const isNumericExam = (paper?.examName || '').toUpperCase().includes('NEET') || (paper?.examName || '').toUpperCase().includes('JEE');
   const activeOptionFormat = optionFormatOverride || paper?.optionFormat || (isNumericExam ? 'NUMERIC' : 'ALPHA');
   const activeAnswerFormat = answerFormatOverride || paper?.answerFormat || 'STANDARD';
+
+  const getWatermarkOpts = useCallback(() => ({
+    watermark: watermarkEnabled,
+    wmText: watermarkText || paper?.instituteName || '',
+    wmType: watermarkType,
+    wmOpacity: watermarkOpacity,
+    wmTagline: watermarkTagline || paper?.instituteTagline || '',
+  }), [watermarkEnabled, watermarkText, watermarkType, watermarkOpacity, watermarkTagline, paper]);
 
   const getOptionLabel = (key) => {
     const k = String(key || '').trim().toUpperCase();
@@ -68,10 +84,16 @@ export default function PaperPreview() {
       .then((data) => {
         setPaper(data);
         setError(null);
+        if (data?.instituteName && !watermarkText) {
+          setWatermarkText(data.instituteName);
+        }
+        if (data?.instituteTagline && !watermarkTagline) {
+          setWatermarkTagline(data.instituteTagline);
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, watermarkText, watermarkTagline]);
 
   const loadMasterKey = useCallback((optFmt) => {
     setMasterKeyLoading(true);
@@ -138,7 +160,10 @@ export default function PaperPreview() {
         `${safeName}_SET_A.pdf`,
         activeOptionFormat,
         activeAnswerFormat,
-        'A'
+        'A',
+        false,
+        false,
+        getWatermarkOpts()
       );
     } catch (err) {
       setError(err.message);
@@ -162,7 +187,8 @@ export default function PaperPreview() {
         activeAnswerFormat,
         setChar,
         false,
-        false
+        false,
+        getWatermarkOpts()
       );
     } catch (err) {
       setError(err.message);
@@ -185,7 +211,8 @@ export default function PaperPreview() {
         activeAnswerFormat,
         'A',
         false,
-        true
+        true,
+        getWatermarkOpts()
       );
     } catch (err) {
       setError(err.message);
@@ -208,7 +235,8 @@ export default function PaperPreview() {
         activeAnswerFormat,
         'A',
         true,
-        false
+        false,
+        getWatermarkOpts()
       );
     } catch (err) {
       setError(err.message);
@@ -421,8 +449,165 @@ export default function PaperPreview() {
           </button>
         </div>
 
+        {/* Anti-Piracy Watermark Controls */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
+          <span style={{ color: 'var(--ink-soft)' }}>Watermark:</span>
+          <button
+            type="button"
+            className={`btn ${watermarkEnabled ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 8px', fontSize: 12 }}
+            onClick={() => setWatermarkEnabled((v) => !v)}
+            title="Toggle Anti-Piracy Watermark across PDF pages"
+          >
+            {watermarkEnabled ? '🛡️ ON' : 'OFF'}
+          </button>
+          {watermarkEnabled && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: '3px 6px', fontSize: 12 }}
+              onClick={() => setShowWatermarkConfig((v) => !v)}
+              title="Configure Watermark text, style, and opacity"
+            >
+              ⚙️
+            </button>
+          )}
+        </div>
+
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
       </div>
+
+      {/* Watermark Configuration Drawer */}
+      {watermarkEnabled && showWatermarkConfig && (
+        <div style={{
+          background: 'var(--paper-dim)',
+          border: '1px solid var(--line)',
+          borderRadius: 8,
+          padding: '14px 18px',
+          marginBottom: 16,
+          display: 'grid',
+          gap: 12,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--navy-950)' }}>
+              🛡️ Anti-Piracy Watermark Settings
+            </h4>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: '2px 8px', fontSize: 12 }}
+              onClick={() => setShowWatermarkConfig(false)}
+            >
+              ✕ Close
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--ink)' }}>
+                Watermark Primary Text (College / Institute Name)
+              </label>
+              <input
+                type="text"
+                value={watermarkText}
+                onChange={(e) => setWatermarkText(e.target.value)}
+                placeholder={paper.instituteName || 'e.g. APEX EDUCATIONAL INSTITUTIONS'}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--line)',
+                  fontSize: 13,
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: 'var(--ink)' }}>
+                Secondary Security Notice (Optional Subtitle)
+              </label>
+              <input
+                type="text"
+                value={watermarkTagline}
+                onChange={(e) => setWatermarkTagline(e.target.value)}
+                placeholder="e.g. CONFIDENTIAL · NOT FOR SALE"
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid var(--line)',
+                  fontSize: 13,
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Watermark Style:</span>
+              <button
+                type="button"
+                className={`btn ${watermarkType === 'TEXT' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '3px 8px', fontSize: 12 }}
+                onClick={() => setWatermarkType('TEXT')}
+              >
+                Diagonal Text
+              </button>
+              {paper.instituteLogoUrl && (
+                <>
+                  <button
+                    type="button"
+                    className={`btn ${watermarkType === 'LOGO' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ padding: '3px 8px', fontSize: 12 }}
+                    onClick={() => setWatermarkType('LOGO')}
+                  >
+                    Centered Logo
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${watermarkType === 'BOTH' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ padding: '3px 8px', fontSize: 12 }}
+                    onClick={() => setWatermarkType('BOTH')}
+                  >
+                    Both (Logo + Text)
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Opacity Level:</span>
+              <button
+                type="button"
+                className={`btn ${watermarkOpacity === 'faint' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '3px 8px', fontSize: 12 }}
+                onClick={() => setWatermarkOpacity('faint')}
+                title="4.5% Opacity — Ultra subtle, ideal for high-res color laser printers"
+              >
+                Faint (4.5%)
+              </button>
+              <button
+                type="button"
+                className={`btn ${watermarkOpacity === 'standard' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '3px 8px', fontSize: 12 }}
+                onClick={() => setWatermarkOpacity('standard')}
+                title="7.5% Opacity — Recommended balance of legibility and anti-piracy protection"
+              >
+                Standard (7.5%)
+              </button>
+              <button
+                type="button"
+                className={`btn ${watermarkOpacity === 'prominent' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '3px 8px', fontSize: 12 }}
+                onClick={() => setWatermarkOpacity('prominent')}
+                title="11% Opacity — Higher contrast for high-speed monochrome photocopiers"
+              >
+                Darker (11%)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area: Master Key View vs Question List View */}
       {activeSet === 'MASTER_KEY' ? (
@@ -591,25 +776,55 @@ export default function PaperPreview() {
           )}
         </div>
       ) : (
-        <div className="card card-pad">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '2px solid var(--line)', paddingBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{
-                background: activeSet === 'A' ? '#1e293b' : activeSet === 'B' ? '#0369a1' : activeSet === 'C' ? '#6b21a8' : '#15803d',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: 13,
-                padding: '4px 12px',
-                borderRadius: 4,
-                letterSpacing: 1
-              }}>
-                SET - {activeSet}
-              </span>
-              <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-                {paper.questions?.length || 0} Questions {activeSet !== 'A' ? '(Deterministically Scrambled)' : '(Canonical Order)'}
-              </span>
+        <div className="card card-pad" style={{ position: 'relative', overflow: 'hidden' }}>
+          {watermarkEnabled && (
+            <div style={{
+              position: 'absolute',
+              top: '45%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-35deg)',
+              fontSize: 34,
+              fontWeight: 800,
+              color: watermarkOpacity === 'faint'
+                ? 'rgba(15, 23, 42, 0.035)'
+                : watermarkOpacity === 'prominent'
+                  ? 'rgba(15, 23, 42, 0.08)'
+                  : 'rgba(15, 23, 42, 0.055)',
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              letterSpacing: 2,
+              zIndex: 0,
+              textAlign: 'center',
+            }}>
+              <div>{watermarkText || paper.instituteName || 'EXAMINATION'}</div>
+              {watermarkTagline && (
+                <div style={{ fontSize: 15, marginTop: 8, letterSpacing: 1, opacity: 0.85 }}>
+                  {watermarkTagline}
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '2px solid var(--line)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{
+                  background: activeSet === 'A' ? '#1e293b' : activeSet === 'B' ? '#0369a1' : activeSet === 'C' ? '#6b21a8' : '#15803d',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  padding: '4px 12px',
+                  borderRadius: 4,
+                  letterSpacing: 1
+                }}>
+                  SET - {activeSet}
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+                  {paper.questions?.length || 0} Questions {activeSet !== 'A' ? '(Deterministically Scrambled)' : '(Canonical Order)'}
+                </span>
+              </div>
+            </div>
 
           {paper.questions?.map((q, i) => {
             const subjectHeader = q.subject !== lastSubject;
@@ -699,6 +914,7 @@ export default function PaperPreview() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </div>

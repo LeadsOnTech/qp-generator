@@ -976,16 +976,116 @@ function drawSolutions(doc, questions, pageWidth, optionFormat = 'ALPHA') {
   });
 }
 
+/**
+ * Draws an anti-piracy watermark across the page.
+ * Supports:
+ * - Large diagonal Institute Name (or custom text) at -35.3°
+ * - Secondary security notice (e.g. CONFIDENTIAL · NOT FOR SALE)
+ * - Scaled Institute Logo (if uploaded)
+ * - Calibrated opacity (faint 0.045, standard 0.075, prominent 0.11)
+ */
+function drawWatermark(doc, paper, pageWidth, pageHeight, isEvaluationPage = false) {
+  const isEnabled = paper.watermark !== false && (
+    paper.watermark === true ||
+    paper.watermarkText ||
+    paper.instituteName
+  );
+  if (!isEnabled) return;
+
+  const rawText = String(paper.watermarkText || paper.instituteName || '').trim();
+  if (!rawText && !paper.instituteLogoFilename) return;
+
+  // Resolve opacity
+  let opacity = 0.075; // standard default (7.5%)
+  const opSetting = String(paper.watermarkOpacity || 'standard').toLowerCase();
+  if (opSetting === 'faint') opacity = 0.045;
+  else if (opSetting === 'prominent' || opSetting === 'dark') opacity = 0.11;
+  else if (typeof paper.watermarkOpacity === 'number') {
+    opacity = Math.max(0.02, Math.min(0.25, paper.watermarkOpacity));
+  }
+
+  // If this is an evaluation master key page, soften opacity slightly to avoid obscuring tables
+  if (isEvaluationPage) {
+    opacity = Math.min(opacity, 0.045);
+  }
+
+  const cx = pageWidth / 2;
+  const cy = pageHeight / 2;
+  const wmType = String(paper.watermarkType || 'TEXT').toUpperCase();
+
+  doc.save();
+
+  // 1. Draw Logo Watermark if requested (or BOTH)
+  if ((wmType === 'LOGO' || wmType === 'BOTH') && paper.instituteLogoFilename) {
+    const logoPath = path.join(IMAGES_DIR, paper.instituteLogoFilename);
+    if (fs.existsSync(logoPath)) {
+      try {
+        const img = doc.openImage(logoPath);
+        const maxDim = 240;
+        const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+        const lw = img.width * scale;
+        const lh = img.height * scale;
+        doc.opacity(wmType === 'BOTH' ? opacity * 0.75 : opacity);
+        doc.image(logoPath, cx - lw / 2, cy - lh / 2, { width: lw, height: lh });
+      } catch (err) {
+        // Fall back gracefully if logo file cannot be parsed
+      }
+    }
+  }
+
+  // 2. Draw Text Watermark if requested (or BOTH, or fallback if LOGO had no valid file)
+  if (wmType === 'TEXT' || wmType === 'BOTH' || (wmType === 'LOGO' && !paper.instituteLogoFilename)) {
+    if (rawText) {
+      const textUpper = rawText.toUpperCase();
+      const len = textUpper.length;
+      let fontSize = 34;
+      if (len <= 15) fontSize = 42;
+      else if (len <= 25) fontSize = 36;
+      else if (len <= 40) fontSize = 28;
+      else fontSize = 23;
+
+      doc.opacity(opacity);
+      doc.rotate(-35.3, { origin: [cx, cy] });
+      doc.font('Helvetica-Bold').fontSize(fontSize).fill('#0f172a');
+
+      const boxWidth = 700;
+      const primaryY = cy - fontSize / 2 - 8;
+      doc.text(textUpper, cx - boxWidth / 2, primaryY, {
+        width: boxWidth,
+        align: 'center',
+        lineBreak: false,
+      });
+
+      // Optional security micro-tagline
+      const tagline = String(paper.watermarkTagline || paper.instituteTagline || 'CONFIDENTIAL · DO NOT COPY OR DISTRIBUTE').trim().toUpperCase();
+      if (tagline && fontSize >= 28) {
+        doc.font('Helvetica-Bold').fontSize(Math.max(12, Math.round(fontSize * 0.44))).fill('#334155');
+        doc.text(tagline, cx - boxWidth / 2, primaryY + fontSize + 8, {
+          width: boxWidth,
+          align: 'center',
+          lineBreak: false,
+        });
+      }
+    }
+  }
+
+  doc.restore();
+}
+
 function drawHeadersAndFooters(doc, paper) {
   const range = doc.bufferedPageRange();
   const totalPages = range.count;
   const savedBottomMargin = doc.page.margins.bottom;
   const savedTopMargin = doc.page.margins.top;
   const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
+  const isEval = setLabel === 'MASTER KEY';
 
   for (let i = range.start; i < range.start + totalPages; i++) {
     doc.switchToPage(i);
     
+    // 0. Anti-Piracy Watermark across page
+    drawWatermark(doc, paper, doc.page.width, doc.page.height, isEval);
+
     // 1. Footer
     doc.page.margins.bottom = 0; // writing inside the margin area — prevent pdfkit auto-adding a page
     const setFooter = setLabel ? `   ·   ${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel}` : '';
