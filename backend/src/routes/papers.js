@@ -165,10 +165,12 @@ router.get('/:id', async (req, res) => {
   if (denied) return res.status(denied.status).json({ error: denied.error });
 
   let optionFormat = null;
+  let answerFormat = 'STANDARD';
   if (paper.config) {
     try {
       const cfg = JSON.parse(paper.config);
       optionFormat = cfg.optionFormat || null;
+      answerFormat = cfg.answerFormat || 'STANDARD';
     } catch (e) {}
   }
 
@@ -180,6 +182,7 @@ router.get('/:id', async (req, res) => {
     examName: paper.examName,
     paperType: paper.paperType,
     optionFormat,
+    answerFormat,
     status: paper.status,
     includeSolutions: paper.includeSolutions,
     // How many of this paper's questions actually have a solution — this
@@ -353,10 +356,12 @@ router.get('/:id/pdf', async (req, res) => {
   const questions = paper.questions.map(formatPaperQuestion);
 
   let optionFormat = req.query.optionFormat || null;
-  if (!optionFormat && paper.config) {
+  let answerFormat = req.query.answerFormat || null;
+  if ((!optionFormat || !answerFormat) && paper.config) {
     try {
       const cfg = JSON.parse(paper.config);
-      optionFormat = cfg.optionFormat || null;
+      if (!optionFormat) optionFormat = cfg.optionFormat || null;
+      if (!answerFormat) answerFormat = cfg.answerFormat || null;
     } catch (e) {}
   }
 
@@ -371,6 +376,7 @@ router.get('/:id/pdf', async (req, res) => {
     instituteAddress: paper.institute?.address || null,
     instituteTagline: paper.institute?.tagline || null,
     optionFormat,
+    answerFormat,
   };
 
   const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);

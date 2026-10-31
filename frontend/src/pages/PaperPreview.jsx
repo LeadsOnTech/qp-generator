@@ -43,9 +43,11 @@ export default function PaperPreview() {
   const [finalizing, setFinalizing] = useState(false);
   const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers'
   const [optionFormatOverride, setOptionFormatOverride] = useState(null);
+  const [answerFormatOverride, setAnswerFormatOverride] = useState(null);
 
   const isNumericExam = (paper?.examName || '').toUpperCase().includes('NEET') || (paper?.examName || '').toUpperCase().includes('JEE');
   const activeOptionFormat = optionFormatOverride || paper?.optionFormat || (isNumericExam ? 'NUMERIC' : 'ALPHA');
+  const activeAnswerFormat = answerFormatOverride || paper?.answerFormat || 'STANDARD';
 
   const getOptionLabel = (key) => {
     const k = String(key || '').trim().toUpperCase();
@@ -92,7 +94,7 @@ export default function PaperPreview() {
     try {
       await api.finalizePaper(id);
       setPaper((p) => ({ ...p, status: 'FINALIZED' }));
-      await api.downloadPaperPdf(id, false, `${(paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_')}.pdf`, activeOptionFormat);
+      await api.downloadPaperPdf(id, false, `${(paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_')}.pdf`, activeOptionFormat, activeAnswerFormat);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -105,7 +107,7 @@ export default function PaperPreview() {
     setError(null);
     try {
       const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
-      await api.downloadPaperPdf(id, withAnswers, `${safeName}${withAnswers ? '_with_answer_key' : ''}.pdf`, activeOptionFormat);
+      await api.downloadPaperPdf(id, withAnswers, `${safeName}${withAnswers ? '_with_answer_key' : ''}.pdf`, activeOptionFormat, activeAnswerFormat);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -191,6 +193,27 @@ export default function PaperPreview() {
             (1, 2, 3, 4)
           </button>
         </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
+          <span style={{ color: 'var(--ink-soft)' }}>Format:</span>
+          <button
+            type="button"
+            className={`btn ${activeAnswerFormat === 'STANDARD' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 8px', fontSize: 12 }}
+            onClick={() => setAnswerFormatOverride('STANDARD')}
+            title="Clean question paper layout without answer boxes"
+          >
+            Standard
+          </button>
+          <button
+            type="button"
+            className={`btn ${activeAnswerFormat === 'STUDENT_ANSWER' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '3px 8px', fontSize: 12 }}
+            onClick={() => setAnswerFormatOverride('STUDENT_ANSWER')}
+            title="Includes [  ] answer box next to each question"
+          >
+            Student Answer [  ]
+          </button>
+        </div>
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
       </div>
 
@@ -207,9 +230,34 @@ export default function PaperPreview() {
               )}
               <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
                 <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 8px', fontWeight: 600, lineHeight: 1.5 }}>
-                    {i + 1}. {formatHeadingText(q.questionText)}
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '0 0 8px' }}>
+                    <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.5, flex: 1 }}>
+                      {i + 1}. {formatHeadingText(q.questionText)}
+                    </p>
+                    {activeAnswerFormat === 'STUDENT_ANSWER' && (
+                      <div
+                        title="Student answer box (printed on PDF)"
+                        style={{
+                          minWidth: 38,
+                          height: 22,
+                          border: '1.5px solid var(--ink)',
+                          borderRadius: 3,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: 'var(--ink-soft)',
+                          background: 'var(--paper)',
+                          marginLeft: 12,
+                          flexShrink: 0,
+                          letterSpacing: 2
+                        }}
+                      >
+                        [&nbsp;]
+                      </div>
+                    )}
+                  </div>
                   {q.imageUrl && (
                     <img
                       src={`${api.imageBase()}${q.imageUrl}`}

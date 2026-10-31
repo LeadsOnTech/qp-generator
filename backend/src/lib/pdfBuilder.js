@@ -88,6 +88,15 @@ function resolveOptionFormat(paper) {
   return 'ALPHA';
 }
 
+function resolveAnswerFormat(paper) {
+  if (paper && paper.answerFormat) {
+    const fmt = String(paper.answerFormat).toUpperCase();
+    if (fmt.includes('STUDENT') || fmt.includes('BOX') || fmt.includes('BRACKET')) return 'STUDENT_ANSWER';
+    if (fmt.includes('STANDARD') || fmt.includes('NONE')) return 'STANDARD';
+  }
+  return 'STANDARD';
+}
+
 function getOptionLabel(key, format = 'ALPHA') {
   const upper = String(key != null ? key : '').trim().toUpperCase();
   const alphaMap = { A: 'A', B: 'B', C: 'C', D: 'D', '0': 'A', '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
@@ -341,15 +350,18 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
   return y; // bottom edge of the header block, for the instructions box to start below
 }
 
-function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA') {
+function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   doc.roundedRect(36, topY, pageWidth - 72, 50, 6).stroke(LINE);
   doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
   const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
+  const instruction3 = answerFormat === 'STUDENT_ANSWER'
+    ? `3. Write your selected option ${optionsRange} in the answer box [  ] provided next to each question.`
+    : `3. Mark your answers clearly.`;
   doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
     .text(
       `1. This paper contains ${questionCount} questions, all compulsory.   ` +
       `2. Each question has four options ${optionsRange} with exactly one correct answer.   ` +
-      `3. Mark your answers clearly.`,
+      instruction3,
       48, topY + 21, { width: pageWidth - 96, lineGap: 1.5 }
     );
   return topY + 50 + 14;
@@ -445,20 +457,30 @@ function formatQuestionTextForLayout(text) {
   return text.replace(headingRegex, '\n$1').trim();
 }
 
-function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionGap = 6, optionFormat = 'ALPHA') {
+function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionGap = 5, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   if (q.isHeader) return 34;
   const numWidth = 22;
+  const showAnswerBox = (answerFormat === 'STUDENT_ANSWER' && !q.isHeader);
+  const boxWidth = 22;
+  const boxGap = 6;
+  const textRightReserve = showAnswerBox ? (boxWidth + boxGap) : 0;
+  const availTextWidth = colWidth - numWidth - textRightReserve;
+
   doc.font(FONT_REGULAR).fontSize(fontSize);
 
   const leadingFraction = detectLeadingFraction(formatQuestionTextForLayout(q.questionText));
   let textHeight;
   if (leadingFraction) {
     const glyph = measureFractionGlyph(doc, leadingFraction.numerator, leadingFraction.denominator, fontSize);
-    const remainderWidth = colWidth - numWidth - glyph.width - FRACTION_GAP_AFTER;
+    const remainderWidth = availTextWidth - glyph.width - FRACTION_GAP_AFTER;
     const remainderHeight = doc.heightOfString(formatChemicalFormulas(leadingFraction.remainder), { width: Math.max(remainderWidth, 40), lineGap: 0 });
     textHeight = Math.max(glyph.height, remainderHeight);
   } else {
-    textHeight = richMeasure(doc, formatQuestionTextForLayout(q.questionText), colWidth - numWidth, 11);
+    textHeight = richMeasure(doc, formatQuestionTextForLayout(q.questionText), availTextWidth, fontSize);
+  }
+
+  if (showAnswerBox) {
+    textHeight = Math.max(textHeight, 14);
   }
 
   const image = resolveImage(doc, q, colWidth - 16);
@@ -501,7 +523,7 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
       );
       optionsHeight = Math.max(14, rowAB) + Math.max(14, rowCD);
     } else {
-      const optFontSize = Math.min(fontSize, 10.5);
+      const optFontSize = Math.min(fontSize, 9.5);
       doc.font(FONT_REGULAR).fontSize(optFontSize);
       const avail = colWidth - numWidth - 4;
       optionsHeight = ['A', 'B', 'C', 'D'].reduce((sum, k) => {
@@ -515,8 +537,24 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 11, questionG
   return textHeight + imageHeight + optionsHeight + questionGap; // spacing after the question
 }
 
-function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap = 6, optionFormat = 'ALPHA') {
+function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap = 5, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   const numWidth = 22;
+  const showAnswerBox = (answerFormat === 'STUDENT_ANSWER' && !q.isHeader);
+  const boxWidth = 22;
+  const boxHeight = 14;
+  const boxGap = 6;
+  const textRightReserve = showAnswerBox ? (boxWidth + boxGap) : 0;
+  const availTextWidth = colWidth - numWidth - textRightReserve;
+
+  if (showAnswerBox) {
+    const boxX = x + colWidth - boxWidth;
+    const boxY = y;
+    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2)
+       .lineWidth(0.75)
+       .strokeColor('#000000')
+       .stroke();
+  }
+
   doc.font(FONT_BOLD).fontSize(fontSize);
   const prefix = `${index}. `;
 
@@ -528,13 +566,17 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
     doc.font(FONT_REGULAR).fontSize(fontSize);
     const glyphWidth = drawFractionGlyph(doc, leadingFraction.numerator, leadingFraction.denominator, x + numWidth, y, fontSize, INK);
     const remainderX = x + numWidth + glyphWidth + FRACTION_GAP_AFTER;
-    const remainderWidth = colWidth - numWidth - glyphWidth - FRACTION_GAP_AFTER;
+    const remainderWidth = availTextWidth - glyphWidth - FRACTION_GAP_AFTER;
     doc.font(FONT_REGULAR).fontSize(fontSize).fill(INK)
       .text(formatChemicalFormulas(leadingFraction.remainder), remainderX, y, { width: Math.max(remainderWidth, 40), lineGap: 0, align: 'justify' });
     const glyphBottom = y + fontSize * 1.9;
     textBottomY = Math.max(doc.y, glyphBottom);
   } else {
-    textBottomY = richDraw(doc, formatQuestionTextForLayout(q.questionText), x + numWidth, y, colWidth - numWidth, fontSize, INK);
+    textBottomY = richDraw(doc, formatQuestionTextForLayout(q.questionText), x + numWidth, y, availTextWidth, fontSize, INK);
+  }
+
+  if (showAnswerBox) {
+    textBottomY = Math.max(textBottomY, y + boxHeight);
   }
 
   let cursorY = textBottomY + 1;
@@ -618,7 +660,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
       const bD = richDraw(doc, `(${labelD}) ${q.options.D || ''}`, x + numWidth + halfWidth, cursorY, halfWidth, fontSize, SOFT, 'left');
       cursorY = Math.max(cursorY + 14, bC, bD);
     } else {
-      const optFontSize = Math.min(fontSize, 10.5);
+      const optFontSize = Math.min(fontSize, 9.5);
       for (const key of ['A', 'B', 'C', 'D']) {
         const raw = `(${getOptionLabel(key, optionFormat)}) ${q.options[key] || ''}`;
         const avail = colWidth - numWidth - 4;
@@ -636,7 +678,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 11, questionGap 
  * then wraps to a fresh page (both columns reset) — the standard printed
  * exam-paper reading order.
  */
-function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY, optionFormat = 'ALPHA') {
+function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   const margin = 36;
   const gutter = 36;
   const colWidth = (pageWidth - margin * 2 - gutter) / 2;
@@ -669,7 +711,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
     for (let i = 0; i < renderItems.length; i++) {
       const q = renderItems[i];
-      const h = measureQuestionHeight(doc, q, q._renderIndex, colWidth, fontSize, gap, optionFormat);
+      const h = measureQuestionHeight(doc, q, q._renderIndex, colWidth, fontSize, gap, optionFormat, answerFormat);
       
       if (colY[col] + h > bottomLimit) {
         if (col === 0) {
@@ -699,16 +741,18 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
     return { pages, fillRatio, pageItems, fontSize, gap };
   }
 
-  let best = simulate(11, 6);
+  let best = simulate(10, 5);
   
   if (best.pages > 1 && best.fillRatio < 0.35) {
     const targetPages = best.pages - 1;
     const candidates = [
-      simulate(11, 4),
-      simulate(10.8, 5),
-      simulate(10.8, 4),
-      simulate(10.5, 5),
-      simulate(10.5, 3)
+      simulate(10, 4),
+      simulate(9.8, 4.5),
+      simulate(9.8, 4),
+      simulate(9.5, 4),
+      simulate(9.5, 3.5),
+      simulate(9.2, 3.5),
+      simulate(9.0, 3)
     ];
     for (const cand of candidates) {
       if (cand.pages <= targetPages) {
@@ -740,7 +784,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
   renderItems.forEach((q, i) => {
     const index = q._renderIndex;
-    const h = measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap, optionFormat);
+    const h = measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap, optionFormat, answerFormat);
 
     if (colY[col] + h > (col === 0 ? currentActiveBottomLimit : bottomLimit)) {
       if (col === 0) {
@@ -763,7 +807,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
     const bottomY = q.isHeader ? 
       drawSectionHeader(doc, q.text, colX[col], colY[col], colWidth) : 
-      drawQuestion(doc, q, index, colX[col], colY[col], colWidth, best.fontSize, best.gap, optionFormat);
+      drawQuestion(doc, q, index, colX[col], colY[col], colWidth, best.fontSize, best.gap, optionFormat, answerFormat);
       
     colY[col] = bottomY;
   });
@@ -906,14 +950,15 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   doc.pipe(stream);
 
   const optionFormat = resolveOptionFormat(paper);
+  const answerFormat = resolveAnswerFormat(paper);
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
   const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length);
-  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat);
+  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat);
   const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
 
-  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat);
+  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat);
 
   if (withAnswers) drawAnswerKey(doc, questions, pageWidth, optionFormat);
 
