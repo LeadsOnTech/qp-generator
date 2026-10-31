@@ -411,6 +411,29 @@ async function ensureCommonExamsExist() {
   }
 }
 
+const CHAPTER_NAME_ALIASES = {
+  'kinetic theory': 'Kinetic Theory of Gases',
+  'kinetic theory of gases': 'Kinetic Theory of Gases',
+  'friction': 'Laws of Motion',
+  'laws of motion': 'Laws of Motion',
+  'thermal properties': 'Thermal Properties of Matter',
+  'mechanical properties of solid': 'Mechanical Properties of Solids',
+  'mechanical properties of fluid': 'Mechanical Properties of Fluids',
+  'systems of particles': 'System of Particles and Rotational Motion',
+  'rotational motion': 'System of Particles and Rotational Motion',
+  'moving charges': 'Moving Charges and Magnetism',
+  'magnetism': 'Magnetism and Matter',
+  'dual nature': 'Dual Nature of Radiation and Matter',
+  'semiconductor': 'Semiconductor Electronics',
+  'semiconductors': 'Semiconductor Electronics',
+};
+
+function resolveChapterAlias(name) {
+  if (!name) return name;
+  const key = name.toLowerCase().trim();
+  return CHAPTER_NAME_ALIASES[key] || name;
+}
+
 /**
  * Distributes a single question ONLY to exams where its chapter exists and is ACTIVE.
  */
@@ -450,13 +473,26 @@ async function distributeQuestionToExams(questionId, originExamName) {
 
   for (const exam of cetExams) {
     // Check if this exam has this chapter as ACTIVE in its syllabus
-    const targetChapter = await prisma.chapter.findFirst({
+    let targetChapter = await prisma.chapter.findFirst({
       where: {
         name: chapterName,
         subject: { name: subjectName, examId: exam.id },
         syllabusStatus: 'ACTIVE',
       },
     });
+
+    if (!targetChapter) {
+      const aliasName = resolveChapterAlias(chapterName);
+      if (aliasName && aliasName.toLowerCase() !== chapterName.toLowerCase()) {
+        targetChapter = await prisma.chapter.findFirst({
+          where: {
+            name: aliasName,
+            subject: { name: subjectName, examId: exam.id },
+            syllabusStatus: 'ACTIVE',
+          },
+        });
+      }
+    }
 
     if (!targetChapter) {
       // Chapter DOES NOT exist in this exam's syllabus (e.g. Physical World in KCET)
@@ -504,6 +540,7 @@ module.exports = {
   ensureCommonExamsExist,
   distributeQuestionToExams,
   distributeAllExistingQuestions,
+  resolveChapterAlias,
   COMMON_CET_EXAMS,
   KCET_EXCLUDED_CHAPTERS,
 };

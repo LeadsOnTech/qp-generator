@@ -3,6 +3,7 @@ const multer = require('multer');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
 const { parseSpreadsheet, normalizeExamName } = require('../lib/extract');
+const { resolveChapterAlias } = require('../lib/multiExamSync');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -77,7 +78,7 @@ router.get('/tree', async (req, res) => {
       const qC = q.chapter?.name?.toLowerCase().trim();
       const qS = q.chapter?.subject?.name?.toLowerCase().trim();
       const isMapped = q.examMappings?.some((m) => m.examId === examId) &&
-                       qC === targetC &&
+                       (qC === targetC || resolveChapterAlias(qC).toLowerCase() === resolveChapterAlias(targetC).toLowerCase()) &&
                        qS === targetS;
       if (isDirect || isMapped) {
         const qType = q.questionType;

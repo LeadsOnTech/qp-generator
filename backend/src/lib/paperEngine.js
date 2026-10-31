@@ -94,7 +94,15 @@ async function fetchPool({ examName, subjectName, chapters, selection }) {
   if (entries && entries.length > 0) {
     where.AND.push({
       OR: entries.map((entry) => {
-        const cond = { chapter: { name: entry.chapter } };
+        const aliasList = [entry.chapter];
+        const entryLow = entry.chapter.toLowerCase().trim();
+        if (entryLow === 'kinetic theory of gases' || entryLow === 'kinetic theory') {
+          aliasList.push('Kinetic Theory of Gases', 'Kinetic Theory');
+        }
+        if (entryLow === 'laws of motion' || entryLow === 'friction') {
+          aliasList.push('Laws of Motion', 'Friction');
+        }
+        const cond = { chapter: { name: { in: aliasList } } };
         if (entry.topics && entry.topics.length > 0) {
           cond.topic = { name: { in: entry.topics } };
         }
