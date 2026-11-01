@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../db');
 const { selectQuestions, findReplacement, shuffle } = require('../lib/paperEngine');
 const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf } = require('../lib/pdfBuilder');
+const { buildOmrSheetPdf } = require('../lib/omrGenerator');
 const { generateSetQuestions, generateMasterKeyMatrix } = require('../lib/multiSetEngine');
 const { adjustCredits, hasEnoughCredits } = require('../lib/credits');
 
@@ -473,6 +474,74 @@ router.get('/:id/pdf', async (req, res) => {
   );
 
   buildPaperPdf(res, { ...brandedPaper, setLabel: `SET ${setChar}` }, setQuestions, withAnswers);
+});
+
+/**
+ * GET /api/papers/:id/omr
+ * Streams an optical-scanner-compatible printable 1-page A4 OMR sheet matching this paper.
+ */
+router.get('/:id/omr', async (req, res) => {
+  try {
+    const paper = await prisma.paper.findUnique({
+      where: { id: req.params.id },
+      include: {
+        institute: true,
+        questions: {
+          orderBy: { order: 'asc' },
+          include: { question: { include: { chapter: { include: { subject: true } } } } },
+        },
+      },
+    });
+    if (!paper) return res.status(404).json({ error: 'Paper not found.' });
+    const denied = assertPaperAccess(req, paper);
+    if (denied) return res.status(denied.status).json({ error: denied.error });
+
+    const rawQuestions = paper.questions.map(formatPaperQuestion);
+    const set = (req.query.set || 'GENERIC').toUpperCase();
+    const rollDigits = req.query.rollDigits || '7';
+    let optionFormat = req.query.optionFormat || null;
+    let watermark = req.query.watermark !== undefined ? req.query.watermark === '1' : null;
+
+    if (paper.config) {
+      try {
+        const cfg = JSON.parse(paper.config);
+        if (!optionFormat) optionFormat = cfg.optionFormat || null;
+        if (watermark === null && cfg.watermark !== undefined) watermark = !!cfg.watermark;
+      } catch (e) {}
+    }
+
+    const brandedPaper = {
+      ...paper,
+      instituteName: paper.institute?.name || paper.instituteName,
+      instituteLogoFilename: paper.institute?.logoFilename || null,
+      institutePhone: paper.institute?.phone || null,
+      instituteAddress: paper.institute?.address || null,
+      instituteTagline: paper.institute?.tagline || null,
+      watermark: watermark !== null ? watermark : true,
+    };
+
+    const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeTitle}_OMR_Sheet_Set_${set}.pdf"`
+    );
+
+    await buildOmrSheetPdf(res, brandedPaper, rawQuestions, {
+      set,
+      optionFormat: optionFormat || 'ALPHA',
+      rollDigits,
+      watermark: brandedPaper.watermark,
+    });
+  } catch (err) {
+    console.error('Error generating OMR sheet:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Could not generate OMR sheet: ' + err.message });
+    }
+  }
 });
 
 

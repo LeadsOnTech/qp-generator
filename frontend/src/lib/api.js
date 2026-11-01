@@ -125,6 +125,36 @@ export const api = {
     URL.revokeObjectURL(blobUrl);
   },
 
+  /**
+   * Downloads an optical-scanner-compatible printable 1-page A4 OMR evaluation sheet.
+   */
+  downloadOmrSheet: async (id, filenameHint, opts = {}) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const params = new URLSearchParams();
+    if (opts.set) params.set('set', opts.set);
+    if (opts.optionFormat) params.set('optionFormat', opts.optionFormat);
+    if (opts.rollDigits) params.set('rollDigits', opts.rollDigits);
+    if (opts.watermark !== undefined) params.set('watermark', opts.watermark ? '1' : '0');
+
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/papers/${id}/omr${query}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not download the OMR sheet (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filenameHint || 'omr-evaluation-sheet.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
+
   // ---- Phase 4 ----
   runChecks: () => request('/checks/run', { method: 'POST', body: JSON.stringify({}) }),
   checksReview: (page = 1, subject = '') => request(`/checks/review?page=${page}&pageSize=25${subject ? `&subject=${subject}` : ''}`),

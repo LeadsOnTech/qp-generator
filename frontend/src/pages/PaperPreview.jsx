@@ -44,11 +44,16 @@ export default function PaperPreview() {
   const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers' | 'bundle' | 'masterKey'
   const [optionFormatOverride, setOptionFormatOverride] = useState(null);
   const [answerFormatOverride, setAnswerFormatOverride] = useState(null);
-  const [activeSet, setActiveSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'MASTER_KEY'
+  const [activeSet, setActiveSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'MASTER_KEY' | 'OMR_SHEET'
   const [masterKeyData, setMasterKeyData] = useState(null);
   const [masterKeyLoading, setMasterKeyLoading] = useState(false);
   const [masterKeyViewMode, setMasterKeyViewMode] = useState('grid'); // 'grid' | 'crossref'
   const [crossRefSearch, setCrossRefSearch] = useState('');
+
+  // OMR Sheet state
+  const [omrSet, setOmrSet] = useState('GENERIC'); // 'GENERIC' | 'A' | 'B' | 'C' | 'D'
+  const [omrRollDigits, setOmrRollDigits] = useState('7'); // '7' | '10'
+  const [downloadingOmr, setDownloadingOmr] = useState(false);
 
   // Anti-Piracy Watermarking state
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
@@ -114,6 +119,8 @@ export default function PaperPreview() {
     setActiveSet(newSet);
     if (newSet === 'MASTER_KEY') {
       loadMasterKey(activeOptionFormat);
+    } else if (newSet === 'OMR_SHEET') {
+      // OMR uses loaded paper questions
     } else {
       loadPaper(newSet);
     }
@@ -245,6 +252,25 @@ export default function PaperPreview() {
     }
   }
 
+  async function handleDownloadOmr() {
+    setDownloadingOmr(true);
+    setError(null);
+    try {
+      const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
+      const filename = `${safeName}_OMR_Sheet_Set_${omrSet}.pdf`;
+      await api.downloadOmrSheet(id, filename, {
+        set: omrSet,
+        optionFormat: activeOptionFormat,
+        rollDigits: omrRollDigits,
+        watermark: watermarkEnabled,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingOmr(false);
+    }
+  }
+
   if (loading && !paper && !masterKeyData) return <div className="skeleton" style={{ height: 400 }} />;
   if (error && !paper) return <div className="alert alert-danger">{error}</div>;
   if (!paper) return null;
@@ -325,18 +351,34 @@ export default function PaperPreview() {
           >
             📑 Synced Master Key (4 Sets)
           </button>
+          <div style={{ width: 1, height: 22, background: 'var(--line)', margin: '0 4px' }} />
+          <button
+            type="button"
+            className={`btn ${activeSet === 'OMR_SHEET' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{
+              padding: '4px 14px',
+              fontSize: 13,
+              fontWeight: activeSet === 'OMR_SHEET' ? 700 : 500,
+              background: activeSet === 'OMR_SHEET' ? undefined : 'var(--paper)',
+            }}
+            onClick={() => handleSelectSet('OMR_SHEET')}
+          >
+            📝 Printable OMR Sheet
+          </button>
         </div>
 
         <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
           {activeSet === 'MASTER_KEY' ? (
             <span>Synchronized evaluation matrix across all sets</span>
+          ) : activeSet === 'OMR_SHEET' ? (
+            <span>Official-standard 1-page optical evaluation sheet</span>
           ) : (
             <span>Active View: <strong>Set {activeSet}</strong> {activeSet !== 'A' ? '(Deterministically shuffled)' : '(Master Canonical Order)'}</span>
           )}
         </div>
       </div>
 
-      {isDraft && activeSet !== 'A' && activeSet !== 'MASTER_KEY' && (
+      {isDraft && activeSet !== 'A' && activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 13 }}>
           💡 You are viewing <strong>Set {activeSet}</strong>. Questions are deterministically shuffled to maintain section integrity. To swap any question, switch to <strong>Set A</strong>.
         </div>
@@ -350,7 +392,7 @@ export default function PaperPreview() {
           </button>
         ) : (
           <>
-            {activeSet !== 'MASTER_KEY' ? (
+            {activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' ? (
               <>
                 <button
                   className="btn btn-primary"
@@ -367,6 +409,14 @@ export default function PaperPreview() {
                   {downloading === 'answers' ? 'Downloading…' : `Download Set ${activeSet} with Keys`}
                 </button>
               </>
+            ) : activeSet === 'OMR_SHEET' ? (
+              <button
+                className="btn btn-primary"
+                disabled={downloadingOmr}
+                onClick={handleDownloadOmr}
+              >
+                {downloadingOmr ? 'Generating OMR…' : '📥 Download OMR Sheet PDF'}
+              </button>
             ) : (
               <button
                 className="btn btn-primary"
@@ -396,10 +446,21 @@ export default function PaperPreview() {
                 {downloading === 'masterKey' ? 'Downloading…' : '📑 Master Key PDF'}
               </button>
             )}
+
+            {activeSet !== 'OMR_SHEET' && (
+              <button
+                className="btn btn-ghost"
+                disabled={downloadingOmr}
+                onClick={handleDownloadOmr}
+                title="Download 1-page optical-scanner-compatible A4 OMR evaluation sheet"
+              >
+                {downloadingOmr ? 'Generating OMR…' : '📝 OMR Sheet PDF'}
+              </button>
+            )}
           </>
         )}
 
-        {activeSet !== 'MASTER_KEY' && (
+        {activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' && (
           <button className="btn btn-ghost" onClick={() => setShowAnswers((v) => !v)}>
             {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
           </button>
@@ -774,6 +835,361 @@ export default function PaperPreview() {
               )}
             </div>
           )}
+        </div>
+      ) : activeSet === 'OMR_SHEET' ? (
+        <div className="card card-pad">
+          {/* OMR Sheet Controls Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: 'var(--navy-950)' }}>
+                📝 Printable OMR Evaluation Sheet (1-Page A4)
+              </h2>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+                Optical-scanner-compatible layout · Auto-balanced for {paper.questions?.length || 0} questions · Single-page guarantee
+              </p>
+            </div>
+            <div>
+              <button
+                className="btn btn-primary"
+                disabled={downloadingOmr}
+                onClick={handleDownloadOmr}
+                style={{ fontSize: 14, padding: '8px 18px', fontWeight: 600 }}
+              >
+                {downloadingOmr ? 'Generating OMR PDF…' : '📥 Download Printable OMR PDF (1 Page)'}
+              </button>
+            </div>
+          </div>
+
+          {/* OMR Options Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            marginBottom: 20,
+            padding: '10px 14px',
+            background: 'var(--paper-dim)',
+            borderRadius: 8,
+            border: '1px solid var(--line)',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>OMR Sheet Set:</span>
+              {[
+                { label: 'Generic (Blank Set)', val: 'GENERIC' },
+                { label: 'Set A', val: 'A' },
+                { label: 'Set B', val: 'B' },
+                { label: 'Set C', val: 'C' },
+                { label: 'Set D', val: 'D' },
+              ].map((s) => (
+                <button
+                  key={s.val}
+                  type="button"
+                  className={`btn ${omrSet === s.val ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '3px 10px', fontSize: 12 }}
+                  onClick={() => setOmrSet(s.val)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Roll Digits:</span>
+                {['7', '10'].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`btn ${omrRollDigits === d ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ padding: '3px 8px', fontSize: 12 }}
+                    onClick={() => setOmrRollDigits(d)}
+                  >
+                    {d} Digits
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Option Labels:</span>
+                <button
+                  type="button"
+                  className={`btn ${activeOptionFormat === 'ALPHA' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '3px 8px', fontSize: 12 }}
+                  onClick={() => handleOptionFormatChange('ALPHA')}
+                >
+                  (A, B, C, D)
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${activeOptionFormat === 'NUMERIC' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '3px 8px', fontSize: 12 }}
+                  onClick={() => handleOptionFormatChange('NUMERIC')}
+                >
+                  (1, 2, 3, 4)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sheet Canvas Replica (A4 Paper Representation) */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #0f172a',
+            borderRadius: 4,
+            padding: '24px 20px',
+            maxWidth: 820,
+            margin: '0 auto',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+            position: 'relative',
+            fontFamily: 'Inter, system-ui, sans-serif',
+          }}>
+            {/* 4 Corner Fiducial Markers */}
+            <div style={{ position: 'absolute', top: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
+            <div style={{ position: 'absolute', top: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
+            <div style={{ position: 'absolute', bottom: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
+            <div style={{ position: 'absolute', bottom: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
+
+            {/* Background Watermark if enabled */}
+            {watermarkEnabled && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-35deg)',
+                fontSize: 36,
+                fontWeight: 800,
+                color: 'rgba(15, 23, 42, 0.035)',
+                pointerEvents: 'none',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                letterSpacing: 2,
+                zIndex: 0,
+              }}>
+                {watermarkText || paper.instituteName || 'EXAMINATION'}
+              </div>
+            )}
+
+            {/* Header Content */}
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: 12, marginBottom: 14 }}>
+                <div style={{ flex: 1, textAlign: 'center', padding: '0 12px' }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                    {paper.instituteName || 'LEADSON ACADEMY'}
+                  </h3>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 3 }}>
+                    OMR ANSWER EVALUATION SHEET {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>
+                    {paper.examName} — {paper.title} · {paper.questions?.length || 0} Questions · Max Marks: {paper.maxMarks || (paper.questions?.length || 0) * 4} · Duration: {paper.timeAllowedMinutes || 180} Mins
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid #cbd5e1', padding: 4, borderRadius: 4, textAlign: 'center', background: '#f8fafc', flexShrink: 0 }}>
+                  <div style={{ width: 44, height: 44, background: '#0f172a', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>
+                    QR
+                  </div>
+                  <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', marginTop: 2 }}>OPTICAL SEAL</div>
+                </div>
+              </div>
+
+              {/* Top Student Details Box */}
+              <div style={{ border: '1px solid #94a3b8', borderRadius: 4, padding: '10px 14px', marginBottom: 14, background: '#ffffff', display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                {/* Left: Name & Instructions */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
+                    CANDIDATE NAME (IN CAPITAL LETTERS AS PER ADMIT CARD)
+                  </div>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: 10, flexWrap: 'wrap' }}>
+                    {Array.from({ length: 20 }).map((_, i) => (
+                      <div key={i} style={{ width: 14, height: 16, border: '1px solid #64748b', borderRadius: 2 }} />
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize: 8, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>
+                    INSTRUCTIONS FOR MARKING:
+                  </div>
+                  <div style={{ fontSize: 8, color: '#334155', lineHeight: 1.4 }}>
+                    • Use Blue or Black ball-point pen only. Gel pens strictly prohibited.<br />
+                    • Completely darken circles. Incomplete or crossed marks will be rejected.<br />
+                    • <strong>METHOD:</strong>&nbsp;&nbsp;
+                    <span style={{ color: '#15803d', fontWeight: 700 }}>● Correct</span>&nbsp;&nbsp;&nbsp;
+                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>✕ Wrong</span>&nbsp;&nbsp;&nbsp;
+                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>✓ Wrong</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 24, marginTop: 12 }}>
+                    <div>
+                      <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
+                      <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Candidate Signature</div>
+                    </div>
+                    <div>
+                      <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
+                      <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Invigilator Signature</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center: Roll Number Columns */}
+                <div style={{ padding: '0 8px', borderLeft: '1px dashed #cbd5e1', borderRight: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5, textAlign: 'center' }}>
+                    ROLL NUMBER
+                  </div>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: 4, justifyContent: 'center' }}>
+                    {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
+                      <div key={c} style={{ width: 14, height: 14, border: '1px solid #334155', borderRadius: 2 }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                    {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
+                      <div key={c} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {Array.from({ length: 10 }).map((_, d) => (
+                          <div
+                            key={d}
+                            style={{
+                              width: 13,
+                              height: 13,
+                              borderRadius: '50%',
+                              border: '1px solid #0f172a',
+                              fontSize: 7,
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#0f172a',
+                            }}
+                          >
+                            {d}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right: Paper Set */}
+                <div style={{ width: 70, textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
+                    SET
+                  </div>
+                  <div style={{ width: 28, height: 16, border: '1px solid #334155', borderRadius: 2, margin: '0 auto 6px', fontWeight: 800, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {omrSet !== 'GENERIC' ? omrSet : ''}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                    {['A', 'B', 'C', 'D'].map((s) => {
+                      const isPreFilled = omrSet === s;
+                      return (
+                        <div
+                          key={s}
+                          style={{
+                            width: 15,
+                            height: 15,
+                            borderRadius: '50%',
+                            border: '1px solid #0f172a',
+                            background: isPreFilled ? '#0f172a' : '#ffffff',
+                            color: isPreFilled ? '#ffffff' : '#0f172a',
+                            fontSize: 8,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {s}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Question Bubbles Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: (paper.questions?.length || 0) > 120
+                  ? 'repeat(5, 1fr)'
+                  : (paper.questions?.length || 0) > 45
+                    ? 'repeat(4, 1fr)'
+                    : 'repeat(3, 1fr)',
+                gap: 12,
+              }}>
+                {(() => {
+                  const totalQ = paper.questions?.length || 60;
+                  const numCols = totalQ > 120 ? 5 : (totalQ > 45 ? 4 : 3);
+                  const qPerCol = Math.ceil(totalQ / numCols);
+                  const optLabels = activeOptionFormat === 'NUMERIC' ? ['1', '2', '3', '4'] : ['A', 'B', 'C', 'D'];
+
+                  const cols = [];
+                  for (let c = 0; c < numCols; c++) {
+                    const startQ = c * qPerCol + 1;
+                    const endQ = Math.min(totalQ, (c + 1) * qPerCol);
+                    if (startQ > totalQ) break;
+
+                    const colFirstQ = paper.questions?.[startQ - 1];
+                    const subTitle = colFirstQ?.subject ? colFirstQ.subject.toUpperCase() : 'QUESTIONS';
+
+                    cols.push(
+                      <div key={c} style={{ border: '1px solid #e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ background: '#1e293b', color: '#ffffff', fontSize: 9, fontWeight: 700, padding: '4px 6px', textAlign: 'center' }}>
+                          {subTitle} (Q {startQ} - {endQ})
+                        </div>
+                        <div>
+                          {Array.from({ length: endQ - startQ + 1 }).map((_, r) => {
+                            const qNum = startQ + r;
+                            return (
+                              <div
+                                key={qNum}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '4px 8px',
+                                  background: r % 2 === 1 ? '#f8fafc' : '#ffffff',
+                                  borderBottom: '1px solid #e2e8f0',
+                                  fontSize: 10,
+                                }}
+                              >
+                                <span style={{ fontWeight: 700, color: '#0f172a', width: 22 }}>
+                                  {String(qNum).padStart(totalQ >= 100 ? 3 : 2, '0')}
+                                </span>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  {optLabels.map((opt) => (
+                                    <div
+                                      key={opt}
+                                      style={{
+                                        width: 14,
+                                        height: 14,
+                                        borderRadius: '50%',
+                                        border: '1px solid #0f172a',
+                                        fontSize: 8,
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#0f172a',
+                                      }}
+                                    >
+                                      {opt}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return cols;
+                })()}
+              </div>
+
+              {/* Footer Bar */}
+              <div style={{ marginTop: 14, paddingTop: 8, borderTop: '1px solid #cbd5e1', textAlign: 'center', fontSize: 8, color: '#64748b' }}>
+                {paper.instituteName || 'LEADSON ACADEMY'} · SHEET ID: QF-OMR-SET-{omrSet}-{paper.questions?.length || 0}Q · OPTICAL EVALUATION COMPATIBLE
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="card card-pad" style={{ position: 'relative', overflow: 'hidden' }}>
