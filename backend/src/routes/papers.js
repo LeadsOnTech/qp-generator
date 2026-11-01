@@ -497,6 +497,7 @@ router.get('/:id/omr', async (req, res) => {
     if (denied) return res.status(denied.status).json({ error: denied.error });
 
     const rawQuestions = paper.questions.map(formatPaperQuestion);
+    const layout = (req.query.layout || 'AUTO').toUpperCase();
     const set = (req.query.set || 'GENERIC').toUpperCase();
     const rollDigits = req.query.rollDigits || '7';
     let optionFormat = req.query.optionFormat || null;
@@ -527,10 +528,11 @@ router.get('/:id/omr', async (req, res) => {
     res.setHeader('Expires', '0');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${safeTitle}_OMR_Sheet_Set_${set}.pdf"`
+      `attachment; filename="${safeTitle}_OMR_Sheet_${layout}_Set_${set}.pdf"`
     );
 
     await buildOmrSheetPdf(res, brandedPaper, rawQuestions, {
+      layout,
       set,
       optionFormat: optionFormat || 'ALPHA',
       rollDigits,

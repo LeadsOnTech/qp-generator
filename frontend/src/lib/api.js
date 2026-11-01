@@ -131,6 +131,7 @@ export const api = {
   downloadOmrSheet: async (id, filenameHint, opts = {}) => {
     const token = localStorage.getItem(TOKEN_KEY);
     const params = new URLSearchParams();
+    if (opts.layout) params.set('layout', opts.layout);
     if (opts.set) params.set('set', opts.set);
     if (opts.optionFormat) params.set('optionFormat', opts.optionFormat);
     if (opts.rollDigits) params.set('rollDigits', opts.rollDigits);

@@ -51,6 +51,7 @@ export default function PaperPreview() {
   const [crossRefSearch, setCrossRefSearch] = useState('');
 
   // OMR Sheet state
+  const [omrLayoutMode, setOmrLayoutMode] = useState('AUTO'); // 'AUTO' | 'COMPACT_4' | 'COMPACT_3' | 'COMPACT_2' | 'FULL'
   const [omrSet, setOmrSet] = useState('GENERIC'); // 'GENERIC' | 'A' | 'B' | 'C' | 'D'
   const [omrRollDigits, setOmrRollDigits] = useState('7'); // '7' | '10'
   const [downloadingOmr, setDownloadingOmr] = useState(false);
@@ -257,8 +258,9 @@ export default function PaperPreview() {
     setError(null);
     try {
       const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
-      const filename = `${safeName}_OMR_Sheet_Set_${omrSet}.pdf`;
+      const filename = `${safeName}_OMR_Sheet_${omrLayoutMode}_Set_${omrSet}.pdf`;
       await api.downloadOmrSheet(id, filename, {
+        layout: omrLayoutMode,
         set: omrSet,
         optionFormat: activeOptionFormat,
         rollDigits: omrRollDigits,
@@ -839,12 +841,25 @@ export default function PaperPreview() {
       ) : activeSet === 'OMR_SHEET' ? (
         <div className="card card-pad">
           {/* OMR Sheet Controls Toolbar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 14 }}>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: 'var(--navy-950)' }}>
-                📝 Printable OMR Evaluation Sheet (1-Page A4)
-              </h2>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--navy-950)' }}>
+                  📝 Printable OMR Evaluation Sheet
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #bbf7d0',
+                }}>
+                  ✨ Uncompromised 3.8mm Bubble Size
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
                 Optical-scanner-compatible layout · Auto-balanced for {paper.questions?.length || 0} questions · Single-page guarantee
               </p>
             </div>
@@ -859,6 +874,96 @@ export default function PaperPreview() {
               </button>
             </div>
           </div>
+
+          {/* Smart Page Allocation Layout Selector */}
+          {(() => {
+            const totalQ = paper.questions?.length || 60;
+            let effectiveLayout = omrLayoutMode;
+            if (effectiveLayout === 'AUTO') {
+              if (totalQ <= 50) effectiveLayout = 'COMPACT_4';
+              else if (totalQ <= 75) effectiveLayout = 'COMPACT_3';
+              else if (totalQ <= 100) effectiveLayout = 'COMPACT_2';
+              else effectiveLayout = 'FULL';
+            }
+
+            const autoLabel = totalQ <= 50
+              ? 'Auto: 4 Slips / A4 (75% Paper Saved)'
+              : totalQ <= 75
+                ? 'Auto: 3 Slips / A4 (66% Paper Saved)'
+                : totalQ <= 100
+                  ? 'Auto: 2 Slips / A4 (50% Paper Saved)'
+                  : 'Auto: Full Exam Sheet (1 per A4)';
+
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 14px',
+                  background: 'var(--paper-dim)',
+                  borderRadius: 8,
+                  border: '1px solid var(--line)',
+                  flexWrap: 'wrap',
+                  marginBottom: 10,
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Page Allocation:</span>
+                  {[
+                    { id: 'AUTO', label: `⚡ ${autoLabel}`, tag: 'Recommended' },
+                    { id: 'COMPACT_4', label: 'Compact 4-in-1 (≤ 50 Qs)', tag: '4 Slips' },
+                    { id: 'COMPACT_3', label: 'Compact 3-in-1 (51–75 Qs)', tag: '3 Strips' },
+                    { id: 'COMPACT_2', label: 'Compact 2-in-1 (76–100 Qs)', tag: '2 Halves' },
+                    { id: 'FULL', label: 'Full Examination (> 100 Qs)', tag: '1 Full Sheet' },
+                  ].map((mode) => {
+                    const isActive = omrLayoutMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        className={`btn ${isActive ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{ padding: '4px 10px', fontSize: 12, fontWeight: isActive ? 700 : 500 }}
+                        onClick={() => setOmrLayoutMode(mode.id)}
+                      >
+                        {mode.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Allocation Benefit Pill */}
+                <div style={{
+                  padding: '8px 14px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  background: effectiveLayout === 'FULL' ? '#f1f5f9' : '#f0fdf4',
+                  border: `1px solid ${effectiveLayout === 'FULL' ? '#cbd5e1' : '#bbf7d0'}`,
+                  color: effectiveLayout === 'FULL' ? '#334155' : '#166534',
+                }}>
+                  <div>
+                    {effectiveLayout === 'COMPACT_4' && (
+                      <span><strong>🌱 75% Paper Savings:</strong> 4 independent examination slips printed on 1 single A4 sheet (2x2 quadrant with cutting guides). Each cut slip includes all {totalQ} questions with standard 3.8mm bubbles and independent optical corner fiducials.</span>
+                    )}
+                    {effectiveLayout === 'COMPACT_3' && (
+                      <span><strong>🌱 66% Paper Savings:</strong> 3 independent examination slips printed on 1 single A4 sheet (3 horizontal strips with cutting guides). Each cut slip includes all {totalQ} questions with standard 3.8mm bubbles and independent optical corner fiducials.</span>
+                    )}
+                    {effectiveLayout === 'COMPACT_2' && (
+                      <span><strong>🌱 50% Paper Savings:</strong> 2 independent examination slips printed on 1 single A4 sheet (2 horizontal A5 halves with cutting guides). Each cut slip includes all {totalQ} questions with standard 3.8mm bubbles and independent optical corner fiducials.</span>
+                    )}
+                    {effectiveLayout === 'FULL' && (
+                      <span><strong>📄 Full Examination Format:</strong> Standard 1-sheet grand mock layout with complete candidate write-in block, 0-9 roll number bubbling grid, set selection bubble column, invigilator/candidate signatures, and QR optical seal.</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', opacity: 0.85 }}>
+                    Active: {effectiveLayout}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* OMR Options Bar */}
           <div style={{
@@ -933,263 +1038,538 @@ export default function PaperPreview() {
           </div>
 
           {/* Sheet Canvas Replica (A4 Paper Representation) */}
-          <div style={{
-            background: '#ffffff',
-            border: '2px solid #0f172a',
-            borderRadius: 4,
-            padding: '24px 20px',
-            maxWidth: 820,
-            margin: '0 auto',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            position: 'relative',
-            fontFamily: 'Inter, system-ui, sans-serif',
-          }}>
-            {/* 4 Corner Fiducial Markers */}
-            <div style={{ position: 'absolute', top: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
-            <div style={{ position: 'absolute', top: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
-            <div style={{ position: 'absolute', bottom: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
-            <div style={{ position: 'absolute', bottom: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
+          {(() => {
+            const totalQ = paper.questions?.length || 60;
+            let effectiveLayout = omrLayoutMode;
+            if (effectiveLayout === 'AUTO') {
+              if (totalQ <= 50) effectiveLayout = 'COMPACT_4';
+              else if (totalQ <= 75) effectiveLayout = 'COMPACT_3';
+              else if (totalQ <= 100) effectiveLayout = 'COMPACT_2';
+              else effectiveLayout = 'FULL';
+            }
+            const optLabels = activeOptionFormat === 'NUMERIC' ? ['1', '2', '3', '4'] : ['A', 'B', 'C', 'D'];
 
-            {/* Background Watermark if enabled */}
-            {watermarkEnabled && (
+            // Common helper to render question row in preview
+            const renderQRow = (qNum, compact = false) => (
+              <div
+                key={qNum}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: compact ? '2px 4px' : '3px 6px',
+                  background: qNum % 2 === 1 ? '#f8fafc' : '#ffffff',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: compact ? 9 : 10,
+                }}
+              >
+                <span style={{ fontWeight: 700, color: '#334155', minWidth: 20 }}>
+                  {String(qNum).padStart(2, '0')}
+                </span>
+                <div style={{ display: 'flex', gap: compact ? 3 : 5 }}>
+                  {optLabels.map((lbl) => (
+                    <div
+                      key={lbl}
+                      style={{
+                        width: compact ? 13 : 15,
+                        height: compact ? 13 : 15,
+                        borderRadius: '50%',
+                        border: '1px solid #0f172a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: compact ? 7 : 8,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                      }}
+                    >
+                      {lbl}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+
+            return (
               <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) rotate(-35deg)',
-                fontSize: 36,
-                fontWeight: 800,
-                color: 'rgba(15, 23, 42, 0.035)',
-                pointerEvents: 'none',
-                whiteSpace: 'nowrap',
-                userSelect: 'none',
-                letterSpacing: 2,
-                zIndex: 0,
+                background: '#ffffff',
+                border: '2px solid #0f172a',
+                borderRadius: 4,
+                padding: effectiveLayout === 'FULL' ? '24px 20px' : '14px',
+                maxWidth: 820,
+                margin: '0 auto',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                position: 'relative',
+                fontFamily: 'Inter, system-ui, sans-serif',
               }}>
-                {watermarkText || paper.instituteName || 'EXAMINATION'}
-              </div>
-            )}
-
-            {/* Header Content */}
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: 12, marginBottom: 14 }}>
-                <div style={{ flex: 1, textAlign: 'center', padding: '0 12px' }}>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                    {paper.instituteName || 'LEADSON ACADEMY'}
-                  </h3>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 3 }}>
-                    OMR ANSWER EVALUATION SHEET {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>
-                    {paper.examName} — {paper.title} · {paper.questions?.length || 0} Questions · Max Marks: {paper.maxMarks || (paper.questions?.length || 0) * 4} · Duration: {paper.timeAllowedMinutes || 180} Mins
-                  </div>
-                </div>
-
-                <div style={{ border: '1px solid #cbd5e1', padding: 4, borderRadius: 4, textAlign: 'center', background: '#f8fafc', flexShrink: 0 }}>
-                  <div style={{ width: 44, height: 44, background: '#0f172a', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>
-                    QR
-                  </div>
-                  <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', marginTop: 2 }}>OPTICAL SEAL</div>
-                </div>
-              </div>
-
-              {/* Top Student Details Box */}
-              <div style={{ border: '1px solid #94a3b8', borderRadius: 4, padding: '10px 14px', marginBottom: 14, background: '#ffffff', display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-                {/* Left: Name & Instructions */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
-                    CANDIDATE NAME (IN CAPITAL LETTERS AS PER ADMIT CARD)
-                  </div>
-                  <div style={{ display: 'flex', gap: 3, marginBottom: 10, flexWrap: 'wrap' }}>
-                    {Array.from({ length: 20 }).map((_, i) => (
-                      <div key={i} style={{ width: 14, height: 16, border: '1px solid #64748b', borderRadius: 2 }} />
-                    ))}
-                  </div>
-
-                  <div style={{ fontSize: 8, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>
-                    INSTRUCTIONS FOR MARKING:
-                  </div>
-                  <div style={{ fontSize: 8, color: '#334155', lineHeight: 1.4 }}>
-                    • Use Blue or Black ball-point pen only. Gel pens strictly prohibited.<br />
-                    • Completely darken circles. Incomplete or crossed marks will be rejected.<br />
-                    • <strong>METHOD:</strong>&nbsp;&nbsp;
-                    <span style={{ color: '#15803d', fontWeight: 700 }}>● Correct</span>&nbsp;&nbsp;&nbsp;
-                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>✕ Wrong</span>&nbsp;&nbsp;&nbsp;
-                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>✓ Wrong</span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 24, marginTop: 12 }}>
-                    <div>
-                      <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
-                      <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Candidate Signature</div>
+                {/* 1. COMPACT 4-IN-1 PREVIEW (2x2 Quadrant Grid) */}
+                {effectiveLayout === 'COMPACT_4' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, position: 'relative' }}>
+                    {/* Dashed Cut Guide Separators */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: 0,
+                      right: 0,
+                      borderTop: '1px dashed #94a3b8',
+                      transform: 'translateY(-50%)',
+                      zIndex: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <span style={{ background: '#ffffff', padding: '0 8px', fontSize: 10, color: '#64748b', fontWeight: 600 }}>
+                        ✂ Cut Here
+                      </span>
                     </div>
-                    <div>
-                      <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
-                      <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Invigilator Signature</div>
+                    <div style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: 0,
+                      bottom: 0,
+                      borderLeft: '1px dashed #94a3b8',
+                      transform: 'translateX(-50%)',
+                      zIndex: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <span style={{
+                        background: '#ffffff',
+                        padding: '8px 0',
+                        fontSize: 10,
+                        color: '#64748b',
+                        fontWeight: 600,
+                        writingMode: 'vertical-rl',
+                        transform: 'rotate(180deg)',
+                      }}>
+                        ✂ Cut Here
+                      </span>
                     </div>
-                  </div>
-                </div>
 
-                {/* Center: Roll Number Columns */}
-                <div style={{ padding: '0 8px', borderLeft: '1px dashed #cbd5e1', borderRight: '1px dashed #cbd5e1' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5, textAlign: 'center' }}>
-                    ROLL NUMBER
-                  </div>
-                  <div style={{ display: 'flex', gap: 3, marginBottom: 4, justifyContent: 'center' }}>
-                    {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
-                      <div key={c} style={{ width: 14, height: 14, border: '1px solid #334155', borderRadius: 2 }} />
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                    {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
-                      <div key={c} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {Array.from({ length: 10 }).map((_, d) => (
-                          <div
-                            key={d}
-                            style={{
-                              width: 13,
-                              height: 13,
-                              borderRadius: '50%',
-                              border: '1px solid #0f172a',
-                              fontSize: 7,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#0f172a',
-                            }}
-                          >
-                            {d}
+                    {[0, 1, 2, 3].map((slipIdx) => (
+                      <div
+                        key={slipIdx}
+                        style={{
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 4,
+                          padding: '10px 8px',
+                          position: 'relative',
+                          background: '#ffffff',
+                        }}
+                      >
+                        {/* 4 Corner Fiducials */}
+                        <div style={{ position: 'absolute', top: 3, left: 3, width: 8, height: 8, background: '#000000' }} />
+                        <div style={{ position: 'absolute', top: 3, right: 3, width: 8, height: 8, background: '#000000' }} />
+                        <div style={{ position: 'absolute', bottom: 3, left: 3, width: 8, height: 8, background: '#000000' }} />
+                        <div style={{ position: 'absolute', bottom: 3, right: 3, width: 8, height: 8, background: '#000000' }} />
+
+                        {/* Slip Header */}
+                        <div style={{ textAlign: 'center', marginBottom: 6, padding: '0 12px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+                            {paper.instituteName || 'LEADSON ACADEMY'}
                           </div>
-                        ))}
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#1e3a8a' }}>
+                            OMR ANSWER SLIP {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''} · SLIP #{slipIdx + 1}
+                          </div>
+                          <div style={{ fontSize: 8, color: '#64748b' }}>
+                            {paper.examName} · {totalQ} Questions · Standard 3.8mm Bubbles
+                          </div>
+                        </div>
+
+                        {/* Write-in candidate info */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: 6,
+                          fontSize: 8,
+                          color: '#334155',
+                          borderTop: '1px solid #e2e8f0',
+                          borderBottom: '1px solid #e2e8f0',
+                          padding: '3px 4px',
+                          marginBottom: 6,
+                          background: '#f8fafc',
+                        }}>
+                          <span><strong>Roll:</strong> ___________</span>
+                          <span><strong>Name:</strong> _____________________</span>
+                        </div>
+
+                        {/* 2 Question Columns of 25 */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                          <div>
+                            <div style={{ background: '#1e293b', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 4px', textAlign: 'center', borderRadius: '2px 2px 0 0' }}>
+                              Q 01 – {Math.min(25, totalQ)}
+                            </div>
+                            <div style={{ border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                              {Array.from({ length: Math.min(25, totalQ) }).map((_, r) => renderQRow(r + 1, true))}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ background: '#1e293b', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 4px', textAlign: 'center', borderRadius: '2px 2px 0 0' }}>
+                              {totalQ > 25 ? `Q 26 – ${Math.min(50, totalQ)}` : 'NOTES'}
+                            </div>
+                            <div style={{ border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                              {totalQ > 25
+                                ? Array.from({ length: Math.min(25, totalQ - 25) }).map((_, r) => renderQRow(26 + r, true))
+                                : <div style={{ padding: 12, fontSize: 8, color: '#94a3b8', textAlign: 'center' }}>Official Evaluation Area</div>
+                              }
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
 
-                {/* Right: Paper Set */}
-                <div style={{ width: 70, textAlign: 'center' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
-                    SET
-                  </div>
-                  <div style={{ width: 28, height: 16, border: '1px solid #334155', borderRadius: 2, margin: '0 auto 6px', fontWeight: 800, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {omrSet !== 'GENERIC' ? omrSet : ''}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-                    {['A', 'B', 'C', 'D'].map((s) => {
-                      const isPreFilled = omrSet === s;
-                      return (
-                        <div
-                          key={s}
-                          style={{
-                            width: 15,
-                            height: 15,
-                            borderRadius: '50%',
-                            border: '1px solid #0f172a',
-                            background: isPreFilled ? '#0f172a' : '#ffffff',
-                            color: isPreFilled ? '#ffffff' : '#0f172a',
-                            fontSize: 8,
-                            fontWeight: 700,
+                {/* 2. COMPACT 3-IN-1 PREVIEW (3 Horizontal Strips) */}
+                {effectiveLayout === 'COMPACT_3' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {[0, 1, 2].map((stripIdx) => (
+                      <div key={stripIdx} style={{ position: 'relative' }}>
+                        {stripIdx > 0 && (
+                          <div style={{
+                            margin: '-8px 0 8px',
+                            borderTop: '1px dashed #94a3b8',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                          }}
-                        >
-                          {s}
+                          }}>
+                            <span style={{ background: '#ffffff', padding: '0 8px', fontSize: 10, color: '#64748b', fontWeight: 600 }}>
+                              ✂ Cut Here
+                            </span>
+                          </div>
+                        )}
+                        <div style={{
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 4,
+                          padding: '10px 10px',
+                          position: 'relative',
+                          background: '#ffffff',
+                        }}>
+                          {/* 4 Corner Fiducials */}
+                          <div style={{ position: 'absolute', top: 3, left: 3, width: 8, height: 8, background: '#000000' }} />
+                          <div style={{ position: 'absolute', top: 3, right: 3, width: 8, height: 8, background: '#000000' }} />
+                          <div style={{ position: 'absolute', bottom: 3, left: 3, width: 8, height: 8, background: '#000000' }} />
+                          <div style={{ position: 'absolute', bottom: 3, right: 3, width: 8, height: 8, background: '#000000' }} />
+
+                          {/* Strip Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: 4, marginBottom: 6 }}>
+                            <div>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+                                {paper.instituteName || 'LEADSON ACADEMY'}
+                              </span>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: '#1e3a8a', marginLeft: 8 }}>
+                                OMR ANSWER STRIP {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''} · STRIP #{stripIdx + 1}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 8, color: '#475569' }}>
+                              <strong>Roll:</strong> _________ &nbsp; <strong>Name:</strong> ________________________
+                            </div>
+                          </div>
+
+                          {/* 5 Question Columns of 15 */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                            {[0, 1, 2, 3, 4].map((c) => {
+                              const startQ = c * 15 + 1;
+                              const endQ = Math.min(totalQ, (c + 1) * 15);
+                              return (
+                                <div key={c}>
+                                  <div style={{ background: '#1e293b', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 4px', textAlign: 'center', borderRadius: '2px 2px 0 0' }}>
+                                    Q {String(startQ).padStart(2, '0')} – {String(endQ).padStart(2, '0')}
+                                  </div>
+                                  <div style={{ border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                                    {Array.from({ length: Math.max(0, endQ - startQ + 1) }).map((_, r) => renderQRow(startQ + r, true))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Question Bubbles Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: (paper.questions?.length || 0) > 120
-                  ? 'repeat(5, 1fr)'
-                  : (paper.questions?.length || 0) > 45
-                    ? 'repeat(4, 1fr)'
-                    : 'repeat(3, 1fr)',
-                gap: 12,
-              }}>
-                {(() => {
-                  const totalQ = paper.questions?.length || 60;
-                  const numCols = totalQ > 120 ? 5 : (totalQ > 45 ? 4 : 3);
-                  const qPerCol = Math.ceil(totalQ / numCols);
-                  const optLabels = activeOptionFormat === 'NUMERIC' ? ['1', '2', '3', '4'] : ['A', 'B', 'C', 'D'];
+                {/* 3. COMPACT 2-IN-1 PREVIEW (2 Horizontal Halves) */}
+                {effectiveLayout === 'COMPACT_2' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {[0, 1].map((halfIdx) => (
+                      <div key={halfIdx} style={{ position: 'relative' }}>
+                        {halfIdx > 0 && (
+                          <div style={{
+                            margin: '-10px 0 10px',
+                            borderTop: '1px dashed #94a3b8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <span style={{ background: '#ffffff', padding: '0 8px', fontSize: 10, color: '#64748b', fontWeight: 600 }}>
+                              ✂ Cut Here
+                            </span>
+                          </div>
+                        )}
+                        <div style={{
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 4,
+                          padding: '12px 12px',
+                          position: 'relative',
+                          background: '#ffffff',
+                        }}>
+                          {/* 4 Corner Fiducials */}
+                          <div style={{ position: 'absolute', top: 4, left: 4, width: 9, height: 9, background: '#000000' }} />
+                          <div style={{ position: 'absolute', top: 4, right: 4, width: 9, height: 9, background: '#000000' }} />
+                          <div style={{ position: 'absolute', bottom: 4, left: 4, width: 9, height: 9, background: '#000000' }} />
+                          <div style={{ position: 'absolute', bottom: 4, right: 4, width: 9, height: 9, background: '#000000' }} />
 
-                  const cols = [];
-                  for (let c = 0; c < numCols; c++) {
-                    const startQ = c * qPerCol + 1;
-                    const endQ = Math.min(totalQ, (c + 1) * qPerCol);
-                    if (startQ > totalQ) break;
+                          {/* Half Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #0f172a', paddingBottom: 6, marginBottom: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+                                {paper.instituteName || 'LEADSON ACADEMY'}
+                              </div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: '#1e3a8a' }}>
+                                OMR ANSWER SHEET {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''} · SLIP #{halfIdx + 1}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', fontSize: 9, color: '#334155' }}>
+                              <div><strong>Roll:</strong> _______________ &nbsp; <strong>Name:</strong> __________________________</div>
+                              <div style={{ color: '#64748b', marginTop: 2 }}>{paper.examName} · {totalQ} Questions · Standard 3.8mm Bubbles</div>
+                            </div>
+                          </div>
 
-                    const colFirstQ = paper.questions?.[startQ - 1];
-                    const subTitle = colFirstQ?.subject ? colFirstQ.subject.toUpperCase() : 'QUESTIONS';
-
-                    cols.push(
-                      <div key={c} style={{ border: '1px solid #e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                        <div style={{ background: '#1e293b', color: '#ffffff', fontSize: 9, fontWeight: 700, padding: '4px 6px', textAlign: 'center' }}>
-                          {subTitle} (Q {startQ} - {endQ})
+                          {/* 4 Question Columns of 25 */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                            {[0, 1, 2, 3].map((c) => {
+                              const startQ = c * 25 + 1;
+                              const endQ = Math.min(totalQ, (c + 1) * 25);
+                              return (
+                                <div key={c}>
+                                  <div style={{ background: '#1e293b', color: '#fff', fontSize: 9, fontWeight: 700, padding: '3px 4px', textAlign: 'center', borderRadius: '2px 2px 0 0' }}>
+                                    Q {String(startQ).padStart(2, '0')} – {String(endQ).padStart(2, '0')}
+                                  </div>
+                                  <div style={{ border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                                    {Array.from({ length: Math.max(0, endQ - startQ + 1) }).map((_, r) => renderQRow(startQ + r, false))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div>
-                          {Array.from({ length: endQ - startQ + 1 }).map((_, r) => {
-                            const qNum = startQ + r;
-                            return (
-                              <div
-                                key={qNum}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '4px 8px',
-                                  background: r % 2 === 1 ? '#f8fafc' : '#ffffff',
-                                  borderBottom: '1px solid #e2e8f0',
-                                  fontSize: 10,
-                                }}
-                              >
-                                <span style={{ fontWeight: 700, color: '#0f172a', width: 22 }}>
-                                  {String(qNum).padStart(totalQ >= 100 ? 3 : 2, '0')}
-                                </span>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  {optLabels.map((opt) => (
-                                    <div
-                                      key={opt}
-                                      style={{
-                                        width: 14,
-                                        height: 14,
-                                        borderRadius: '50%',
-                                        border: '1px solid #0f172a',
-                                        fontSize: 8,
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#0f172a',
-                                      }}
-                                    >
-                                      {opt}
-                                    </div>
-                                  ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 4. FULL EXAMINATION OMR PREVIEW (> 100 Qs or Forced Full) */}
+                {effectiveLayout === 'FULL' && (
+                  <div>
+                    {/* 4 Corner Fiducial Markers */}
+                    <div style={{ position: 'absolute', top: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
+                    <div style={{ position: 'absolute', top: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
+                    <div style={{ position: 'absolute', bottom: 8, left: 8, width: 12, height: 12, background: '#000000' }} />
+                    <div style={{ position: 'absolute', bottom: 8, right: 8, width: 12, height: 12, background: '#000000' }} />
+
+                    {/* Background Watermark if enabled */}
+                    {watermarkEnabled && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%) rotate(-35deg)',
+                        fontSize: 36,
+                        fontWeight: 800,
+                        color: 'rgba(15, 23, 42, 0.035)',
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                        userSelect: 'none',
+                        letterSpacing: 2,
+                        zIndex: 0,
+                      }}>
+                        {watermarkText || paper.instituteName || 'EXAMINATION'}
+                      </div>
+                    )}
+
+                    {/* Header Content */}
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: 12, marginBottom: 14 }}>
+                        <div style={{ flex: 1, textAlign: 'center', padding: '0 12px' }}>
+                          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                            {paper.instituteName || 'LEADSON ACADEMY'}
+                          </h3>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 3 }}>
+                            OMR ANSWER EVALUATION SHEET {omrSet !== 'GENERIC' ? `(SET - ${omrSet})` : ''}
+                          </div>
+                          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>
+                            {paper.examName} — {paper.title} · {totalQ} Questions · Max Marks: {paper.maxMarks || totalQ * 4} · Duration: {paper.timeAllowedMinutes || 180} Mins
+                          </div>
+                        </div>
+
+                        <div style={{ border: '1px solid #cbd5e1', padding: 4, borderRadius: 4, textAlign: 'center', background: '#f8fafc', flexShrink: 0 }}>
+                          <div style={{ width: 44, height: 44, background: '#0f172a', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>
+                            QR
+                          </div>
+                          <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', marginTop: 2 }}>OPTICAL SEAL</div>
+                        </div>
+                      </div>
+
+                      {/* Top Student Details Box */}
+                      <div style={{ border: '1px solid #94a3b8', borderRadius: 4, padding: '10px 14px', marginBottom: 14, background: '#ffffff', display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                        {/* Left: Name & Instructions */}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
+                            CANDIDATE NAME (IN CAPITAL LETTERS AS PER ADMIT CARD)
+                          </div>
+                          <div style={{ display: 'flex', gap: 3, marginBottom: 10, flexWrap: 'wrap' }}>
+                            {Array.from({ length: 20 }).map((_, i) => (
+                              <div key={i} style={{ width: 14, height: 16, border: '1px solid #64748b', borderRadius: 2 }} />
+                            ))}
+                          </div>
+
+                          <div style={{ fontSize: 8, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>
+                            INSTRUCTIONS FOR MARKING:
+                          </div>
+                          <div style={{ fontSize: 8, color: '#334155', lineHeight: 1.4 }}>
+                            • Use Blue or Black ball-point pen only. Gel pens strictly prohibited.<br />
+                            • Completely darken circles. Incomplete or crossed marks will be rejected.<br />
+                            • <strong>METHOD:</strong>&nbsp;&nbsp;
+                            <span style={{ color: '#15803d', fontWeight: 700 }}>● Correct</span>&nbsp;&nbsp;&nbsp;
+                            <span style={{ color: '#b91c1c', fontWeight: 700 }}>✕ Wrong</span>&nbsp;&nbsp;&nbsp;
+                            <span style={{ color: '#b91c1c', fontWeight: 700 }}>✓ Wrong</span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 24, marginTop: 12 }}>
+                            <div>
+                              <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
+                              <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Candidate Signature</div>
+                            </div>
+                            <div>
+                              <div style={{ width: 120, borderBottom: '1px solid #94a3b8', height: 18 }} />
+                              <div style={{ fontSize: 8, color: '#475569', marginTop: 2 }}>Invigilator Signature</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Center: Roll Number Columns */}
+                        <div style={{ padding: '0 8px', borderLeft: '1px dashed #cbd5e1', borderRight: '1px dashed #cbd5e1' }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5, textAlign: 'center' }}>
+                            ROLL NUMBER
+                          </div>
+                          <div style={{ display: 'flex', gap: 3, marginBottom: 4, justifyContent: 'center' }}>
+                            {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
+                              <div key={c} style={{ width: 14, height: 14, border: '1px solid #334155', borderRadius: 2 }} />
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                            {Array.from({ length: parseInt(omrRollDigits, 10) }).map((_, c) => (
+                              <div key={c} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {Array.from({ length: 10 }).map((_, d) => (
+                                  <div
+                                    key={d}
+                                    style={{
+                                      width: 13,
+                                      height: 13,
+                                      borderRadius: '50%',
+                                      border: '1px solid #0f172a',
+                                      fontSize: 7,
+                                      fontWeight: 700,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#0f172a',
+                                    }}
+                                  >
+                                    {d}
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Right: Paper Set */}
+                        <div style={{ width: 70, textAlign: 'center' }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: '#0f172a', marginBottom: 5 }}>
+                            SET
+                          </div>
+                          <div style={{ width: 28, height: 16, border: '1px solid #334155', borderRadius: 2, margin: '0 auto 6px', fontWeight: 800, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {omrSet !== 'GENERIC' ? omrSet : ''}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                            {['A', 'B', 'C', 'D'].map((s) => {
+                              const isPreFilled = omrSet === s;
+                              return (
+                                <div
+                                  key={s}
+                                  style={{
+                                    width: 15,
+                                    height: 15,
+                                    borderRadius: '50%',
+                                    border: '1px solid #0f172a',
+                                    background: isPreFilled ? '#0f172a' : '#ffffff',
+                                    color: isPreFilled ? '#ffffff' : '#0f172a',
+                                    fontSize: 8,
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  {s}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Question Bubbles Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: totalQ > 120
+                          ? 'repeat(5, 1fr)'
+                          : totalQ > 45
+                            ? 'repeat(4, 1fr)'
+                            : 'repeat(3, 1fr)',
+                        gap: 12,
+                      }}>
+                        {(() => {
+                          const numCols = totalQ > 120 ? 5 : (totalQ > 45 ? 4 : 3);
+                          const qPerCol = Math.ceil(totalQ / numCols);
+
+                          const cols = [];
+                          for (let c = 0; c < numCols; c++) {
+                            const startQ = c * qPerCol + 1;
+                            const endQ = Math.min(totalQ, (c + 1) * qPerCol);
+                            if (startQ > totalQ) break;
+
+                            const colFirstQ = paper.questions?.[startQ - 1];
+                            const subTitle = colFirstQ?.subject ? colFirstQ.subject.toUpperCase() : 'QUESTIONS';
+
+                            cols.push(
+                              <div key={c} style={{ border: '1px solid #e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ background: '#1e293b', color: '#ffffff', fontSize: 9, fontWeight: 700, padding: '4px 6px', textAlign: 'center' }}>
+                                  {subTitle} (Q {startQ} - {endQ})
+                                </div>
+                                <div>
+                                  {Array.from({ length: endQ - startQ + 1 }).map((_, r) => renderQRow(startQ + r, false))}
                                 </div>
                               </div>
                             );
-                          })}
-                        </div>
+                          }
+                          return cols;
+                        })()}
                       </div>
-                    );
-                  }
-                  return cols;
-                })()}
-              </div>
 
-              {/* Footer Bar */}
-              <div style={{ marginTop: 14, paddingTop: 8, borderTop: '1px solid #cbd5e1', textAlign: 'center', fontSize: 8, color: '#64748b' }}>
-                {paper.instituteName || 'LEADSON ACADEMY'} · SHEET ID: QF-OMR-SET-{omrSet}-{paper.questions?.length || 0}Q · OPTICAL EVALUATION COMPATIBLE
+                      {/* Footer Bar */}
+                      <div style={{ marginTop: 14, paddingTop: 8, borderTop: '1px solid #cbd5e1', textAlign: 'center', fontSize: 8, color: '#64748b' }}>
+                        {paper.instituteName || 'LEADSON ACADEMY'} · SHEET ID: QF-OMR-SET-{omrSet}-{totalQ}Q · OPTICAL EVALUATION COMPATIBLE
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       ) : (
         <div className="card card-pad" style={{ position: 'relative', overflow: 'hidden' }}>
