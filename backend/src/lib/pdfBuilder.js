@@ -338,29 +338,28 @@ function resolveOptionImage(doc, filename, maxWidth = 92, maxHeight = 46) {
 
 function drawHeader(doc, paper, pageWidth, questionCount) {
   const hasContact = Boolean(paper.institutePhone || paper.instituteAddress);
+  const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
+  const instName = paper.instituteName || 'Question Paper';
 
-  // Logo, top-left corner — never shifts the centered text, matches how
-  // most institute letterheads place a badge/crest.
+  // 1. Logo, top-left corner
   if (paper.instituteLogoFilename) {
     const logoPath = path.join(IMAGES_DIR, paper.instituteLogoFilename);
     if (fs.existsSync(logoPath)) {
       try {
         const img = doc.openImage(logoPath);
-        const maxDim = 42;
+        const maxDim = 40;
         const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
         doc.image(logoPath, 36, 14, { width: img.width * scale, height: img.height * scale });
-      } catch (err) {
-        // corrupt/unsupported logo file — skip silently, never break the paper
-      }
+      } catch (err) {}
     }
   }
 
-  const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
+  // 2. Set Badge (top-right corner)
   if (setLabel) {
-    const badgeW = 68;
+    const badgeW = 72;
     const badgeH = 22;
     const badgeX = pageWidth - 36 - badgeW;
-    const badgeY = 16;
+    const badgeY = 15;
     doc.save();
     doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 4).fillAndStroke('#f8fafc', '#0f172a');
     doc.fill('#0f172a').font(FONT_BOLD).fontSize(10)
@@ -372,42 +371,56 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
     doc.restore();
   }
 
-  doc.fill('#000000')
-    .font(FONT_BOLD).fontSize(18)
-    .text(paper.instituteName || 'Question Paper', 36, 18, { width: pageWidth - 72, align: 'center' });
+  // 3. Institute Name (Prominently centered with reserved margins so it never touches Logo or Set Badge)
+  const reservedSide = 84;
+  const centerWidth = pageWidth - (reservedSide * 2);
+  doc.fill('#000000').font(FONT_BOLD).fontSize(17)
+    .text(instName, reservedSide, 15, { width: centerWidth, align: 'center' });
 
-  let y = 44;
+  let y = doc.y + 4;
 
+  // 4. Contact info / tagline (if present)
   if (hasContact) {
     const parts = [];
     if (paper.institutePhone) parts.push(`Ph: ${paper.institutePhone}`);
     if (paper.instituteAddress) parts.push(paper.instituteAddress);
-    doc.fill('#000000').font(FONT_REGULAR).fontSize(8.5)
-      .text(parts.join('   ·   '), 36, y, { width: pageWidth - 72, align: 'center' });
-    y += 14;
+    doc.fill('#334155').font(FONT_REGULAR).fontSize(8)
+      .text(parts.join('   ·   '), 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
+    y += 12;
   }
 
-  doc.fill(GOLD)
-    .font(FONT_BOLD).fontSize(11)
-    .text(`${paper.examName || 'Exam'} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || 'Test'}`, 36, y, { width: pageWidth - 72, align: 'center' });
-  y += 18;
+  // 5. Exam Name & Paper Type
+  const examText = `${paper.examName || 'Exam'} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || 'Test'}`;
+  doc.fill('#000000').font(FONT_BOLD).fontSize(11)
+    .text(examText, 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
+  y += 15;
 
-  const titleText = setLabel
-    ? `${paper.title || 'Question Paper'} — ${questionCount} Questions (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})`
-    : `${paper.title || 'Question Paper'} — ${questionCount} Questions`;
+  // 6. Paper Topic / Title
+  doc.fill('#0f172a').font(FONT_BOLD).fontSize(10)
+    .text(paper.title || 'Question Paper', 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
+  y += 15;
 
-  doc.fill('#000000')
-    .font(FONT_REGULAR).fontSize(10)
-    .text(titleText, 36, y, { width: pageWidth - 72, align: 'center' });
-  y += 18;
-
+  // 7. Exam Metadata Strip (Time Allowed | Total Questions & Date | Max Marks)
   const rawDate = paper.createdAt ? new Date(paper.createdAt) : new Date();
   const validDate = !isNaN(rawDate.getTime()) ? rawDate : new Date();
-  const dateFormatted = validDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  const dateFormatted = validDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const durationMins = paper.timeAllowedMinutes || (questionCount <= 30 ? 45 : questionCount <= 60 ? 60 : 180);
+  const maxMarks = paper.maxMarks || (questionCount * 4);
 
-  doc.fill('#000000').fontSize(8)
-    .text(dateFormatted, 36, y, { width: pageWidth - 72, align: 'center' });
-  y += 13;
+  // Top border line
+  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(36, y).lineTo(pageWidth - 36, y).stroke();
+  y += 4;
+
+  const contentW = pageWidth - 72;
+  doc.font(FONT_REGULAR).fontSize(8.5).fill('#334155');
+  doc.text(`Time Allowed: ${durationMins} Mins`, 40, y, { width: 140, align: 'left', lineBreak: false });
+  doc.text(`Total Questions: ${questionCount}   ·   Date: ${dateFormatted}`, 180, y, { width: contentW - 280, align: 'center', lineBreak: false });
+  doc.text(`Max Marks: ${maxMarks}`, pageWidth - 40 - 100, y, { width: 100, align: 'right', lineBreak: false });
+  y += 12;
+
+  // Bottom border line
+  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(36, y).lineTo(pageWidth - 36, y).stroke();
+  y += 6;
 
   return y; // bottom edge of the header block, for the instructions box to start below
 }
@@ -1120,6 +1133,66 @@ function drawHeadersAndFooters(doc, paper) {
   }
 }
 
+/**
+ * Draws section-aware headers and footers for a multi-set bundle PDF.
+ * Ensures:
+ * 1. Running header is NEVER drawn on the first page of any set (avoids collision with main title header).
+ * 2. Running header is NEVER drawn on the Master Key page.
+ * 3. Running header on continuation pages accurately identifies the specific set (e.g. SET B).
+ * 4. Footers display set-specific page numbers (e.g. Page 1 of 3) plus overall bundle reference.
+ */
+function drawBundleHeadersAndFooters(doc, paper, sections) {
+  const totalBundlePages = doc.bufferedPageRange().count;
+  const savedBottomMargin = doc.page.margins.bottom;
+  const savedTopMargin = doc.page.margins.top;
+
+  sections.forEach((sec) => {
+    const isMasterKey = sec.type === 'MASTER_KEY';
+    const secTotalPages = sec.endPage - sec.startPage + 1;
+
+    for (let p = sec.startPage; p <= sec.endPage; p++) {
+      doc.switchToPage(p);
+
+      // 0. Anti-Piracy Watermark across page
+      drawWatermark(doc, sec.setPaper, doc.page.width, doc.page.height, isMasterKey);
+
+      // 1. Footer (Clean, section-specific + bundle reference)
+      doc.page.margins.bottom = 0;
+      doc.fill(SOFT).font(FONT_REGULAR).fontSize(8);
+      const pageInSec = p - sec.startPage + 1;
+      const footerText = isMasterKey
+        ? `${paper.instituteName || ''}   ·   SYNCED MASTER ANSWER KEY   ·   Page ${p + 1} of ${totalBundlePages}`
+        : `${paper.instituteName || ''}   ·   SET ${sec.setChar}   ·   Page ${pageInSec} of ${secTotalPages}   (Bundle Sheet ${p + 1} of ${totalBundlePages})`;
+
+      doc.text(footerText, 36, doc.page.height - 36, {
+        width: doc.page.width - 72,
+        align: 'center',
+        lineBreak: false,
+      });
+      doc.page.margins.bottom = savedBottomMargin;
+
+      // 2. Running Header (ONLY on continuation pages of a question set!)
+      // - NEVER on the first page of a set (p === sec.startPage) because that page has the full main title header!
+      // - NEVER on the Master Key page!
+      if (!isMasterKey && p > sec.startPage) {
+        doc.page.margins.top = 0;
+        doc.fill('#000000').font(FONT_BOLD).fontSize(8.5);
+
+        const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''} (SET ${sec.setChar})`;
+        doc.text(examLabel, 36, 30, { width: doc.page.width / 2 - 36, align: 'left', lineBreak: false });
+        doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - 36, align: 'right', lineBreak: false });
+
+        doc.strokeColor('#000000').lineWidth(0.5)
+           .moveTo(36, 42)
+           .lineTo(doc.page.width - 36, 42)
+           .stroke();
+
+        doc.page.margins.top = savedTopMargin;
+      }
+    }
+  });
+}
+
 function drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight) {
   doc.addPage();
   const margin = 36;
@@ -1274,9 +1347,11 @@ function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
   const pageHeight = doc.page.height;
 
   const sets = ['A', 'B', 'C', 'D'];
+  const sections = [];
 
   sets.forEach((setChar, setIdx) => {
     if (setIdx > 0) doc.addPage();
+    const startPageIndex = doc.bufferedPageRange().count - 1;
     const setQuestions = generateSetQuestions(paper.id, baseQuestions, setChar);
     const setPaper = { ...paper, setLabel: `SET ${setChar}` };
 
@@ -1289,13 +1364,30 @@ function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
     if (withAnswers) {
       drawAnswerKey(doc, setQuestions, pageWidth, optionFormat, setPaper.setLabel);
     }
+
+    const endPageIndex = doc.bufferedPageRange().count - 1;
+    sections.push({
+      type: 'SET',
+      setChar,
+      setPaper,
+      startPage: startPageIndex,
+      endPage: endPageIndex,
+    });
   });
 
   // Append Synced Master Answer Key at the end
   const matrix = generateMasterKeyMatrix(paper.id, baseQuestions, optionFormat);
+  const masterKeyStartPage = doc.bufferedPageRange().count;
   drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight);
+  const masterKeyEndPage = doc.bufferedPageRange().count - 1;
+  sections.push({
+    type: 'MASTER_KEY',
+    setPaper: { ...paper, setLabel: 'MASTER KEY' },
+    startPage: masterKeyStartPage,
+    endPage: masterKeyEndPage,
+  });
 
-  drawHeadersAndFooters(doc, paper);
+  drawBundleHeadersAndFooters(doc, paper, sections);
   doc.end();
 }
 
