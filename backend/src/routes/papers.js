@@ -3,6 +3,7 @@ const prisma = require('../db');
 const { selectQuestions, findReplacement, shuffle } = require('../lib/paperEngine');
 const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf } = require('../lib/pdfBuilder');
 const { buildOmrSheetPdf } = require('../lib/omrGenerator');
+const { buildKeyChitPdf } = require('../lib/keyChitGenerator');
 const { generateSetQuestions, generateMasterKeyMatrix } = require('../lib/multiSetEngine');
 const { adjustCredits, hasEnoughCredits } = require('../lib/credits');
 
@@ -542,6 +543,75 @@ router.get('/:id/omr', async (req, res) => {
     console.error('Error generating OMR sheet:', err);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Could not generate OMR sheet: ' + err.message });
+    }
+  }
+});
+
+/**
+ * GET /api/papers/:id/key-chits
+ * Streams paper-saving Printable Answer Key Chits (Slips) for distribution to students.
+ * Supports:
+ *  - mode: 'UNIVERSAL' (all sets A, B, C, D on each slip) or 'SINGLE_SET' (dedicated set per slip)
+ *  - set: 'A', 'B', 'C', 'D', or 'ALL' (for SINGLE_SET mode)
+ *  - optionFormat: 'ALPHA' or 'NUMERIC'
+ */
+router.get('/:id/key-chits', async (req, res) => {
+  try {
+    const paper = await prisma.paper.findUnique({
+      where: { id: req.params.id },
+      include: {
+        institute: true,
+        questions: {
+          orderBy: { order: 'asc' },
+          include: { question: { include: { chapter: { include: { subject: true } } } } },
+        },
+      },
+    });
+    if (!paper) return res.status(404).json({ error: 'Paper not found.' });
+    const denied = assertPaperAccess(req, paper);
+    if (denied) return res.status(denied.status).json({ error: denied.error });
+
+    const rawQuestions = paper.questions.map(formatPaperQuestion);
+    const mode = (req.query.mode || 'UNIVERSAL').toUpperCase();
+    const selectedSet = (req.query.set || 'A').toUpperCase();
+    let optionFormat = req.query.optionFormat || null;
+
+    if (paper.config) {
+      try {
+        const cfg = JSON.parse(paper.config);
+        if (!optionFormat) optionFormat = cfg.optionFormat || null;
+      } catch (e) {}
+    }
+
+    const brandedPaper = {
+      ...paper,
+      instituteName: paper.institute?.name || paper.instituteName,
+      instituteLogoFilename: paper.institute?.logoFilename || null,
+      institutePhone: paper.institute?.phone || null,
+      instituteAddress: paper.institute?.address || null,
+      instituteTagline: paper.institute?.tagline || null,
+    };
+
+    const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
+    const suffix = mode === 'UNIVERSAL' ? 'Universal_MultiSet' : `SingleSet_${selectedSet}`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeTitle}_Key_Chits_${suffix}.pdf"`
+    );
+
+    await buildKeyChitPdf(res, brandedPaper, rawQuestions, {
+      chitMode: mode,
+      selectedSet,
+      optionFormat: optionFormat || 'ALPHA',
+    });
+  } catch (err) {
+    console.error('Error generating Key Chits:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Could not generate Key Chits: ' + err.message });
     }
   }
 });

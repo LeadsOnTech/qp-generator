@@ -44,11 +44,16 @@ export default function PaperPreview() {
   const [downloading, setDownloading] = useState(null); // null | 'plain' | 'answers' | 'bundle' | 'masterKey'
   const [optionFormatOverride, setOptionFormatOverride] = useState(null);
   const [answerFormatOverride, setAnswerFormatOverride] = useState(null);
-  const [activeSet, setActiveSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'MASTER_KEY' | 'OMR_SHEET'
+  const [activeSet, setActiveSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'MASTER_KEY' | 'KEY_CHITS' | 'OMR_SHEET'
   const [masterKeyData, setMasterKeyData] = useState(null);
   const [masterKeyLoading, setMasterKeyLoading] = useState(false);
   const [masterKeyViewMode, setMasterKeyViewMode] = useState('grid'); // 'grid' | 'crossref'
   const [crossRefSearch, setCrossRefSearch] = useState('');
+
+  // Student Key Chits (Slips) state
+  const [keyChitMode, setKeyChitMode] = useState('UNIVERSAL'); // 'UNIVERSAL' | 'SINGLE_SET'
+  const [keyChitSet, setKeyChitSet] = useState('A'); // 'A' | 'B' | 'C' | 'D' | 'ALL'
+  const [downloadingKeyChits, setDownloadingKeyChits] = useState(false);
 
   // OMR Sheet state
   const [omrLayoutMode, setOmrLayoutMode] = useState('AUTO'); // 'AUTO' | 'COMPACT_4' | 'COMPACT_3' | 'COMPACT_2' | 'FULL'
@@ -118,8 +123,8 @@ export default function PaperPreview() {
 
   const handleSelectSet = (newSet) => {
     setActiveSet(newSet);
-    if (newSet === 'MASTER_KEY') {
-      loadMasterKey(activeOptionFormat);
+    if (newSet === 'MASTER_KEY' || newSet === 'KEY_CHITS') {
+      if (!masterKeyData) loadMasterKey(activeOptionFormat);
     } else if (newSet === 'OMR_SHEET') {
       // OMR uses loaded paper questions
     } else {
@@ -129,7 +134,7 @@ export default function PaperPreview() {
 
   const handleOptionFormatChange = (fmt) => {
     setOptionFormatOverride(fmt);
-    if (activeSet === 'MASTER_KEY') {
+    if (activeSet === 'MASTER_KEY' || activeSet === 'KEY_CHITS') {
       loadMasterKey(fmt);
     }
   };
@@ -273,6 +278,25 @@ export default function PaperPreview() {
     }
   }
 
+  async function handleDownloadKeyChits() {
+    setDownloadingKeyChits(true);
+    setError(null);
+    try {
+      const safeName = (paper?.title || 'question-paper').replace(/[^a-z0-9]+/gi, '_');
+      const suffix = keyChitMode === 'UNIVERSAL' ? 'Universal_AllSets' : `SingleSet_${keyChitSet}`;
+      const filename = `${safeName}_Key_Chits_${suffix}.pdf`;
+      await api.downloadKeyChits(id, filename, {
+        mode: keyChitMode,
+        set: keyChitSet,
+        optionFormat: activeOptionFormat,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingKeyChits(false);
+    }
+  }
+
   if (loading && !paper && !masterKeyData) return <div className="skeleton" style={{ height: 400 }} />;
   if (error && !paper) return <div className="alert alert-danger">{error}</div>;
   if (!paper) return null;
@@ -356,6 +380,20 @@ export default function PaperPreview() {
           <div style={{ width: 1, height: 22, background: 'var(--line)', margin: '0 4px' }} />
           <button
             type="button"
+            className={`btn ${activeSet === 'KEY_CHITS' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{
+              padding: '4px 14px',
+              fontSize: 13,
+              fontWeight: activeSet === 'KEY_CHITS' ? 700 : 500,
+              background: activeSet === 'KEY_CHITS' ? undefined : 'var(--paper)',
+            }}
+            onClick={() => handleSelectSet('KEY_CHITS')}
+          >
+            ✂️ Student Key Chits
+          </button>
+          <div style={{ width: 1, height: 22, background: 'var(--line)', margin: '0 4px' }} />
+          <button
+            type="button"
             className={`btn ${activeSet === 'OMR_SHEET' ? 'btn-primary' : 'btn-ghost'}`}
             style={{
               padding: '4px 14px',
@@ -372,6 +410,8 @@ export default function PaperPreview() {
         <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
           {activeSet === 'MASTER_KEY' ? (
             <span>Synchronized evaluation matrix across all sets</span>
+          ) : activeSet === 'KEY_CHITS' ? (
+            <span>Paper-saving student answer key chits (slips) with cut guides</span>
           ) : activeSet === 'OMR_SHEET' ? (
             <span>Official-standard 1-page optical evaluation sheet</span>
           ) : (
@@ -380,7 +420,7 @@ export default function PaperPreview() {
         </div>
       </div>
 
-      {isDraft && activeSet !== 'A' && activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' && (
+      {isDraft && activeSet !== 'A' && activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' && (
         <div style={{ marginBottom: 16, padding: '10px 14px', background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 13 }}>
           💡 You are viewing <strong>Set {activeSet}</strong>. Questions are deterministically shuffled to maintain section integrity. To swap any question, switch to <strong>Set A</strong>.
         </div>
@@ -394,7 +434,7 @@ export default function PaperPreview() {
           </button>
         ) : (
           <>
-            {activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' ? (
+            {activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' ? (
               <>
                 <button
                   className="btn btn-primary"
@@ -411,6 +451,14 @@ export default function PaperPreview() {
                   {downloading === 'answers' ? 'Downloading…' : `Download Set ${activeSet} with Keys`}
                 </button>
               </>
+            ) : activeSet === 'KEY_CHITS' ? (
+              <button
+                className="btn btn-primary"
+                disabled={downloadingKeyChits}
+                onClick={handleDownloadKeyChits}
+              >
+                {downloadingKeyChits ? 'Generating Key Chits…' : '📥 Download Key Chits PDF'}
+              </button>
             ) : activeSet === 'OMR_SHEET' ? (
               <button
                 className="btn btn-primary"
@@ -449,6 +497,17 @@ export default function PaperPreview() {
               </button>
             )}
 
+            {activeSet !== 'KEY_CHITS' && (
+              <button
+                className="btn btn-ghost"
+                disabled={downloadingKeyChits}
+                onClick={() => handleSelectSet('KEY_CHITS')}
+                title="Generate paper-saving answer key slips for students"
+              >
+                ✂️ Student Key Chits
+              </button>
+            )}
+
             {activeSet !== 'OMR_SHEET' && (
               <button
                 className="btn btn-ghost"
@@ -462,7 +521,7 @@ export default function PaperPreview() {
           </>
         )}
 
-        {activeSet !== 'MASTER_KEY' && activeSet !== 'OMR_SHEET' && (
+        {activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' && (
           <button className="btn btn-ghost" onClick={() => setShowAnswers((v) => !v)}>
             {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
           </button>
@@ -835,7 +894,634 @@ export default function PaperPreview() {
                   </div>
                 </div>
               )}
+
+              {/* Post-Exam Student Key Chits Promo Banner */}
+              <div style={{
+                marginTop: 24,
+                padding: '14px 18px',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)',
+                border: '1px solid #bbf7d0',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 14,
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <strong style={{ color: '#166534', fontSize: 14 }}>✂️ Distribute Answer Keys to Students After Exam?</strong>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#22c55e', color: '#fff' }}>
+                      Save up to 87.5% Paper
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#334155' }}>
+                    Generate compact, printable student answer slips (4 to 6 chits per A4 sheet) with dashed cutting guides. Supports Universal Multi-Set and Dedicated Single-Set modes.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => handleSelectSet('KEY_CHITS')}
+                  style={{ fontSize: 13, padding: '8px 16px', fontWeight: 600 }}
+                >
+                  ✂️ Open Student Key Chits Generator →
+                </button>
+              </div>
             </div>
+          )}
+        </div>
+      ) : activeSet === 'KEY_CHITS' ? (
+        <div className="card card-pad">
+          {/* Key Chits Controls Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 14 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--navy-950)' }}>
+                  ✂️ Printable Student Answer Key Chits (Slips)
+                </h2>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #bbf7d0',
+                }}>
+                  🌱 {keyChitMode === 'SINGLE_SET' ? '83.3% Paper Saved (6 Chits/Page)' : '75% Paper Saved (4 Chits/Page)'}
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  background: '#e0f2fe',
+                  color: '#0369a1',
+                  border: '1px solid #bae6fd',
+                }}>
+                  ✂️ Tear / Cut Guides Included
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-soft)' }}>
+                Tear or slice along dashed cutting lines to distribute to students immediately after exams · {masterKeyData?.questionCount || paper.questions?.length || 40} Questions
+              </p>
+            </div>
+            <div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={downloadingKeyChits}
+                onClick={handleDownloadKeyChits}
+                style={{ fontSize: 14, padding: '8px 18px', fontWeight: 600 }}
+              >
+                {downloadingKeyChits ? 'Generating Key Chits…' : '📥 Download Printable Key Chits PDF'}
+              </button>
+            </div>
+          </div>
+
+          {/* Both Options Toggle Container */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Choose Key Chit Distribution Strategy
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 12,
+            }}>
+              {/* Option A: Universal Multi-Set */}
+              <div
+                onClick={() => setKeyChitMode('UNIVERSAL')}
+                style={{
+                  border: keyChitMode === 'UNIVERSAL' ? '2px solid #2563eb' : '1px solid var(--line)',
+                  background: keyChitMode === 'UNIVERSAL' ? '#eff6ff' : 'var(--paper-dim)',
+                  borderRadius: 8,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: keyChitMode === 'UNIVERSAL' ? '#1e40af' : 'var(--ink)' }}>
+                    🌐 Universal Multi-Set (Recommended)
+                  </div>
+                  {keyChitMode === 'UNIVERSAL' && (
+                    <span style={{ fontSize: 11, background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
+                      Active
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.45, marginBottom: 8 }}>
+                  Every cut slip contains synchronized answer keys for <strong>all 4 sets (A, B, C, D)</strong> side-by-side.
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                    ⚡ Zero invigilator sorting needed
+                  </span>
+                  <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                    4 chits / A4 sheet (A6 size)
+                  </span>
+                </div>
+              </div>
+
+              {/* Option B: Dedicated Single-Set */}
+              <div
+                onClick={() => setKeyChitMode('SINGLE_SET')}
+                style={{
+                  border: keyChitMode === 'SINGLE_SET' ? '2px solid #2563eb' : '1px solid var(--line)',
+                  background: keyChitMode === 'SINGLE_SET' ? '#eff6ff' : 'var(--paper-dim)',
+                  borderRadius: 8,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: keyChitMode === 'SINGLE_SET' ? '#1e40af' : 'var(--ink)' }}>
+                    🎯 Dedicated Single-Set Chits
+                  </div>
+                  {keyChitMode === 'SINGLE_SET' && (
+                    <span style={{ fontSize: 11, background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
+                      Active
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.45, marginBottom: 8 }}>
+                  Each slip is dedicated strictly to <strong>one chosen set</strong> with ultra-compact columns for maximum paper savings.
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                    🌱 Maximum 6 chits / A4 sheet
+                  </span>
+                  <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                    83.3% paper reduction
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Set Sub-Selector (when Single-Set mode is active) */}
+            {keyChitMode === 'SINGLE_SET' && (
+              <div style={{
+                marginTop: 12,
+                padding: '10px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>Select Set for Chits:</span>
+                <div style={{ display: 'inline-flex', gap: 6 }}>
+                  {['A', 'B', 'C', 'D'].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`btn ${keyChitSet === s ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ padding: '3px 12px', fontSize: 12, fontWeight: keyChitSet === s ? 700 : 500 }}
+                      onClick={() => setKeyChitSet(s)}
+                    >
+                      Set {s}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`btn ${keyChitSet === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ padding: '3px 12px', fontSize: 12, fontWeight: keyChitSet === 'ALL' ? 700 : 500 }}
+                    onClick={() => setKeyChitSet('ALL')}
+                    title="Generate 4 pages total: 1 page of 6 chits for each set (A, B, C, D)"
+                  >
+                    📦 All Sets (1 Page Each)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cutting Instructions & Spec Banner */}
+          <div style={{
+            marginBottom: 20,
+            padding: '10px 16px',
+            background: '#f8fafc',
+            border: '1px dashed #cbd5e1',
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            fontSize: 12,
+            color: '#475569',
+          }}>
+            <div>
+              <strong>✂️ Slicing Guide:</strong> Standard A4 sheet prints with marked dashed cut lines (<code>- - - ✂ Cut Here - - -</code>). Staff can slice across guides using scissors or a paper trimmer to yield {keyChitMode === 'UNIVERSAL' ? '4 equal A6-sized slips' : '6 compact slips'}.
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span>Option Style: <strong>{activeOptionFormat === 'NUMERIC' ? '1, 2, 3, 4' : 'A, B, C, D'}</strong></span>
+            </div>
+          </div>
+
+          {/* Live On-Screen Sheet Replica */}
+          {masterKeyLoading ? (
+            <div className="skeleton" style={{ height: 420 }} />
+          ) : !masterKeyData ? (
+            <div className="alert alert-danger">Could not load Answer Key data.</div>
+          ) : (
+            (() => {
+              const totalQ = masterKeyData.questionCount || 40;
+              const instName = (paper.instituteName || 'ACADEMY').toUpperCase();
+              const dateStr = paper.createdAt
+                ? new Date(paper.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+              const examName = paper.examName || 'Exam';
+
+              if (keyChitMode === 'UNIVERSAL') {
+                // UNIVERSAL MULTI-SET REPLICA (4 chits in 2x2 grid if <= 75 Qs, or 2 chits in 1x2 if > 75 Qs)
+                const isTwoChits = totalQ > 75;
+                const numBlocks = totalQ > 25 ? 2 : 1;
+                const qPerBlock = Math.ceil(totalQ / numBlocks);
+
+                const renderUniversalChit = (chitKey) => (
+                  <div
+                    key={chitKey}
+                    style={{
+                      border: '1px solid #0f172a',
+                      background: '#ffffff',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: isTwoChits ? 280 : 250,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {/* Header */}
+                    <div>
+                      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 12, color: '#0f172a', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                        {instName}
+                      </div>
+                      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 9.5, color: '#1e3a8a', marginTop: 1 }}>
+                        OFFICIAL ANSWER KEY CHIT (SETS A, B, C, D)
+                      </div>
+                      <div style={{ textAlign: 'center', fontSize: 8, color: '#475569', marginTop: 1 }}>
+                        {examName} · {totalQ} Qs · {dateStr}
+                      </div>
+                      <div style={{ height: 1, background: '#0f172a', margin: '4px 0 6px' }} />
+
+                      {/* Multi-set table blocks */}
+                      <div style={{ display: 'grid', gridTemplateColumns: numBlocks === 2 ? '1fr 1fr' : '1fr', gap: 8 }}>
+                        {Array.from({ length: numBlocks }).map((_, bIdx) => {
+                          const startQ = bIdx * qPerBlock + 1;
+                          const endQ = Math.min(totalQ, (bIdx + 1) * qPerBlock);
+                          const blockRows = masterKeyData.rows.slice(startQ - 1, endQ);
+
+                          return (
+                            <table key={bIdx} style={{ width: '100%', borderCollapse: 'collapse', fontSize: 8.5 }}>
+                              <thead>
+                                <tr style={{ background: '#1e293b', color: '#ffffff', textAlign: 'center' }}>
+                                  <th style={{ padding: '2px 4px', width: '20%', fontWeight: 700 }}>Q#</th>
+                                  <th style={{ padding: '2px 4px', width: '20%', fontWeight: 700 }}>A</th>
+                                  <th style={{ padding: '2px 4px', width: '20%', fontWeight: 700 }}>B</th>
+                                  <th style={{ padding: '2px 4px', width: '20%', fontWeight: 700 }}>C</th>
+                                  <th style={{ padding: '2px 4px', width: '20%', fontWeight: 700 }}>D</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {blockRows.map((r, rIdx) => (
+                                  <tr
+                                    key={r.qNumber}
+                                    style={{
+                                      background: rIdx % 2 === 1 ? '#f8fafc' : '#ffffff',
+                                      borderBottom: '1px solid #e2e8f0',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    <td style={{ padding: '2px 4px', fontWeight: 700, color: '#334155' }}>
+                                      {String(r.qNumber).padStart(2, '0')}
+                                    </td>
+                                    <td style={{ padding: '2px 4px', fontWeight: 700, color: '#1e3a8a' }}>{r.keyA}</td>
+                                    <td style={{ padding: '2px 4px', fontWeight: 700, color: '#0369a1' }}>{r.keyB}</td>
+                                    <td style={{ padding: '2px 4px', fontWeight: 700, color: '#6b21a8' }}>{r.keyC}</td>
+                                    <td style={{ padding: '2px 4px', fontWeight: 700, color: '#15803d' }}>{r.keyD}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Footer note */}
+                    <div style={{ textAlign: 'center', fontSize: 6.5, color: '#64748b', fontWeight: 600, marginTop: 6, letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                      Verify scores & report discrepancies immediately
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 8,
+                    padding: 16,
+                    overflowX: 'auto',
+                  }}>
+                    <div style={{
+                      maxWidth: 820,
+                      margin: '0 auto',
+                      background: '#ffffff',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                      border: '1px solid #94a3b8',
+                      position: 'relative',
+                      boxSizing: 'border-box',
+                    }}>
+                      {/* Slicing Guides Layer */}
+                      {!isTwoChits ? (
+                        <>
+                          {/* Vertical Dashed Cut Line */}
+                          <div style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: 8,
+                            bottom: 8,
+                            width: 0,
+                            borderLeft: '1.5px dashed #94a3b8',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                          }} />
+                          {/* Horizontal Dashed Cut Line */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: 8,
+                            right: 8,
+                            height: 0,
+                            borderTop: '1.5px dashed #94a3b8',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                          }} />
+                          {/* Center Scissors Tag */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            background: '#ffffff',
+                            border: '1px solid #94a3b8',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#64748b',
+                            zIndex: 15,
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            ✂ Cut Here
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Single Horizontal Cut Line for 2 chits */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: 8,
+                            right: 8,
+                            height: 0,
+                            borderTop: '1.5px dashed #94a3b8',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            background: '#ffffff',
+                            border: '1px solid #94a3b8',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#64748b',
+                            zIndex: 15,
+                            pointerEvents: 'none',
+                          }}>
+                            ✂ Cut Here
+                          </div>
+                        </>
+                      )}
+
+                      {/* Chits Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isTwoChits ? '1fr' : '1fr 1fr',
+                        gap: 16,
+                        padding: 14,
+                      }}>
+                        {isTwoChits
+                          ? [renderUniversalChit('top'), renderUniversalChit('bottom')]
+                          : [
+                              renderUniversalChit('tl'),
+                              renderUniversalChit('tr'),
+                              renderUniversalChit('bl'),
+                              renderUniversalChit('br'),
+                            ]}
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                // SINGLE-SET DEDICATED REPLICA (6 chits in 2x3 grid)
+                const activeSingleSet = keyChitSet === 'ALL' ? 'A' : keyChitSet;
+                const keyProp = `key${activeSingleSet}`;
+                const numSubCols = totalQ > 36 ? 4 : 3;
+                const qPerSubCol = Math.ceil(totalQ / numSubCols);
+
+                const renderSingleChit = (chitKey) => (
+                  <div
+                    key={chitKey}
+                    style={{
+                      border: '1px solid #0f172a',
+                      background: '#ffffff',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: 180,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div>
+                      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 11, color: '#0f172a', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                        {instName}
+                      </div>
+                      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 9.5, color: '#1e3a8a', marginTop: 1 }}>
+                        ANSWER KEY · SET - {activeSingleSet}
+                      </div>
+                      <div style={{ textAlign: 'center', fontSize: 7.5, color: '#475569', marginTop: 1 }}>
+                        {examName} · {totalQ} Qs · {dateStr}
+                      </div>
+                      <div style={{ height: 1, background: '#0f172a', margin: '4px 0 6px' }} />
+
+                      {/* Sub-columns of Q# KEY */}
+                      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numSubCols}, 1fr)`, gap: 5 }}>
+                        {Array.from({ length: numSubCols }).map((_, scIdx) => {
+                          const startQ = scIdx * qPerSubCol + 1;
+                          const endQ = Math.min(totalQ, (scIdx + 1) * qPerSubCol);
+                          const subRows = masterKeyData.rows.slice(startQ - 1, endQ);
+
+                          return (
+                            <table key={scIdx} style={{ width: '100%', borderCollapse: 'collapse', fontSize: 8 }}>
+                              <thead>
+                                <tr style={{ background: '#1e293b', color: '#ffffff', textAlign: 'center' }}>
+                                  <th style={{ padding: '2px 2px', width: '50%', fontWeight: 700 }}>Q#</th>
+                                  <th style={{ padding: '2px 2px', width: '50%', fontWeight: 700 }}>KEY</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {subRows.map((r, rIdx) => (
+                                  <tr
+                                    key={r.qNumber}
+                                    style={{
+                                      background: rIdx % 2 === 1 ? '#f8fafc' : '#ffffff',
+                                      borderBottom: '1px solid #e2e8f0',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    <td style={{ padding: '2px 2px', fontWeight: 700, color: '#334155' }}>
+                                      {String(r.qNumber).padStart(2, '0')}
+                                    </td>
+                                    <td style={{ padding: '2px 2px', fontWeight: 700, color: '#1e3a8a' }}>
+                                      {r[keyProp]}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'center', fontSize: 6, color: '#64748b', fontWeight: 600, marginTop: 4, letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                      Verify scores & report discrepancies immediately
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 8,
+                    padding: 16,
+                    overflowX: 'auto',
+                  }}>
+                    <div style={{
+                      maxWidth: 820,
+                      margin: '0 auto',
+                      background: '#ffffff',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                      border: '1px solid #94a3b8',
+                      position: 'relative',
+                      boxSizing: 'border-box',
+                    }}>
+                      {/* Slicing Guides Layer (2x3) */}
+                      {/* Vertical Cut Line at 50% */}
+                      <div style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: 8,
+                        bottom: 8,
+                        width: 0,
+                        borderLeft: '1.5px dashed #94a3b8',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }} />
+                      {/* Horizontal Cut Line 1 at 33.3% */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '33.33%',
+                        left: 8,
+                        right: 8,
+                        height: 0,
+                        borderTop: '1.5px dashed #94a3b8',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }} />
+                      {/* Horizontal Cut Line 2 at 66.6% */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '66.66%',
+                        left: 8,
+                        right: 8,
+                        height: 0,
+                        borderTop: '1.5px dashed #94a3b8',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }} />
+
+                      {/* Scissor Badges */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '33.33%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: '#ffffff',
+                        border: '1px solid #94a3b8',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: '#64748b',
+                        zIndex: 15,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        ✂ Cut Here
+                      </div>
+                      <div style={{
+                        position: 'absolute',
+                        top: '66.66%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: '#ffffff',
+                        border: '1px solid #94a3b8',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: '#64748b',
+                        zIndex: 15,
+                        pointerEvents: 'none',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        ✂ Cut Here
+                      </div>
+
+                      {/* 6 Chits Grid (2 columns x 3 rows) */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gridTemplateRows: 'repeat(3, auto)',
+                        gap: 14,
+                        padding: 12,
+                      }}>
+                        {[0, 1, 2, 3, 4, 5].map((i) => renderSingleChit(`chit_${i}`))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+            })()
           )}
         </div>
       ) : activeSet === 'OMR_SHEET' ? (

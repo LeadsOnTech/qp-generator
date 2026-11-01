@@ -156,6 +156,35 @@ export const api = {
     URL.revokeObjectURL(blobUrl);
   },
 
+  /**
+   * Downloads printable paper-saving answer key chits (slips) for student distribution.
+   */
+  downloadKeyChits: async (id, filenameHint, opts = {}) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const params = new URLSearchParams();
+    if (opts.mode) params.set('mode', opts.mode);
+    if (opts.set) params.set('set', opts.set);
+    if (opts.optionFormat) params.set('optionFormat', opts.optionFormat);
+
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/papers/${id}/key-chits${query}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not download Key Chits (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filenameHint || 'answer-key-chits.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
+
   // ---- Phase 4 ----
   runChecks: () => request('/checks/run', { method: 'POST', body: JSON.stringify({}) }),
   checksReview: (page = 1, subject = '') => request(`/checks/review?page=${page}&pageSize=25${subject ? `&subject=${subject}` : ''}`),
