@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import CbtLaunchModal from '../components/CbtLaunchModal';
 
 
 function formatChemicals(text) {
@@ -35,6 +36,8 @@ function formatHeadingText(text) {
 
 export default function PaperPreview() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [showCbtModal, setShowCbtModal] = useState(false);
   const [paper, setPaper] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -576,6 +579,26 @@ export default function PaperPreview() {
             {showAnswers ? 'Hide answers in preview' : 'Show answers in preview'}
           </button>
         )}
+
+        {/* Online Student CBT Button */}
+        <button
+          type="button"
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            color: '#fff',
+            border: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+          onClick={() => setShowCbtModal(true)}
+          title="Host this paper as an online CBT exam & share test link on WhatsApp"
+        >
+          🚀 Host Online CBT (WhatsApp Test)
+        </button>
 
         {/* Option Style Selector */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
@@ -2689,6 +2712,15 @@ export default function PaperPreview() {
           })}
           </div>
         </div>
+      )}
+
+      {/* CBT Launch & Management Modal */}
+      {showCbtModal && (
+        <CbtLaunchModal
+          paper={paper}
+          onClose={() => setShowCbtModal(false)}
+          onOpenDashboard={(cbtCode) => navigate(`/cbt/${cbtCode}/dashboard`)}
+        />
       )}
     </div>
   );

@@ -257,6 +257,16 @@ export const api = {
   addCredits: (id, amount, reason) => request(`/institutes/${id}/credits`, { method: 'POST', body: JSON.stringify({ amount, reason }) }),
   creditHistory: (id) => request(`/institutes/${id}/credit-history`),
 
+  // ---- Phase 3: Online Student CBT Mode ----
+  createCbtTest: (data) => request('/cbt/create', { method: 'POST', body: JSON.stringify(data) }),
+  getCbtTestsForPaper: (paperId) => request(`/cbt/paper/${paperId}`),
+  getCbtTestInfo: (code) => request(`/cbt/test/${code}`),
+  verifyCbtStudent: (code, data) => request(`/cbt/test/${code}/verify`, { method: 'POST', body: JSON.stringify(data) }),
+  submitCbtExam: (code, data) => request(`/cbt/test/${code}/submit`, { method: 'POST', body: JSON.stringify(data) }),
+  getCbtLeaderboard: (code) => request(`/cbt/test/${code}/leaderboard`),
+  deleteCbtSubmission: (code, subId) => request(`/cbt/test/${code}/submissions/${subId}`, { method: 'DELETE' }),
+  toggleCbtStatus: (code, status) => request(`/cbt/test/${code}/toggle-status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
   // ---- Authentication ----
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   getRegistrationRequests: () => request('/auth/register/requests'),

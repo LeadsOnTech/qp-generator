@@ -307,6 +307,7 @@ model Paper {
   createdAt     DateTime        @default(now())
   finalizedAt   DateTime?
   questions     PaperQuestion[]
+  cbtTests      CbtTest[]
 }
 
 model PaperQuestion {
@@ -318,6 +319,78 @@ model PaperQuestion {
   order      Int
 
   @@unique([paperId, questionId])
+}
+
+// ---------- Phase 3 (Digital Expansion): Online Student CBT Mode ----------
+
+model CbtTest {
+  id                     String          @id @default(cuid())
+  code                   String          @unique // Short access code for WhatsApp share, e.g. "cbt-9f4a8b"
+  paperId                String
+  paper                  Paper           @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  instituteId            String?
+  title                  String
+  examName               String
+  durationMinutes        Int             @default(60)
+
+  // Security & Access Control
+  securityMode           String          @default("STRICT_ROSTER") // STRICT_ROSTER | PIN_PROTECTED | OPEN_PRACTICE
+  examPin                String?         // 4-digit PIN for PIN_PROTECTED mode
+  rosterJson             String?         // Allowed roll numbers list/array in JSON
+  allowSingleAttempt     Boolean         @default(true)
+  tabSwitchLimit         Int             @default(3)
+
+  // Marking Scheme
+  positiveMarks          Float           @default(4.0)
+  negativeMarks          Float           @default(1.0)
+
+  // Scheduling & Results Control
+  windowStartsAt         DateTime?
+  windowEndsAt           DateTime?
+  status                 String          @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED
+  showSolutionsImmediate Boolean         @default(true)
+  isResultsReleased      Boolean         @default(true)
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  submissions            CbtSubmission[]
+
+  @@index([paperId])
+  @@index([code])
+}
+
+model CbtSubmission {
+  id                 String    @id @default(cuid())
+  testId             String
+  test               CbtTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  studentName        String
+  rollNumber         String
+  studentPhone       String?
+  section            String?
+
+  // Security status & anti-cheat
+  isVerifiedStudent  Boolean   @default(true)
+  token              String?
+  tabSwitchCount     Int       @default(0)
+
+  // Responses & Evaluation
+  answersJson        String    // JSON: { [questionId]: answerValue }
+  score              Float     @default(0.0)
+  maxScore           Float     @default(0.0)
+  correctCount       Int       @default(0)
+  incorrectCount     Int       @default(0)
+  unattemptedCount   Int       @default(0)
+  accuracyPercentage Float     @default(0.0)
+  timeSpentSeconds   Int       @default(0)
+
+  startedAt          DateTime  @default(now())
+  submittedAt        DateTime?
+  status             String    @default("SUBMITTED") // IN_PROGRESS | SUBMITTED | AUTO_EXPIRED
+
+  @@index([testId])
+  @@index([rollNumber])
+  @@index([testId, rollNumber])
 }
 
 model WhatsAppVerification {

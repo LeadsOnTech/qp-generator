@@ -28,6 +28,7 @@ const examRoutes = require('./routes/exams');
 const instituteRoutes = require('./routes/institutes');
 const rechargeRoutes = require('./routes/recharge');
 const authRoutes = require('./routes/auth');
+const cbtRoutes = require('./routes/cbt');
 const { requireAuth, requireAdmin } = require('./lib/auth');
 
 const app = express();
@@ -44,8 +45,9 @@ app.get('/api/health', (req, res) => res.json({
   aiMode: process.env.ANTHROPIC_API_KEY ? 'CLAUDE' : 'RULE_BASED',
 }));
 
-// Public — no login required
+// Public / Hybrid routes — student exam portal & public auth
 app.use('/api/auth', authRoutes);
+app.use('/api/cbt', cbtRoutes);
 
 // Everything below this line requires a logged-in user (Admin or Institute)
 app.use('/api', requireAuth);

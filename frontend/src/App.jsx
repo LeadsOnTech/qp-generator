@@ -39,6 +39,8 @@ import ExamHub from './pages/ExamHub';
 import ExamDashboard from './pages/ExamDashboard';
 import Institutes from './pages/Institutes';
 import TrialAccounts from './pages/TrialAccounts';
+import CbtExam from './pages/CbtExam';
+import CbtLeaderboard from './pages/CbtLeaderboard';
 
 export default function App() {
   return (
@@ -58,6 +60,11 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Public CBT Exam Portal & Live Leaderboard */}
+          <Route path="/cbt/:code" element={<CbtExam />} />
+          <Route path="/cbt/:code/dashboard" element={<CbtLeaderboard />} />
+          <Route path="/cbt/:code/leaderboard" element={<CbtLeaderboard />} />
 
           {/* Requires login (Admin or Institute) */}
           <Route element={<ProtectedRoute />}>
