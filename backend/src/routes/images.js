@@ -67,6 +67,7 @@ router.post('/upload', (req, res) => {
     const uploaded = [];
     const duplicates = [];
     const newlyUploaded = [];
+    const sharedDiagrams = [];
 
     for (const file of req.files) {
       const { base, ext } = sanitizeFilename(file.originalname);
@@ -89,7 +90,7 @@ router.post('/upload', (req, res) => {
             savedFilename,
             originalName: file.originalname,
             sizeBytes: file.size,
-            reason: 'Exact duplicate: already exists in library with identical image content.',
+            reason: 'Already exists in library with identical filename and image content.',
             status: 'EXACT_DUPLICATE',
           });
           uploaded.push({
@@ -119,15 +120,9 @@ router.post('/upload', (req, res) => {
       } else {
         // File does not exist under this name
         const contentMatch = existingHashMap.get(incomingHash);
-        if (contentMatch) {
-          duplicates.push({
-            savedFilename,
-            originalName: file.originalname,
-            sizeBytes: file.size,
-            reason: `Content duplicate: identical to existing file "${contentMatch}" under a different name.`,
-            status: 'CONTENT_DUPLICATE',
-          });
-        }
+        const isOption = /_[A-D]\.(png|jpg|jpeg|webp|svg)$/i.test(savedFilename) || /opt[A-D]/i.test(savedFilename);
+        const matchIsOption = contentMatch ? (/_[A-D]\.(png|jpg|jpeg|webp|svg)$/i.test(contentMatch) || /opt[A-D]/i.test(contentMatch)) : false;
+
         // Write the new file
         fs.writeFileSync(filePath, file.buffer);
         existingHashMap.set(incomingHash, savedFilename);
@@ -136,22 +131,55 @@ router.post('/upload', (req, res) => {
           originalName: file.originalname,
           sizeBytes: file.size,
         });
-        uploaded.push({
-          savedFilename,
-          originalName: file.originalname,
-          sizeBytes: file.size,
-          isNew: !contentMatch,
-          isDuplicate: Boolean(contentMatch),
-        });
+
+        if (contentMatch) {
+          const isSharedOption = isOption || matchIsOption;
+          const sharedInfo = {
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            matchingFile: contentMatch,
+            reason: isSharedOption
+              ? `Shared Option Diagram: Reusable chemical structure matching "${contentMatch}". Saved as its own file and ready to reference in Excel.`
+              : `Shared Diagram: Reusable image matching "${contentMatch}". Saved as its own file and ready to reference in Excel.`,
+            status: isSharedOption ? 'SHARED_OPTION' : 'SHARED_CONTENT',
+            isOption: isSharedOption,
+          };
+          sharedDiagrams.push(sharedInfo);
+          // For backwards compatibility, add to duplicates list with friendly status
+          duplicates.push(sharedInfo);
+
+          uploaded.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            isNew: true,
+            isDuplicate: false,
+            isShared: true,
+            sharedWith: contentMatch,
+          });
+        } else {
+          uploaded.push({
+            savedFilename,
+            originalName: file.originalname,
+            sizeBytes: file.size,
+            isNew: true,
+            isDuplicate: false,
+          });
+        }
       }
     }
+
+    const exactDuplicateCount = duplicates.filter((d) => d.status === 'EXACT_DUPLICATE').length;
 
     res.json({
       uploaded,
       totalProcessed: req.files.length,
       newCount: newlyUploaded.length,
-      duplicateCount: duplicates.length,
+      duplicateCount: exactDuplicateCount,
       duplicates,
+      sharedCount: sharedDiagrams.length,
+      sharedDiagrams,
     });
   });
 });

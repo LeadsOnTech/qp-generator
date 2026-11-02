@@ -86,6 +86,8 @@ export default function ImageLibrary() {
         newCount: res.newCount ?? res.uploaded.length,
         duplicateCount: res.duplicateCount || 0,
         duplicates: res.duplicates || [],
+        sharedCount: res.sharedCount || 0,
+        sharedDiagrams: res.sharedDiagrams || [],
         files: res.uploaded,
         timestamp: new Date(),
       });
@@ -394,6 +396,8 @@ export default function ImageLibrary() {
                 }}>
                   {lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0
                     ? `All ${lastUploadBatch.duplicateCount} Images Already Exist in Library!`
+                    : (lastUploadBatch.sharedCount > 0 || (lastUploadBatch.sharedDiagrams && lastUploadBatch.sharedDiagrams.length > 0))
+                    ? `${lastUploadBatch.newCount} Images Uploaded & Ready (${lastUploadBatch.sharedCount || lastUploadBatch.sharedDiagrams.length} shared option diagrams)`
                     : lastUploadBatch.duplicateCount > 0
                     ? `${lastUploadBatch.newCount} New Uploaded · ${lastUploadBatch.duplicateCount} Duplicate Detected`
                     : `Successfully Uploaded ${lastUploadBatch.count} Image${lastUploadBatch.count !== 1 ? 's' : ''}!`}
@@ -402,7 +406,9 @@ export default function ImageLibrary() {
                   margin: '4px 0 0', fontSize: 13,
                   color: (lastUploadBatch.duplicateCount > 0 && lastUploadBatch.newCount === 0) ? '#78350f' : '#166534'
                 }}>
-                  {lastUploadBatch.duplicateCount > 0
+                  {(lastUploadBatch.sharedCount > 0 || (lastUploadBatch.sharedDiagrams && lastUploadBatch.sharedDiagrams.length > 0))
+                    ? 'All filenames are saved and active — shared option diagrams (reused chemical structures) are ready to link in Excel!'
+                    : lastUploadBatch.duplicateCount > 0
                     ? 'Duplicate diagrams were recognized and verified — all filenames are ready to reference in your Excel sheet.'
                     : 'All filenames are now active in the library and ready to link into your Excel sheet.'}
                 </p>
@@ -419,17 +425,42 @@ export default function ImageLibrary() {
             </button>
           </div>
 
-          {/* Duplicate Warnings Details */}
+          {/* Shared Option / Diagram Info (Calm, Informative Teal Box) */}
+          {((lastUploadBatch.sharedCount > 0) || (lastUploadBatch.sharedDiagrams && lastUploadBatch.sharedDiagrams.length > 0)) && (
+            <div style={{
+              marginTop: 14, padding: '12px 14px', borderRadius: 8,
+              background: '#f0fdfa', border: '1px solid #99f6e4'
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f766e', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>ℹ️ Reused Option Diagrams ({lastUploadBatch.sharedCount || lastUploadBatch.sharedDiagrams.length} files saved & active):</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#115e59', marginBottom: 8, lineHeight: 1.5 }}>
+                In Chemistry & Physics, multiple questions commonly share identical chemical structure diagrams as options (e.g. Ethanol in Q5 and Q6). <strong>Every file was saved under its own filename</strong> and is 100% ready to reference in your Excel sheet.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 110, overflowY: 'auto' }}>
+                {(lastUploadBatch.sharedDiagrams || []).map((dup, i) => (
+                  <div key={i} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, color: '#134e4a' }}>
+                    <span className="mono" style={{ fontWeight: 600, color: '#0f172a' }}>{dup.savedFilename}</span>
+                    <span style={{ fontSize: 11, background: '#ccfbf1', padding: '1px 6px', borderRadius: 4, color: '#0f766e' }}>
+                      {dup.reason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Exact Duplicate Warnings Details (only for re-uploaded identical filenames) */}
           {lastUploadBatch.duplicateCount > 0 && (
             <div style={{
               marginTop: 14, padding: '12px 14px', borderRadius: 8,
               background: 'rgba(255,255,255,0.92)', border: '1px solid #fcd34d'
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>⚠️ Duplicate Information ({lastUploadBatch.duplicateCount} file{lastUploadBatch.duplicateCount !== 1 ? 's' : ''}):</span>
+                <span>⚠️ Already in Library ({lastUploadBatch.duplicateCount} file{lastUploadBatch.duplicateCount !== 1 ? 's' : ''}):</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 110, overflowY: 'auto' }}>
-                {lastUploadBatch.duplicates.map((dup, i) => (
+                {lastUploadBatch.duplicates.filter((d) => d.status === 'EXACT_DUPLICATE').map((dup, i) => (
                   <div key={i} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, color: '#78350f' }}>
                     <span className="mono" style={{ fontWeight: 600, color: '#1e293b' }}>{dup.savedFilename}</span>
                     <span style={{ fontSize: 11, background: '#fef3c7', padding: '1px 6px', borderRadius: 4, color: '#92400e' }}>
@@ -1048,10 +1079,13 @@ export default function ImageLibrary() {
               ) : (
                 <div>
                   <div style={{
-                    padding: '10px 14px', borderRadius: 8, background: '#fffbeb',
+                    padding: '12px 16px', borderRadius: 8, background: '#fffbeb',
                     border: '1px solid #fcd34d', marginBottom: 16, fontSize: 13, color: '#92400e'
                   }}>
-                    Found <strong>{duplicateScanModal.duplicateGroups.length}</strong> group(s) of identical images (same image pixels saved under different filenames).
+                    <div>Found <strong>{duplicateScanModal.duplicateGroups.length}</strong> group(s) of identical images (same image pixels saved under different filenames).</div>
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+                      💡 <strong>Note for Chemistry &amp; Physics Options:</strong> If these files are question options (e.g. <code>_A.png</code>, <code>_B.png</code>, <code>_C.png</code>, <code>_D.png</code>), it is completely normal for different questions to test the same chemical structure or circuit symbol. <strong>Do not delete them</strong> if your Excel sheets reference them.
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
