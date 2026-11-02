@@ -69,9 +69,49 @@ export default function PaperPreview() {
   const [watermarkOpacity, setWatermarkOpacity] = useState('standard'); // 'faint' | 'standard' | 'prominent'
   const [showWatermarkConfig, setShowWatermarkConfig] = useState(false);
 
+  // Eco-Print Optimizer state
+  const [ecoMode, setEcoMode] = useState('AUTO'); // 'AUTO' | 'TARGET_2' | 'TARGET_4'
+  const [ecoStats, setEcoStats] = useState(null);
+  const [loadingEcoStats, setLoadingEcoStats] = useState(false);
+
   const isNumericExam = (paper?.examName || '').toUpperCase().includes('NEET') || (paper?.examName || '').toUpperCase().includes('JEE');
   const activeOptionFormat = optionFormatOverride || paper?.optionFormat || (isNumericExam ? 'NUMERIC' : 'ALPHA');
   const activeAnswerFormat = answerFormatOverride || paper?.answerFormat || 'STANDARD';
+
+  const fetchEcoStats = useCallback(() => {
+    if (!id) return;
+    setLoadingEcoStats(true);
+    api.getPaperEcoStats(id, { optionFormat: activeOptionFormat, answerFormat: activeAnswerFormat })
+      .then((stats) => {
+        setEcoStats(stats);
+      })
+      .catch((err) => {
+        console.warn('Could not load eco stats:', err);
+      })
+      .finally(() => setLoadingEcoStats(false));
+  }, [id, activeOptionFormat, activeAnswerFormat]);
+
+  useEffect(() => {
+    fetchEcoStats();
+  }, [fetchEcoStats]);
+
+  const currentModeStats = ecoStats ? (
+    ecoMode === 'TARGET_2' && ecoStats.target2.canFit
+      ? ecoStats.target2
+      : ecoMode === 'TARGET_4' && ecoStats.target4.canFit
+        ? ecoStats.target4
+        : ecoStats.standard
+  ) : null;
+
+  const activeSavingsPercent = currentModeStats ? (
+    ecoMode === 'TARGET_2' ? ecoStats.target2.paperSavingsPercent :
+    ecoMode === 'TARGET_4' ? ecoStats.target4.paperSavingsPercent : 0
+  ) : 0;
+
+  const activeSheetsSaved = currentModeStats ? (
+    ecoMode === 'TARGET_2' ? ecoStats.target2.sheetsSaved :
+    ecoMode === 'TARGET_4' ? ecoStats.target4.sheetsSaved : 0
+  ) : 0;
 
   const getWatermarkOpts = useCallback(() => ({
     watermark: watermarkEnabled,
@@ -148,6 +188,7 @@ export default function PaperPreview() {
         ...p,
         questions: p.questions.map((q) => (q.id === questionId ? res.newQuestion : q)),
       }));
+      fetchEcoStats();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -176,7 +217,8 @@ export default function PaperPreview() {
         'A',
         false,
         false,
-        getWatermarkOpts()
+        getWatermarkOpts(),
+        ecoMode
       );
     } catch (err) {
       setError(err.message);
@@ -201,7 +243,8 @@ export default function PaperPreview() {
         setChar,
         false,
         false,
-        getWatermarkOpts()
+        getWatermarkOpts(),
+        ecoMode
       );
     } catch (err) {
       setError(err.message);
@@ -225,7 +268,8 @@ export default function PaperPreview() {
         'A',
         false,
         true,
-        getWatermarkOpts()
+        getWatermarkOpts(),
+        ecoMode
       );
     } catch (err) {
       setError(err.message);
@@ -441,14 +485,18 @@ export default function PaperPreview() {
                   disabled={!!downloading}
                   onClick={() => handleDownloadSet(false)}
                 >
-                  {downloading === 'plain' ? 'Downloading…' : `Download Set ${activeSet} QP`}
+                  {downloading === 'plain'
+                    ? 'Downloading…'
+                    : `Download Set ${activeSet} QP${ecoMode !== 'AUTO' ? ` (${ecoMode === 'TARGET_2' ? '2p Eco' : '4p Eco'})` : ''}`}
                 </button>
                 <button
                   className="btn btn-ghost"
                   disabled={!!downloading}
                   onClick={() => handleDownloadSet(true)}
                 >
-                  {downloading === 'answers' ? 'Downloading…' : `Download Set ${activeSet} with Keys`}
+                  {downloading === 'answers'
+                    ? 'Downloading…'
+                    : `Download Set ${activeSet} with Keys${ecoMode !== 'AUTO' ? ` (${ecoMode === 'TARGET_2' ? '2p Eco' : '4p Eco'})` : ''}`}
                 </button>
               </>
             ) : activeSet === 'KEY_CHITS' ? (
@@ -483,7 +531,9 @@ export default function PaperPreview() {
               onClick={handleDownloadBundle}
               title="Download merged PDF of all 4 sets (A, B, C, D) + Master Key in one printable file"
             >
-              {downloading === 'bundle' ? 'Generating Bundle…' : '📦 All Sets Bundle (A-D)'}
+              {downloading === 'bundle'
+                ? 'Generating Bundle…'
+                : `📦 All Sets Bundle (A-D)${ecoMode !== 'AUTO' ? ` (${ecoMode === 'TARGET_2' ? '2p Eco' : '4p Eco'})` : ''}`}
             </button>
 
             {activeSet !== 'MASTER_KEY' && (
@@ -595,6 +645,25 @@ export default function PaperPreview() {
             </button>
           )}
         </div>
+
+        {/* Eco-Print Quick Pill */}
+        {activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' && ecoStats && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
+            <span style={{ color: 'var(--ink-soft)' }}>Eco-Print:</span>
+            <span style={{
+              fontWeight: 700,
+              fontSize: 12,
+              color: ecoMode === 'AUTO' ? '#475569' : '#15803d'
+            }}>
+              {ecoMode === 'AUTO' ? 'Auto' : ecoMode === 'TARGET_2' ? '⚡ 2-Page Fit' : '📖 4-Page Booklet'}
+            </span>
+            {activeSavingsPercent > 0 && (
+              <span style={{ fontSize: 11, background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '1px 6px', borderRadius: 10 }}>
+                -{activeSavingsPercent}%
+              </span>
+            )}
+          </div>
+        )}
 
         <Link to="/papers" className="btn btn-ghost">All papers</Link>
       </div>
@@ -728,6 +797,228 @@ export default function PaperPreview() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Trailing Spillover Warning Alert */}
+      {activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' && ecoStats?.standard?.spillover && ecoMode === 'AUTO' && (
+        <div style={{
+          marginBottom: 16,
+          padding: '12px 16px',
+          background: '#fffbeb',
+          border: '1.5px solid #f59e0b',
+          borderRadius: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e' }}>
+                Trailing Spillover Detected: Page {ecoStats.standard.pages} has only {ecoStats.standard.lastPageQuestions} question{ecoStats.standard.lastPageQuestions !== 1 ? 's' : ''} ({Math.round(ecoStats.standard.fillRatio * 100)}% fill)
+              </div>
+              <div style={{ fontSize: 12.5, color: '#b45309', marginTop: 2 }}>
+                Standard layout spills onto Page {ecoStats.standard.pages}, forcing an extra double-sided Xerox sheet ({ecoStats.standard.sheets} sheets total) per student.
+              </div>
+            </div>
+          </div>
+          {ecoStats.target2.canFit ? (
+            <button
+              type="button"
+              className="btn"
+              style={{
+                background: '#059669',
+                color: '#ffffff',
+                fontWeight: 700,
+                border: 'none',
+                padding: '7px 16px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              onClick={() => setEcoMode('TARGET_2')}
+            >
+              ⚡ Auto Eco-Fit into 2 Pages (Save {ecoStats.target2.paperSavingsPercent}% Paper)
+            </button>
+          ) : ecoStats.target4.canFit ? (
+            <button
+              type="button"
+              className="btn"
+              style={{
+                background: '#059669',
+                color: '#ffffff',
+                fontWeight: 700,
+                border: 'none',
+                padding: '7px 16px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              onClick={() => setEcoMode('TARGET_4')}
+            >
+              📖 Auto-Fit into 4 Pages (Save {ecoStats.target4.paperSavingsPercent}% Paper)
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {/* Eco-Print Optimizer Panel & Live Page-Fill Meter */}
+      {activeSet !== 'MASTER_KEY' && activeSet !== 'KEY_CHITS' && activeSet !== 'OMR_SHEET' && ecoStats && (
+        <div style={{
+          marginBottom: 20,
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          borderRadius: 8,
+          padding: '14px 18px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>🌱</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Eco-Print Optimizer
+                </span>
+                {activeSavingsPercent > 0 ? (
+                  <span style={{
+                    background: '#dcfce7',
+                    color: '#15803d',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                    border: '1px solid #86efac'
+                  }}>
+                    ✓ {activeSavingsPercent}% Xerox Paper Saved
+                  </span>
+                ) : (
+                  <span style={{
+                    background: '#e2e8f0',
+                    color: '#475569',
+                    fontWeight: 600,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                  }}>
+                    Standard Flow
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                Zero-waste page targeting for bulk exam printing on standard double-sided A4 Xerox sheets.
+              </div>
+            </div>
+
+            {/* Mode Buttons */}
+            <div style={{ display: 'inline-flex', background: '#ffffff', padding: 3, borderRadius: 6, border: '1px solid #cbd5e1' }}>
+              <button
+                type="button"
+                className={`btn ${ecoMode === 'AUTO' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 12px', fontSize: 12 }}
+                onClick={() => setEcoMode('AUTO')}
+              >
+                Auto Flow ({ecoStats.standard.pages}p / {ecoStats.standard.sheets} sh)
+              </button>
+              <button
+                type="button"
+                className={`btn ${ecoMode === 'TARGET_2' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  opacity: ecoStats.target2.canFit ? 1 : 0.6,
+                }}
+                disabled={!ecoStats.target2.canFit}
+                onClick={() => setEcoMode('TARGET_2')}
+                title={ecoStats.target2.canFit ? 'Target exactly 2 pages (1 physical double-sided sheet)' : 'Too many questions to fit safely in 2 pages'}
+              >
+                ⚡ Target 2 Pages {ecoStats.target2.canFit && ecoStats.target2.sheetsSaved > 0 ? `(-${ecoStats.target2.sheetsSaved} sheet)` : ''}
+              </button>
+              <button
+                type="button"
+                className={`btn ${ecoMode === 'TARGET_4' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  opacity: ecoStats.target4.canFit ? 1 : 0.6,
+                }}
+                disabled={!ecoStats.target4.canFit}
+                onClick={() => setEcoMode('TARGET_4')}
+                title={ecoStats.target4.canFit ? 'Target exactly 4 pages (2 physical sheets / folded booklet)' : 'Too many questions to fit safely in 4 pages'}
+              >
+                📖 Target 4 Pages {ecoStats.target4.canFit && ecoStats.target4.sheetsSaved > 0 ? `(-${ecoStats.target4.sheetsSaved} sheet)` : ''}
+              </button>
+            </div>
+          </div>
+
+          {/* Live Page-Fill Metrics Grid */}
+          {currentModeStats && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: 12,
+              background: '#ffffff',
+              borderRadius: 6,
+              border: '1px solid #e2e8f0',
+              padding: '12px 14px',
+            }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>PDF Page Count</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
+                  {currentModeStats.pages} Page{currentModeStats.pages !== 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                  {currentModeStats.pages % 2 === 0 ? '✓ Perfectly paired for duplex' : '⚠️ Odd page (blank back side)'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Physical Xerox Sheets</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#1e3a8a', marginTop: 2 }}>
+                  {currentModeStats.sheets} A4 Sheet{currentModeStats.sheets !== 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                  Printed 2-sided (front & back)
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Final Page Fill</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: currentModeStats.fillRatio < 0.35 ? '#d97706' : '#15803d', marginTop: 2 }}>
+                  {Math.round(currentModeStats.fillRatio * 100)}% Fill
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: 6,
+                  background: '#e2e8f0',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  marginTop: 6
+                }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.round(currentModeStats.fillRatio * 100))}%`,
+                    height: '100%',
+                    background: currentModeStats.fillRatio < 0.35 ? '#f59e0b' : '#10b981',
+                  }} />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Bulk Paper Savings</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: activeSavingsPercent > 0 ? '#15803d' : '#64748b', marginTop: 2 }}>
+                  {activeSavingsPercent > 0 ? `${activeSavingsPercent}% Saved` : 'Standard Flow'}
+                </div>
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                  {activeSavingsPercent > 0
+                    ? `Saves ${activeSheetsSaved * 500} sheets per 500 students`
+                    : 'No optimization active'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

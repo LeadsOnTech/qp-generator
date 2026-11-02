@@ -1,7 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { selectQuestions, findReplacement, shuffle } = require('../lib/paperEngine');
-const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf } = require('../lib/pdfBuilder');
+const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf, estimatePaperPages } = require('../lib/pdfBuilder');
 const { buildOmrSheetPdf } = require('../lib/omrGenerator');
 const { buildKeyChitPdf } = require('../lib/keyChitGenerator');
 const { generateSetQuestions, generateMasterKeyMatrix } = require('../lib/multiSetEngine');
@@ -404,6 +404,7 @@ router.get('/:id/pdf', async (req, res) => {
   const isBundle = req.query.bundle === '1';
   const isMasterKey = req.query.masterKey === '1';
   const setChar = (req.query.set || 'A').toUpperCase();
+  const ecoMode = (req.query.ecoMode || 'AUTO').toUpperCase();
   const rawQuestions = paper.questions.map(formatPaperQuestion);
 
   let optionFormat = req.query.optionFormat || null;
@@ -444,6 +445,7 @@ router.get('/:id/pdf', async (req, res) => {
     watermarkType: watermarkType || 'TEXT',
     watermarkOpacity: watermarkOpacity || 'standard',
     watermarkTagline: watermarkTagline || paper.institute?.tagline || null,
+    ecoMode,
   };
 
   const safeTitle = paper.title.replace(/[^a-z0-9]+/gi, '_').slice(0, 60);
@@ -475,6 +477,56 @@ router.get('/:id/pdf', async (req, res) => {
   );
 
   buildPaperPdf(res, { ...brandedPaper, setLabel: `SET ${setChar}` }, setQuestions, withAnswers);
+});
+
+/**
+ * GET /api/papers/:id/eco-stats
+ * Computes paper layout estimates and page-fill statistics across standard and eco modes.
+ */
+router.get('/:id/eco-stats', async (req, res) => {
+  try {
+    const paper = await prisma.paper.findUnique({
+      where: { id: req.params.id },
+      include: {
+        institute: true,
+        questions: {
+          orderBy: { order: 'asc' },
+          include: { question: { include: { chapter: { include: { subject: true } } } } },
+        },
+      },
+    });
+    if (!paper) return res.status(404).json({ error: 'Paper not found.' });
+    const denied = assertPaperAccess(req, paper);
+    if (denied) return res.status(denied.status).json({ error: denied.error });
+
+    const rawQuestions = paper.questions.map(formatPaperQuestion);
+    let optionFormat = req.query.optionFormat || null;
+    let answerFormat = req.query.answerFormat || null;
+    if (paper.config) {
+      try {
+        const cfg = JSON.parse(paper.config);
+        if (!optionFormat) optionFormat = cfg.optionFormat || null;
+        if (!answerFormat) answerFormat = cfg.answerFormat || null;
+      } catch (e) {}
+    }
+
+    const brandedPaper = {
+      ...paper,
+      instituteName: paper.institute?.name || paper.instituteName,
+      instituteLogoFilename: paper.institute?.logoFilename || null,
+      institutePhone: paper.institute?.phone || null,
+      instituteAddress: paper.institute?.address || null,
+      instituteTagline: paper.institute?.tagline || null,
+      optionFormat,
+      answerFormat,
+    };
+
+    const stats = estimatePaperPages(brandedPaper, rawQuestions, { optionFormat, answerFormat });
+    res.json(stats);
+  } catch (err) {
+    console.error('Failed to compute eco stats:', err);
+    res.status(500).json({ error: 'Failed to compute eco stats: ' + err.message });
+  }
 });
 
 /**

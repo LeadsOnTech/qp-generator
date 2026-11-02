@@ -336,7 +336,7 @@ function resolveOptionImage(doc, filename, maxWidth = 92, maxHeight = 46) {
   }
 }
 
-function drawHeader(doc, paper, pageWidth, questionCount) {
+function drawHeader(doc, paper, pageWidth, questionCount, isCompact = false, margin = 36) {
   const hasContact = Boolean(paper.institutePhone || paper.instituteAddress);
   const setLabel = paper.setLabel ? String(paper.setLabel).trim().toUpperCase() : null;
   const instName = paper.instituteName || 'Question Paper';
@@ -347,23 +347,23 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
     if (fs.existsSync(logoPath)) {
       try {
         const img = doc.openImage(logoPath);
-        const maxDim = 40;
+        const maxDim = isCompact ? 34 : 40;
         const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
-        doc.image(logoPath, 36, 14, { width: img.width * scale, height: img.height * scale });
+        doc.image(logoPath, margin, isCompact ? 10 : 14, { width: img.width * scale, height: img.height * scale });
       } catch (err) {}
     }
   }
 
   // 2. Set Badge (top-right corner)
   if (setLabel) {
-    const badgeW = 72;
-    const badgeH = 22;
-    const badgeX = pageWidth - 36 - badgeW;
-    const badgeY = 15;
+    const badgeW = isCompact ? 64 : 72;
+    const badgeH = isCompact ? 19 : 22;
+    const badgeX = pageWidth - margin - badgeW;
+    const badgeY = isCompact ? 11 : 15;
     doc.save();
     doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 4).fillAndStroke('#f8fafc', '#0f172a');
-    doc.fill('#0f172a').font(FONT_BOLD).fontSize(10)
-      .text(setLabel.startsWith('SET') ? setLabel : `SET ${setLabel}`, badgeX, badgeY + 5.5, {
+    doc.fill('#0f172a').font(FONT_BOLD).fontSize(isCompact ? 9 : 10)
+      .text(setLabel.startsWith('SET') ? setLabel : `SET ${setLabel}`, badgeX, badgeY + (isCompact ? 4.5 : 5.5), {
         width: badgeW,
         align: 'center',
         lineBreak: false,
@@ -372,33 +372,33 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
   }
 
   // 3. Institute Name (Prominently centered with reserved margins so it never touches Logo or Set Badge)
-  const reservedSide = 84;
+  const reservedSide = isCompact ? 72 : 84;
   const centerWidth = pageWidth - (reservedSide * 2);
-  doc.fill('#000000').font(FONT_BOLD).fontSize(17)
-    .text(instName, reservedSide, 15, { width: centerWidth, align: 'center' });
+  doc.fill('#000000').font(FONT_BOLD).fontSize(isCompact ? 15 : 17)
+    .text(instName, reservedSide, isCompact ? 11 : 15, { width: centerWidth, align: 'center' });
 
-  let y = doc.y + 4;
+  let y = doc.y + (isCompact ? 2 : 4);
 
   // 4. Contact info / tagline (if present)
-  if (hasContact) {
+  if (hasContact && !isCompact) {
     const parts = [];
     if (paper.institutePhone) parts.push(`Ph: ${paper.institutePhone}`);
     if (paper.instituteAddress) parts.push(paper.instituteAddress);
     doc.fill('#334155').font(FONT_REGULAR).fontSize(8)
-      .text(parts.join('   ·   '), 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
+      .text(parts.join('   ·   '), margin, y, { width: pageWidth - margin * 2, align: 'center', lineBreak: false });
     y += 12;
   }
 
   // 5. Exam Name & Paper Type
   const examText = `${paper.examName || 'Exam'} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || 'Test'}`;
-  doc.fill('#000000').font(FONT_BOLD).fontSize(11)
-    .text(examText, 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
-  y += 15;
+  doc.fill('#000000').font(FONT_BOLD).fontSize(isCompact ? 10 : 11)
+    .text(examText, margin, y, { width: pageWidth - margin * 2, align: 'center', lineBreak: false });
+  y += isCompact ? 13 : 15;
 
   // 6. Paper Topic / Title
-  doc.fill('#0f172a').font(FONT_BOLD).fontSize(10)
-    .text(paper.title || 'Question Paper', 36, y, { width: pageWidth - 72, align: 'center', lineBreak: false });
-  y += 15;
+  doc.fill('#0f172a').font(FONT_BOLD).fontSize(isCompact ? 9.5 : 10)
+    .text(paper.title || 'Question Paper', margin, y, { width: pageWidth - margin * 2, align: 'center', lineBreak: false });
+  y += isCompact ? 13 : 15;
 
   // 7. Exam Metadata Strip (Time Allowed | Total Questions & Date | Max Marks)
   const rawDate = paper.createdAt ? new Date(paper.createdAt) : new Date();
@@ -408,45 +408,57 @@ function drawHeader(doc, paper, pageWidth, questionCount) {
   const maxMarks = paper.maxMarks || (questionCount * 4);
 
   // Top border line
-  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(36, y).lineTo(pageWidth - 36, y).stroke();
-  y += 4;
+  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
+  y += isCompact ? 3 : 4;
 
-  const contentW = pageWidth - 72;
-  doc.font(FONT_REGULAR).fontSize(8.5).fill('#334155');
-  doc.text(`Time Allowed: ${durationMins} Mins`, 40, y, { width: 140, align: 'left', lineBreak: false });
-  doc.text(`Total Questions: ${questionCount}   ·   Date: ${dateFormatted}`, 180, y, { width: contentW - 280, align: 'center', lineBreak: false });
-  doc.text(`Max Marks: ${maxMarks}`, pageWidth - 40 - 100, y, { width: 100, align: 'right', lineBreak: false });
-  y += 12;
+  const contentW = pageWidth - margin * 2;
+  doc.font(FONT_REGULAR).fontSize(isCompact ? 8 : 8.5).fill('#334155');
+  doc.text(`Time Allowed: ${durationMins} Mins`, margin + 4, y, { width: 140, align: 'left', lineBreak: false });
+  doc.text(`Total Questions: ${questionCount}   ·   Date: ${dateFormatted}`, margin + 140, y, { width: contentW - 280, align: 'center', lineBreak: false });
+  doc.text(`Max Marks: ${maxMarks}`, pageWidth - margin - 104, y, { width: 100, align: 'right', lineBreak: false });
+  y += isCompact ? 10 : 12;
 
   // Bottom border line
-  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(36, y).lineTo(pageWidth - 36, y).stroke();
-  y += 6;
+  doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
+  y += isCompact ? 4 : 6;
 
   return y; // bottom edge of the header block, for the instructions box to start below
 }
 
-function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA', answerFormat = 'STANDARD', setLabel = null) {
-  doc.roundedRect(36, topY, pageWidth - 72, 50, 6).stroke(LINE);
-  doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
-  const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
-  const instruction3 = answerFormat === 'STUDENT_ANSWER'
-    ? `3. Write your selected option ${optionsRange} in the brackets [   ] provided next to each question.`
-    : `3. Mark your answers clearly.`;
-  const setMention = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
-  doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
-    .text(
-      `1. This paper contains ${questionCount} questions${setMention}, all compulsory.   ` +
-      `2. Each question has four options ${optionsRange} with exactly one correct answer.   ` +
-      instruction3,
-      48, topY + 21, { width: pageWidth - 96, lineGap: 1.5 }
-    );
-  return topY + 50 + 14;
+function drawInstructions(doc, questionCount, pageWidth, topY, optionFormat = 'ALPHA', answerFormat = 'STANDARD', setLabel = null, isCompact = false, margin = 36) {
+  const boxH = isCompact ? 28 : 50;
+  const bottomGap = isCompact ? 6 : 14;
+  doc.roundedRect(margin, topY, pageWidth - margin * 2, boxH, isCompact ? 4 : 6).stroke(LINE);
+
+  if (isCompact) {
+    doc.fill(INK).font(FONT_BOLD).fontSize(8.5).text('Instructions:', margin + 10, topY + 8, { lineBreak: false });
+    const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
+    const setMention = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
+    const text = `1. ${questionCount} questions${setMention}, all compulsory.   2. Four options ${optionsRange}, one correct.   3. Mark answers clearly.`;
+    doc.fill(SOFT).font(FONT_REGULAR).fontSize(7.5)
+      .text(text, margin + 74, topY + 8.5, { width: pageWidth - margin * 2 - 82, lineBreak: false });
+  } else {
+    doc.fill(INK).font(FONT_BOLD).fontSize(9.5).text('Instructions', 48, topY + 8);
+    const optionsRange = optionFormat === 'ALPHA' ? '(A-D)' : '(1-4)';
+    const instruction3 = answerFormat === 'STUDENT_ANSWER'
+      ? `3. Write your selected option ${optionsRange} in the brackets [   ] provided next to each question.`
+      : `3. Mark your answers clearly.`;
+    const setMention = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
+    doc.fill(SOFT).font(FONT_REGULAR).fontSize(8.5)
+      .text(
+        `1. This paper contains ${questionCount} questions${setMention}, all compulsory.   ` +
+        `2. Each question has four options ${optionsRange} with exactly one correct answer.   ` +
+        instruction3,
+        48, topY + 21, { width: pageWidth - 96, lineGap: 1.5 }
+      );
+  }
+  return topY + boxH + bottomGap;
 }
 
-function drawStudentDetails(doc, pageWidth, topY) {
-  doc.fill('#000000').font(FONT_BOLD).fontSize(11);
-  doc.text('Student Name: _________________________________________      Roll No: ______________________', 36, topY);
-  return topY + 30; // gives sufficient gap below
+function drawStudentDetails(doc, pageWidth, topY, isCompact = false, margin = 36) {
+  doc.fill('#000000').font(FONT_BOLD).fontSize(isCompact ? 9.5 : 11);
+  doc.text('Student Name: _________________________________________      Roll No: ______________________', margin, topY);
+  return topY + (isCompact ? 18 : 30); // gives sufficient gap below
 }
 
 /**
@@ -769,16 +781,20 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap 
  * then wraps to a fresh page (both columns reset) — the standard printed
  * exam-paper reading order.
  */
-function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
-  const margin = 36;
-  const gutter = 36;
-  const colWidth = (pageWidth - margin * 2 - gutter) / 2;
-  const bottomLimit = pageHeight - 36;
-  const subsequentPageStartY = 54;
+/**
+ * Lays out all questions in a two-column flow across as many pages as
+ * needed. Fills the left column top-to-bottom, then the right column,
+ * then wraps to a fresh page (both columns reset) — the standard printed
+ * exam-paper reading order.
+ *
+ * Supports Eco-Print Optimization (AUTO, TARGET_2, TARGET_4, COMPACT)
+ * to eliminate trailing blank pages and fit exactly into physical sheets.
+ */
+function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstColumnStartY, optionFormat = 'ALPHA', answerFormat = 'STANDARD', ecoMode = 'AUTO', layoutParams = {}) {
+  const defaultMargin = layoutParams.margin || 36;
+  const defaultGutter = layoutParams.gutter || 34;
 
   const startPageIndex = doc.bufferedPageRange().start + doc.bufferedPageRange().count - 1;
-
-  let colX = [margin, margin + colWidth + gutter];
 
   const renderItems = [];
   let currentType = null;
@@ -794,28 +810,37 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
     renderItems.push(q);
   });
 
-  function simulate(fontSize, gap) {
-    let colY = [firstColumnStartY, firstColumnStartY];
+  function simulate(cfg) {
+    const fs = cfg.fontSize || 10;
+    const gap = cfg.gap || 5;
+    const m = cfg.margin || defaultMargin;
+    const g = cfg.gutter || defaultGutter;
+    const cw = (pageWidth - m * 2 - g) / 2;
+    const bLimit = pageHeight - Math.max(34, m + 8);
+    const startY1 = firstColumnStartY != null ? Math.min(firstColumnStartY, cfg.firstColumnStartY || firstColumnStartY) : (cfg.firstColumnStartY || 180);
+    const startYSub = cfg.subsequentPageStartY || 52;
+
+    let colY = [startY1, startY1];
     let col = 0;
     let pages = 1;
     let pageItems = [[]];
 
     for (let i = 0; i < renderItems.length; i++) {
       const q = renderItems[i];
-      const h = measureQuestionHeight(doc, q, q._renderIndex, colWidth, fontSize, gap, optionFormat, answerFormat);
+      const h = measureQuestionHeight(doc, q, q._renderIndex, cw, fs, gap, optionFormat, answerFormat);
       
-      if (colY[col] + h > bottomLimit) {
+      if (colY[col] + h > bLimit) {
         if (col === 0) {
           col = 1;
-          if (colY[1] + h > bottomLimit) {
+          if (colY[1] + h > bLimit) {
             pages++;
-            colY = [subsequentPageStartY, subsequentPageStartY];
+            colY = [startYSub, startYSub];
             col = 0;
             pageItems.push([]);
           }
         } else {
           pages++;
-          colY = [subsequentPageStartY, subsequentPageStartY];
+          colY = [startYSub, startYSub];
           col = 0;
           pageItems.push([]);
         }
@@ -823,35 +848,94 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
       colY[col] += h;
       pageItems[pages - 1].push({ i, h });
     }
-    
+
     const lastPageItems = pageItems[pageItems.length - 1];
     const totalLastPageH = lastPageItems.reduce((sum, item) => sum + item.h, 0);
-    const capacity = 2 * (bottomLimit - (pages === 1 ? firstColumnStartY : subsequentPageStartY));
+    const capacity = 2 * (bLimit - (pages === 1 ? startY1 : startYSub));
     const fillRatio = totalLastPageH / capacity;
-    
-    return { pages, fillRatio, pageItems, fontSize, gap };
+
+    return {
+      pages,
+      fillRatio,
+      lastPageItemsCount: lastPageItems.length,
+      pageItems,
+      fontSize: fs,
+      gap,
+      margin: m,
+      gutter: g,
+      colWidth: cw,
+      bottomLimit: bLimit,
+      firstColumnStartY: startY1,
+      subsequentPageStartY: startYSub,
+    };
   }
 
-  let best = simulate(10, 5);
-  
-  if (best.pages > 1 && best.fillRatio < 0.35) {
-    const targetPages = best.pages - 1;
-    const candidates = [
-      simulate(10, 4),
-      simulate(9.8, 4.5),
-      simulate(9.8, 4),
-      simulate(9.5, 4),
-      simulate(9.5, 3.5),
-      simulate(9.2, 3.5),
-      simulate(9.0, 3)
-    ];
-    for (const cand of candidates) {
-      if (cand.pages <= targetPages) {
-        best = cand;
-        break;
+  const std = simulate({
+    fontSize: 10,
+    gap: 5,
+    margin: defaultMargin,
+    gutter: defaultGutter,
+    firstColumnStartY,
+    subsequentPageStartY: 52,
+  });
+
+  let best = std;
+
+  const candidates = [
+    { fontSize: 9.8, gap: 4.5, margin: Math.min(defaultMargin, 32), gutter: 30, subsequentPageStartY: 50 },
+    { fontSize: 9.5, gap: 4.0, margin: Math.min(defaultMargin, 28), gutter: 26, subsequentPageStartY: 50 },
+    { fontSize: 9.2, gap: 3.5, margin: Math.min(defaultMargin, 26), gutter: 24, subsequentPageStartY: 50 },
+    { fontSize: 9.0, gap: 3.0, margin: Math.min(defaultMargin, 24), gutter: 22, subsequentPageStartY: 50 },
+    { fontSize: 8.7, gap: 2.8, margin: Math.min(defaultMargin, 22), gutter: 20, subsequentPageStartY: 50 },
+    { fontSize: 8.5, gap: 2.5, margin: Math.min(defaultMargin, 22), gutter: 20, subsequentPageStartY: 50 },
+  ];
+
+  if (ecoMode === 'TARGET_2') {
+    if (std.pages > 2) {
+      for (const cand of candidates) {
+        const res = simulate(cand);
+        if (res.pages <= 2) {
+          best = res;
+          break;
+        }
+      }
+      if (best.pages > 2) {
+        best = simulate(candidates[candidates.length - 1]);
+      }
+    }
+  } else if (ecoMode === 'TARGET_4') {
+    if (std.pages > 4) {
+      for (const cand of candidates) {
+        const res = simulate(cand);
+        if (res.pages <= 4) {
+          best = res;
+          break;
+        }
+      }
+      if (best.pages > 4) {
+        best = simulate(candidates[candidates.length - 1]);
+      }
+    }
+  } else {
+    // AUTO mode: pull back if spillover on last page is small (< 35% fill)
+    if (std.pages > 1 && std.fillRatio < 0.35) {
+      const target = std.pages - 1;
+      for (const cand of candidates) {
+        const res = simulate(cand);
+        if (res.pages <= target) {
+          best = res;
+          break;
+        }
       }
     }
   }
+
+  const colWidth = best.colWidth;
+  const margin = best.margin;
+  const gutter = best.gutter;
+  const bottomLimit = best.bottomLimit;
+  const subsequentPageStartY = best.subsequentPageStartY;
+  const colX = [margin, margin + colWidth + gutter];
 
   let colY = [firstColumnStartY, firstColumnStartY];
   let col = 0;
@@ -1101,12 +1185,14 @@ function drawHeadersAndFooters(doc, paper) {
 
     // 1. Footer
     doc.page.margins.bottom = 0; // writing inside the margin area — prevent pdfkit auto-adding a page
+    const isCompact = paper.ecoMode && paper.ecoMode !== 'AUTO';
+    const runMargin = isCompact ? 28 : 36;
     const setFooter = setLabel ? `   ·   ${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel}` : '';
     doc.fill(SOFT).font(FONT_REGULAR).fontSize(8)
       .text(
         `${paper.instituteName || ''}${setFooter}   ·   Page ${i + 1} of ${totalPages}`,
-        36, doc.page.height - 36,
-        { width: doc.page.width - 72, align: 'center', lineBreak: false }
+        runMargin, doc.page.height - 24,
+        { width: doc.page.width - runMargin * 2, align: 'center', lineBreak: false }
       );
     doc.page.margins.bottom = savedBottomMargin;
 
@@ -1118,14 +1204,14 @@ function drawHeadersAndFooters(doc, paper) {
       const setRun = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
       const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''}${setRun}`;
       // Left text: Exam Name
-      doc.text(examLabel, 36, 30, { width: doc.page.width / 2 - 36, align: 'left', lineBreak: false });
+      doc.text(examLabel, runMargin, 30, { width: doc.page.width / 2 - runMargin, align: 'left', lineBreak: false });
       // Right text: Institute Name
-      doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - 36, align: 'right', lineBreak: false });
+      doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - runMargin, align: 'right', lineBreak: false });
       
       // Horizontal Line
       doc.strokeColor('#000000').lineWidth(0.5)
-         .moveTo(36, 42)
-         .lineTo(doc.page.width - 36, 42)
+         .moveTo(runMargin, 42)
+         .lineTo(doc.page.width - runMargin, 42)
          .stroke();
          
       doc.page.margins.top = savedTopMargin;
@@ -1159,13 +1245,15 @@ function drawBundleHeadersAndFooters(doc, paper, sections) {
       // 1. Footer (Clean, section-specific + bundle reference)
       doc.page.margins.bottom = 0;
       doc.fill(SOFT).font(FONT_REGULAR).fontSize(8);
+      const isCompact = paper.ecoMode && paper.ecoMode !== 'AUTO';
+      const runMargin = isCompact ? 28 : 36;
       const pageInSec = p - sec.startPage + 1;
       const footerText = isMasterKey
         ? `${paper.instituteName || ''}   ·   SYNCED MASTER ANSWER KEY   ·   Page ${p + 1} of ${totalBundlePages}`
         : `${paper.instituteName || ''}   ·   SET ${sec.setChar}   ·   Page ${pageInSec} of ${secTotalPages}   (Bundle Sheet ${p + 1} of ${totalBundlePages})`;
 
-      doc.text(footerText, 36, doc.page.height - 36, {
-        width: doc.page.width - 72,
+      doc.text(footerText, runMargin, doc.page.height - 24, {
+        width: doc.page.width - runMargin * 2,
         align: 'center',
         lineBreak: false,
       });
@@ -1179,12 +1267,12 @@ function drawBundleHeadersAndFooters(doc, paper, sections) {
         doc.fill('#000000').font(FONT_BOLD).fontSize(8.5);
 
         const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''} (SET ${sec.setChar})`;
-        doc.text(examLabel, 36, 30, { width: doc.page.width / 2 - 36, align: 'left', lineBreak: false });
-        doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - 36, align: 'right', lineBreak: false });
+        doc.text(examLabel, runMargin, 30, { width: doc.page.width / 2 - runMargin, align: 'left', lineBreak: false });
+        doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - runMargin, align: 'right', lineBreak: false });
 
         doc.strokeColor('#000000').lineWidth(0.5)
-           .moveTo(36, 42)
-           .lineTo(doc.page.width - 36, 42)
+           .moveTo(runMargin, 42)
+           .lineTo(doc.page.width - runMargin, 42)
            .stroke();
 
         doc.page.margins.top = savedTopMargin;
@@ -1291,7 +1379,12 @@ function drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight) {
  * @param withAnswers  include the answer-key page
  */
 function buildPaperPdf(stream, paper, questions, withAnswers) {
-  const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
+  const ecoMode = (paper.ecoMode || 'AUTO').toUpperCase();
+  const isCompactHeader = ecoMode === 'TARGET_2' || ecoMode === 'TARGET_4' || ecoMode === 'COMPACT';
+  const margin = isCompactHeader ? 28 : 36;
+  const gutter = isCompactHeader ? 26 : 34;
+
+  const doc = new PDFDocument({ size: 'A4', margin, bufferPages: true });
   ensureFontsRegistered(doc);
   doc.pipe(stream);
 
@@ -1300,11 +1393,11 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
 
-  const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length);
-  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, paper.setLabel);
-  const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
+  const headerBottomY = drawHeader(doc, paper, pageWidth, questions.length, isCompactHeader, margin);
+  const instructionsBottomY = drawInstructions(doc, questions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, paper.setLabel, isCompactHeader, margin);
+  const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY, isCompactHeader, margin);
 
-  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat);
+  layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat, ecoMode, { margin, gutter });
 
   if (withAnswers) drawAnswerKey(doc, questions, pageWidth, optionFormat, paper.setLabel);
 
@@ -1337,7 +1430,12 @@ function buildMasterKeyPdf(stream, paper, baseQuestions, optionFormat = 'ALPHA')
  * Writes a multi-set printable bundle (Set A, B, C, D + Synced Master Key) into stream.
  */
 function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
-  const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
+  const ecoMode = (paper.ecoMode || 'AUTO').toUpperCase();
+  const isCompactHeader = ecoMode === 'TARGET_2' || ecoMode === 'TARGET_4' || ecoMode === 'COMPACT';
+  const margin = isCompactHeader ? 28 : 36;
+  const gutter = isCompactHeader ? 26 : 34;
+
+  const doc = new PDFDocument({ size: 'A4', margin, bufferPages: true });
   ensureFontsRegistered(doc);
   doc.pipe(stream);
 
@@ -1355,11 +1453,11 @@ function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
     const setQuestions = generateSetQuestions(paper.id, baseQuestions, setChar);
     const setPaper = { ...paper, setLabel: `SET ${setChar}` };
 
-    const headerBottomY = drawHeader(doc, setPaper, pageWidth, setQuestions.length);
-    const instructionsBottomY = drawInstructions(doc, setQuestions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, setPaper.setLabel);
-    const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY);
+    const headerBottomY = drawHeader(doc, setPaper, pageWidth, setQuestions.length, isCompactHeader, margin);
+    const instructionsBottomY = drawInstructions(doc, setQuestions.length, pageWidth, headerBottomY + 4, optionFormat, answerFormat, setPaper.setLabel, isCompactHeader, margin);
+    const columnsStartY = drawStudentDetails(doc, pageWidth, instructionsBottomY, isCompactHeader, margin);
 
-    layoutQuestionsTwoColumn(doc, setQuestions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat);
+    layoutQuestionsTwoColumn(doc, setQuestions, pageWidth, pageHeight, columnsStartY, optionFormat, answerFormat, ecoMode, { margin, gutter });
 
     if (withAnswers) {
       drawAnswerKey(doc, setQuestions, pageWidth, optionFormat, setPaper.setLabel);
@@ -1391,10 +1489,179 @@ function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
   doc.end();
 }
 
+/**
+ * Estimates page count, sheet consumption, and spillover status across AUTO, TARGET_2, and TARGET_4 modes.
+ *
+ * @param {Object} paper
+ * @param {Array} questions
+ * @param {Object} options - { optionFormat, answerFormat }
+ * @returns {Object} { totalQuestions, standard, target2, target4, recommendedMode }
+ */
+function estimatePaperPages(paper, questions = [], options = {}) {
+  const dummyDoc = new PDFDocument({ size: 'A4', margin: 0 });
+  ensureFontsRegistered(dummyDoc);
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const optionFormat = options.optionFormat || resolveOptionFormat(paper);
+  const answerFormat = options.answerFormat || resolveAnswerFormat(paper);
+
+  const renderItems = [];
+  let currentType = null;
+  let qNumber = 1;
+  questions.forEach((q) => {
+    const isNVQ = q.questionType === "NVQ" || q.questionType === "NUMERICAL" || q.questionType === "DECIMAL";
+    const typeLabel = isNVQ ? "Numerical Value Questions" : "Multiple Choice Questions";
+    if (currentType !== typeLabel) {
+       currentType = typeLabel;
+       renderItems.push({ isHeader: true, text: "Section: " + typeLabel });
+    }
+    q._renderIndex = qNumber++;
+    renderItems.push(q);
+  });
+
+  function simulateConfig(cfg) {
+    const fs = cfg.fontSize || 10;
+    const gap = cfg.gap || 5;
+    const m = cfg.margin || 36;
+    const g = cfg.gutter || 34;
+    const cw = (pageWidth - m * 2 - g) / 2;
+    const bLimit = pageHeight - Math.max(34, m + 8);
+    const startY1 = cfg.firstColumnStartY || 215;
+    const startYSub = cfg.subsequentPageStartY || 52;
+
+    let colY = [startY1, startY1];
+    let col = 0;
+    let pages = 1;
+    let pageItems = [[]];
+
+    for (let i = 0; i < renderItems.length; i++) {
+      const q = renderItems[i];
+      const h = measureQuestionHeight(dummyDoc, q, q._renderIndex, cw, fs, gap, optionFormat, answerFormat);
+      
+      if (colY[col] + h > bLimit) {
+        if (col === 0) {
+          col = 1;
+          if (colY[1] + h > bLimit) {
+            pages++;
+            colY = [startYSub, startYSub];
+            col = 0;
+            pageItems.push([]);
+          }
+        } else {
+          pages++;
+          colY = [startYSub, startYSub];
+          col = 0;
+          pageItems.push([]);
+        }
+      }
+      colY[col] += h;
+      pageItems[pages - 1].push({ i, h });
+    }
+
+    const lastPageItems = pageItems[pageItems.length - 1];
+    const totalLastPageH = lastPageItems.reduce((sum, item) => sum + item.h, 0);
+    const capacity = 2 * (bLimit - (pages === 1 ? startY1 : startYSub));
+    const fillRatio = totalLastPageH / capacity;
+
+    return {
+      pages,
+      fillRatio: Number(fillRatio.toFixed(2)),
+      lastPageItemsCount: lastPageItems.length,
+      fontSize: fs,
+      gap,
+      margin: m,
+      gutter: g,
+    };
+  }
+
+  // 1. Standard Simulation
+  const std = simulateConfig({ fontSize: 10, gap: 5, margin: 36, gutter: 34, firstColumnStartY: 215, subsequentPageStartY: 52 });
+
+  // 2. Candidates for Eco-Fit
+  const candidates = [
+    { fontSize: 9.8, gap: 4.5, margin: 32, gutter: 30, firstColumnStartY: 170, subsequentPageStartY: 50 },
+    { fontSize: 9.5, gap: 4.0, margin: 28, gutter: 26, firstColumnStartY: 145, subsequentPageStartY: 50 },
+    { fontSize: 9.2, gap: 3.5, margin: 26, gutter: 24, firstColumnStartY: 135, subsequentPageStartY: 50 },
+    { fontSize: 9.0, gap: 3.0, margin: 24, gutter: 22, firstColumnStartY: 125, subsequentPageStartY: 50 },
+    { fontSize: 8.7, gap: 2.8, margin: 22, gutter: 20, firstColumnStartY: 120, subsequentPageStartY: 50 },
+    { fontSize: 8.5, gap: 2.5, margin: 22, gutter: 20, firstColumnStartY: 120, subsequentPageStartY: 50 },
+  ];
+
+  let t2 = std;
+  if (std.pages > 2) {
+    for (const cand of candidates) {
+      const res = simulateConfig(cand);
+      if (res.pages <= 2) {
+        t2 = res;
+        break;
+      }
+    }
+    if (t2.pages > 2) t2 = simulateConfig(candidates[candidates.length - 1]);
+  }
+
+  let t4 = std;
+  if (std.pages > 4) {
+    for (const cand of candidates) {
+      const res = simulateConfig(cand);
+      if (res.pages <= 4) {
+        t4 = res;
+        break;
+      }
+    }
+    if (t4.pages > 4) t4 = simulateConfig(candidates[candidates.length - 1]);
+  }
+
+  const stdSheets = Math.ceil(std.pages / 2);
+  const t2Sheets = Math.ceil(t2.pages / 2);
+  const t4Sheets = Math.ceil(t4.pages / 2);
+
+  const spillover = std.pages > 1 && (std.pages % 2 !== 0 || std.fillRatio < 0.35);
+
+  let recommendedMode = 'AUTO';
+  if (questions.length <= 48 && std.pages > 2 && t2.pages <= 2) {
+    recommendedMode = 'TARGET_2';
+  } else if (questions.length > 48 && std.pages > 4 && t4.pages <= 4) {
+    recommendedMode = 'TARGET_4';
+  } else if (spillover) {
+    recommendedMode = std.pages <= 3 ? 'TARGET_2' : 'TARGET_4';
+  }
+
+  return {
+    totalQuestions: questions.length,
+    standard: {
+      pages: std.pages,
+      sheets: stdSheets,
+      fillRatio: std.fillRatio,
+      spillover,
+      lastPageQuestions: std.lastPageItemsCount,
+    },
+    target2: {
+      pages: t2.pages,
+      sheets: t2Sheets,
+      canFit: t2.pages <= 2,
+      fillRatio: t2.fillRatio,
+      sheetsSaved: Math.max(0, stdSheets - t2Sheets),
+      paperSavingsPercent: stdSheets > 0 ? Math.round(((stdSheets - t2Sheets) / stdSheets) * 100) : 0,
+      fontSize: t2.fontSize,
+    },
+    target4: {
+      pages: t4.pages,
+      sheets: t4Sheets,
+      canFit: t4.pages <= 4,
+      fillRatio: t4.fillRatio,
+      sheetsSaved: Math.max(0, stdSheets - t4Sheets),
+      paperSavingsPercent: stdSheets > 0 ? Math.round(((stdSheets - t4Sheets) / stdSheets) * 100) : 0,
+      fontSize: t4.fontSize,
+    },
+    recommendedMode,
+  };
+}
+
 module.exports = {
   buildPaperPdf,
   buildMasterKeyPdf,
   buildPaperBundlePdf,
+  estimatePaperPages,
 };
 
 
