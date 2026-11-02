@@ -57,6 +57,7 @@ export const api = {
   acceptAll: () => request('/tagging/accept-all', { method: 'POST', body: JSON.stringify({}) }),
   duplicates: () => request('/duplicates'),
   removeBulkDuplicates: () => request('/duplicates/bulk-remove', { method: 'POST' }),
+  removeDuplicateIds: (ids) => request('/duplicates/remove-ids', { method: 'POST', body: JSON.stringify({ ids }) }),
   previewBatch: async (batchId) => {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch(`${API_BASE}/questions/batch/${batchId}/preview`, {
