@@ -22,8 +22,11 @@ async function getPaperOrderedQuestions(paperId) {
         include: {
           question: {
             include: {
-              subject: true,
-              chapter: true,
+              chapter: {
+                include: {
+                  subject: true,
+                },
+              },
             },
           },
         },
@@ -36,6 +39,8 @@ async function getPaperOrderedQuestions(paperId) {
   return paper.questions.map((pq, idx) => ({
     ...pq.question,
     order: pq.order || idx + 1,
+    subjectName: pq.question.chapter?.subject?.name || null,
+    chapterName: pq.question.chapter?.name || null,
   }));
 }
 

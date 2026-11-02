@@ -66,20 +66,29 @@ function parseRosterInput(input) {
 }
 
 /**
+ * Helper to safely extract 4 options from either separate columns (optionA..D)
+ * or JSON array.
+ */
+function extractQuestionOptions(q) {
+  if (q.optionA || q.optionB || q.optionC || q.optionD) {
+    return [q.optionA, q.optionB, q.optionC, q.optionD].filter((v) => v != null);
+  }
+  if (Array.isArray(q.options)) return q.options;
+  if (typeof q.options === 'string') {
+    try {
+      const parsed = JSON.parse(q.options);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
+/**
  * Strips answers and solutions so student client never receives answer keys ahead of submission.
  */
 function sanitizeQuestionsForExam(questions = []) {
   return questions.map((q, idx) => {
-    let parsedOptions = [];
-    if (Array.isArray(q.options)) {
-      parsedOptions = q.options;
-    } else if (typeof q.options === 'string') {
-      try {
-        parsedOptions = JSON.parse(q.options);
-      } catch {
-        parsedOptions = [];
-      }
-    }
+    const parsedOptions = extractQuestionOptions(q);
 
     return {
       id: q.id,
@@ -111,17 +120,7 @@ function evaluateSubmission(questions = [], answers = {}, marking = {}) {
     const qId = q.id;
     const studentAns = answers[qId] != null ? String(answers[qId]).trim() : null;
     const correctAns = q.correctOption != null ? String(q.correctOption).trim() : null;
-
-    let parsedOptions = [];
-    if (Array.isArray(q.options)) {
-      parsedOptions = q.options;
-    } else if (typeof q.options === 'string') {
-      try {
-        parsedOptions = JSON.parse(q.options);
-      } catch {
-        parsedOptions = [];
-      }
-    }
+    const parsedOptions = extractQuestionOptions(q);
 
     if (!studentAns) {
       unattemptedCount++;
