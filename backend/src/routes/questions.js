@@ -477,13 +477,17 @@ router.post('/search-image', requireAuth, upload.single('image'), async (req, re
           ]
         }]
       };
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const model = 'gemini-3.5-flash';
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await r.json();
-      if (data.candidates && data.candidates[0]) {
+      if (data.error) {
+        throw new Error(data.error.message || JSON.stringify(data.error));
+      }
+      if (data.candidates && data.candidates[0] && data.candidates[0].content?.parts?.[0]?.text) {
         extractedText = data.candidates[0].content.parts[0].text;
       }
     } else {

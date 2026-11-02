@@ -40,6 +40,7 @@ export const api = {
   bankAnalytics: () => request('/questions/bank-analytics'),
   updateQuestion: (id, data) => request(`/questions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteQuestion: (id) => request(`/questions/${id}`, { method: 'DELETE' }),
+  searchQuestionByImage: (formData) => request('/questions/search-image', { method: 'POST', body: formData }),
 
   // ---- Bulk question removal ----
   bulkPreview: (scope) => request('/questions/bulk/preview', { method: 'POST', body: JSON.stringify(scope) }),
