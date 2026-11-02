@@ -38,7 +38,9 @@ export default function ImageLibrary() {
 
   // Filters, search & sorting
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('ALL');
   const [selectedPrefix, setSelectedPrefix] = useState('ALL');
+  const [showAllPrefixes, setShowAllPrefixes] = useState(false);
   const [sortBy, setSortBy] = useState('NEWEST');
   const [pageSize, setPageSize] = useState(36);
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +93,7 @@ export default function ImageLibrary() {
         files: res.uploaded,
         timestamp: new Date(),
       });
+      setSelectedSubject('ALL');
       setSelectedPrefix('ALL');
       setSearchQuery('');
       setSortBy('NEWEST');
@@ -235,6 +238,31 @@ export default function ImageLibrary() {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [images]);
 
+  // Subject categorization from prefixes (e.g. PHY -> Physics, CHE -> Chemistry)
+  const subjectList = useMemo(() => {
+    const map = {};
+    for (const [prefix, count] of prefixCounts) {
+      const subj = prefix.includes('-') ? prefix.split('-')[0] : 'OTHER';
+      if (!map[subj]) map[subj] = { code: subj, count: 0, chapters: [] };
+      map[subj].count += count;
+      map[subj].chapters.push([prefix, count]);
+    }
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [prefixCounts]);
+
+  function getSubjectLabel(code) {
+    switch (code) {
+      case 'PHY': return '⚛️ Physics';
+      case 'CHE': return '🧪 Chemistry';
+      case 'MAT':
+      case 'MTH': return '📐 Mathematics';
+      case 'BIO': return '🧬 Biology';
+      case 'BOT': return '🌿 Botany';
+      case 'ZOO': return '🐾 Zoology';
+      default: return code;
+    }
+  }
+
   // Filtering & Sorting
   const filteredImages = useMemo(() => {
     let list = [...images];
@@ -242,6 +270,13 @@ export default function ImageLibrary() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((img) => img.filename.toLowerCase().includes(q));
+    }
+
+    if (selectedSubject !== 'ALL') {
+      list = list.filter((img) => {
+        const p = extractPrefix(img.filename);
+        return p === selectedSubject || p.startsWith(`${selectedSubject}-`);
+      });
     }
 
     if (selectedPrefix !== 'ALL') {
@@ -263,7 +298,7 @@ export default function ImageLibrary() {
     }
 
     return list;
-  }, [images, searchQuery, selectedPrefix, sortBy]);
+  }, [images, searchQuery, selectedSubject, selectedPrefix, sortBy]);
 
   // Pagination
   const effectivePageSize = pageSize === 'ALL' ? filteredImages.length || 1 : Number(pageSize);
@@ -473,15 +508,19 @@ export default function ImageLibrary() {
           )}
 
           {/* Quick Action Toolbar */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ background: '#16a34a', borderColor: '#16a34a', fontSize: 13, padding: '7px 14px' }}
-              onClick={() => copyBatchFilenames(lastUploadBatch.files, 'LINES')}
-            >
-              {copiedFeedback === 'BATCH_LINES' ? '✓ Copied to Clipboard!' : '📋 Copy for Excel Column (1 per line)'}
-            </button>
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 12, color: '#166534', marginBottom: 8 }}>
+              💡 <em>All files are already saved on the server. The buttons below are optional helper tools to copy filenames into Excel:</em>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ background: '#16a34a', borderColor: '#16a34a', fontSize: 13, padding: '7px 14px' }}
+                onClick={() => copyBatchFilenames(lastUploadBatch.files, 'LINES')}
+              >
+                {copiedFeedback === 'BATCH_LINES' ? '✓ Copied to Clipboard!' : '📋 Copy for Excel Column (1 per line)'}
+              </button>
             <button
               type="button"
               className="btn btn-ghost"
@@ -499,6 +538,7 @@ export default function ImageLibrary() {
               📥 Download Filename List (.csv)
             </button>
           </div>
+        </div>
 
           {/* Filename Chips Preview */}
           <div style={{ marginTop: 14 }}>
@@ -622,31 +662,88 @@ export default function ImageLibrary() {
           </div>
         </div>
 
-        {/* Smart Prefix Filter Chips */}
-        {prefixCounts.length > 1 && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>Chapter / Prefix:</span>
+        {/* Subject Filter Tabs */}
+        {subjectList.length > 1 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginRight: 4 }}>Subject:</span>
             <button
               type="button"
-              className={`btn ${selectedPrefix === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ padding: '3px 10px', fontSize: 12, borderRadius: 16 }}
-              onClick={() => { setSelectedPrefix('ALL'); setCurrentPage(1); }}
+              className={`btn ${selectedSubject === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600 }}
+              onClick={() => { setSelectedSubject('ALL'); setSelectedPrefix('ALL'); setCurrentPage(1); }}
             >
-              All ({images.length})
+              All Subjects ({images.length})
             </button>
-            {prefixCounts.slice(0, 12).map(([prefix, count]) => (
+            {subjectList.map((s) => (
               <button
-                key={prefix}
+                key={s.code}
                 type="button"
-                className={`btn ${selectedPrefix === prefix ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '3px 10px', fontSize: 12, borderRadius: 16 }}
-                onClick={() => { setSelectedPrefix(prefix); setCurrentPage(1); }}
+                className={`btn ${selectedSubject === s.code ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600 }}
+                onClick={() => { setSelectedSubject(s.code); setSelectedPrefix('ALL'); setCurrentPage(1); }}
               >
-                {prefix} ({count})
+                {getSubjectLabel(s.code)} ({s.count})
               </button>
             ))}
           </div>
         )}
+
+        {/* Chapter / Prefix Filter Chips */}
+        {prefixCounts.length > 1 && (() => {
+          const relevantPrefixes = selectedSubject === 'ALL'
+            ? prefixCounts
+            : prefixCounts.filter(([p]) => p === selectedSubject || p.startsWith(`${selectedSubject}-`));
+
+          const visiblePrefixes = showAllPrefixes || selectedSubject !== 'ALL' || relevantPrefixes.length <= 16
+            ? relevantPrefixes
+            : relevantPrefixes.slice(0, 16);
+
+          return (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>
+                {selectedSubject === 'ALL' ? 'Chapter / Prefix:' : `${getSubjectLabel(selectedSubject)} Chapters:`}
+              </span>
+              <button
+                type="button"
+                className={`btn ${selectedPrefix === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '3px 10px', fontSize: 12, borderRadius: 16 }}
+                onClick={() => { setSelectedPrefix('ALL'); setCurrentPage(1); }}
+              >
+                All {selectedSubject === 'ALL' ? '' : selectedSubject} ({relevantPrefixes.reduce((sum, [, c]) => sum + c, 0)})
+              </button>
+              {visiblePrefixes.map(([prefix, count]) => (
+                <button
+                  key={prefix}
+                  type="button"
+                  className={`btn ${selectedPrefix === prefix ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '3px 10px', fontSize: 12, borderRadius: 16 }}
+                  onClick={() => { setSelectedPrefix(prefix); setCurrentPage(1); }}
+                >
+                  {prefix} ({count})
+                </button>
+              ))}
+
+              {selectedSubject === 'ALL' && relevantPrefixes.length > 16 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{
+                    padding: '3px 10px',
+                    fontSize: 12,
+                    borderRadius: 16,
+                    color: '#4f46e5',
+                    border: '1px dashed #c7d2fe',
+                    background: '#eef2ff',
+                    fontWeight: 600,
+                  }}
+                  onClick={() => setShowAllPrefixes(!showAllPrefixes)}
+                >
+                  {showAllPrefixes ? 'Show fewer ▴' : `+ Show all ${relevantPrefixes.length} chapters ▾`}
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bulk Selection Bar */}
@@ -705,8 +802,8 @@ export default function ImageLibrary() {
           <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
           <h3 style={{ margin: '0 0 6px' }}>No diagram images found</h3>
           <p style={{ color: 'var(--ink-soft)', margin: 0 }}>
-            {searchQuery || selectedPrefix !== 'ALL'
-              ? 'Try adjusting your search terms or clearing the prefix filter.'
+            {searchQuery || selectedSubject !== 'ALL' || selectedPrefix !== 'ALL'
+              ? 'Try adjusting your search terms or clearing the subject/prefix filter.'
               : 'Upload your first diagram images above.'}
           </p>
         </div>
