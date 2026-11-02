@@ -590,7 +590,7 @@ export default function GeneratePaper() {
               <strong>Include worked solutions</strong> (optional add-on)
               <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4, fontWeight: 400 }}>
                 Every paper already includes the questions and a free answer key. Turning this on
-                adds a full worked-solutions section, charged <strong>1 extra credit per solution</strong>
+                adds a <strong>2-column paper-saving worked-solutions section</strong> (matching the exam layout to minimize Xerox paper wastage), charged <strong>1 extra credit per solution</strong>
                 {' '}(only for questions that actually have a solution).
               </div>
             </label>

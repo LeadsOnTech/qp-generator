@@ -1029,48 +1029,163 @@ function drawAnswerKey(doc, questions, pageWidth, optionFormat = 'ALPHA', setLab
   });
 }
 
-function drawSolutions(doc, questions, pageWidth, optionFormat = 'ALPHA') {
-  const contentWidth = pageWidth - 72;
-  doc.addPage();
-  doc.y = 54;
-  doc.fill(NAVY).font(FONT_BOLD).fontSize(15)
-    .text('Solutions', 36, doc.y, { width: contentWidth, align: 'center' });
-  doc.moveDown(1);
+function drawSolutions(doc, questions, pageWidth, pageHeight, optionFormat = 'ALPHA', setLabel = null, ecoMode = 'AUTO') {
+  const isCompact = ecoMode === 'TARGET_2' || ecoMode === 'TARGET_4' || ecoMode === 'COMPACT';
+  const margin = isCompact ? 28 : 34;
+  const gutter = isCompact ? 22 : 28;
+  const colWidth = (pageWidth - margin * 2 - gutter) / 2;
+  const colX = [margin, margin + colWidth + gutter];
+  const bottomLimit = pageHeight - Math.max(34, margin + 8);
+  const subsequentPageStartY = 50;
 
-  const bottomLimit = doc.page.height - 60;
+  const fontSize = isCompact ? 8.7 : 9.5;
+  const gap = isCompact ? 6 : 8;
+  const headerHeight = Math.round(fontSize * 1.35);
 
-  questions.forEach((q, i) => {
+  const titleY = 52;
+  const lineY = titleY + 15;
+  const firstPageStartY = lineY + 8;
+
+  // 1. Measure each solution block
+  const measuredItems = questions.map((q, i) => {
     const hasSolution = q.solutionText && String(q.solutionText).trim();
-
-    // Measure the whole block first so a solution never gets split awkwardly
-    // right at a page break — if it won't fit, start it on a fresh page.
-    doc.font(FONT_BOLD).fontSize(11);
-    const numberWidth = 26;
-    const headingHeight = 16;
     const bodyText = hasSolution ? String(q.solutionText).trim() : 'Solution not provided for this question.';
-    const bodyHeight = richMeasure(doc, bodyText, contentWidth - numberWidth, 10.5);
-    const answerLineHeight = 14;
-    const blockHeight = headingHeight + answerLineHeight + bodyHeight + 12;
+    const rawAns = formatAnswerKeyOption(q.correctOption, optionFormat);
+    const ansKey = rawAns ? String(rawAns).trim() : '';
+    const ansDisplay = (['A', 'B', 'C', 'D', '(A)', '(B)', '(C)', '(D)', '1', '2', '3', '4'].includes(ansKey))
+      ? `(${ansKey.replace(/[()]/g, '')})`
+      : ansKey;
 
-    if (doc.y + blockHeight > bottomLimit) {
-      doc.addPage();
-      doc.y = 54;
+    const bodyHeight = richMeasure(doc, bodyText, colWidth, fontSize, 'justify');
+    const totalHeight = headerHeight + bodyHeight + gap;
+
+    return {
+      index: i,
+      hasSolution,
+      bodyText,
+      ansDisplay,
+      headerHeight,
+      bodyHeight,
+      totalHeight,
+    };
+  });
+
+  // 2. Simulate pagination to find page grouping
+  const pages = [[]];
+  let curColY = [firstPageStartY, firstPageStartY];
+  let curCol = 0;
+  let curPageIndex = 0;
+
+  for (const item of measuredItems) {
+    const isFirstP = (curPageIndex === 0);
+    const topLimit = isFirstP ? firstPageStartY : subsequentPageStartY;
+    const isAtTop = curColY[curCol] === topLimit;
+
+    if (!isAtTop && (curColY[curCol] + item.totalHeight > bottomLimit)) {
+      if (curCol === 0) {
+        curCol = 1;
+        if (curColY[1] + item.totalHeight > bottomLimit && curColY[1] > topLimit) {
+          curPageIndex++;
+          pages.push([]);
+          curColY = [subsequentPageStartY, subsequentPageStartY];
+          curCol = 0;
+        }
+      } else {
+        curPageIndex++;
+        pages.push([]);
+        curColY = [subsequentPageStartY, subsequentPageStartY];
+        curCol = 0;
+      }
     }
 
-    const top = doc.y;
-    doc.fill(INK).font(FONT_BOLD).fontSize(11).text(`${i + 1}.`, 36, top, { width: numberWidth, lineBreak: false });
+    curColY[curCol] += item.totalHeight;
+    pages[curPageIndex].push(item);
+  }
 
-    // Correct answer line (free — part of the answer key, shown here for context)
-    const ansKey = formatAnswerKeyOption(q.correctOption, optionFormat);
-    doc.fill(GOLD).font(FONT_BOLD).fontSize(10.5)
-      .text(`Correct answer: (${ansKey || '?'})`, 36 + numberWidth, top, { width: contentWidth - numberWidth });
+  // 3. Render page by page with column balancing on the final page
+  doc.addPage();
+  const startPageIndex = doc.bufferedPageRange().count - 1;
+  const totalSolPages = pages.length;
+  const setSuffix = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
 
-    // Worked solution body, rendered math-aware so LaTeX ($...$) typesets.
-    const bodyY = doc.y + 2;
-    const endY = richDraw(doc, bodyText, 36 + numberWidth, bodyY, contentWidth - numberWidth, 10.5, hasSolution ? INK : SOFT);
+  const pageBottomYs = [];
 
-    doc.y = endY + 10;
-  });
+  for (let p = 0; p < totalSolPages; p++) {
+    if (p > 0) doc.addPage();
+    const isFirstP = (p === 0);
+    const isLastP = (p === totalSolPages - 1);
+    const pageItems = pages[p];
+
+    if (isFirstP) {
+      // Title Header on Page 1 of solutions
+      doc.fill(NAVY).font(FONT_BOLD).fontSize(12)
+        .text(`SOLUTIONS & DETAILED EXPLANATIONS${setSuffix}`, margin, titleY, {
+          width: pageWidth - margin * 2,
+          align: 'center',
+          characterSpacing: 0.5,
+        });
+
+      // Dividing line under header
+      doc.strokeColor('#000000').lineWidth(0.5)
+        .moveTo(margin, lineY)
+        .lineTo(pageWidth - margin, lineY)
+        .stroke();
+    }
+
+    const startY = isFirstP ? firstPageStartY : subsequentPageStartY;
+    let colY = [startY, startY];
+    let col = 0;
+
+    // Balance columns if it's the last page
+    let activeLimitCol0 = bottomLimit;
+    if (isLastP) {
+      const totalPageHeight = pageItems.reduce((acc, it) => acc + it.totalHeight, 0);
+      const halfHeight = totalPageHeight / 2;
+      // Allow small headroom so column 0 takes roughly half the questions
+      activeLimitCol0 = Math.min(bottomLimit, startY + halfHeight + 15);
+    }
+
+    for (const item of pageItems) {
+      const limit = (col === 0) ? activeLimitCol0 : bottomLimit;
+      const isAtTop = colY[col] === startY;
+
+      if (!isAtTop && (colY[col] + item.totalHeight > limit)) {
+        if (col === 0) {
+          col = 1;
+        }
+      }
+
+      const curX = colX[col];
+      const topY = colY[col];
+
+      // Header line: Question number + Answer key
+      const qPrefix = `Q. ${item.index + 1}   `;
+      doc.font(FONT_BOLD).fontSize(fontSize).fill(INK);
+      const qPrefixWidth = doc.widthOfString(qPrefix);
+      doc.text(qPrefix, curX, topY, { lineBreak: false });
+      doc.fill(GOLD).text(`[Ans: ${item.ansDisplay || '?'}]`, curX + qPrefixWidth, topY, { lineBreak: false });
+
+      // Solution body text
+      const bodyY = topY + item.headerHeight;
+      const endY = richDraw(doc, item.bodyText, curX, bodyY, colWidth, fontSize, item.hasSolution ? INK : SOFT, 'justify');
+
+      colY[col] = endY + gap;
+    }
+
+    pageBottomYs.push(Math.max(colY[0], colY[1]));
+  }
+
+  // 4. Vertical Center Divider line across all solution pages
+  for (let p = 0; p < totalSolPages; p++) {
+    doc.switchToPage(startPageIndex + p);
+    const startY = (p === 0) ? firstPageStartY - 4 : subsequentPageStartY - 6;
+    const maxContentY = pageBottomYs[p] || bottomLimit;
+    const endY = Math.min(bottomLimit - 12, Math.max(startY + 40, maxContentY + 8));
+    doc.strokeColor('#000000').lineWidth(0.5);
+    doc.moveTo(pageWidth / 2, startY).lineTo(pageWidth / 2, endY).stroke();
+  }
+
+  doc.switchToPage(startPageIndex + totalSolPages - 1);
 }
 
 /**
@@ -1169,6 +1284,16 @@ function drawWatermark(doc, paper, pageWidth, pageHeight, isEvaluationPage = fal
   doc.restore();
 }
 
+function fitTextToWidth(doc, text, maxWidth) {
+  if (!text) return '';
+  if (doc.widthOfString(text) <= maxWidth) return text;
+  let str = text;
+  while (str.length > 3 && doc.widthOfString(str + '...') > maxWidth) {
+    str = str.slice(0, -1);
+  }
+  return str + '...';
+}
+
 function drawHeadersAndFooters(doc, paper) {
   const range = doc.bufferedPageRange();
   const totalPages = range.count;
@@ -1203,10 +1328,11 @@ function drawHeadersAndFooters(doc, paper) {
       
       const setRun = setLabel ? ` (${setLabel.startsWith('SET') ? setLabel : 'SET ' + setLabel})` : '';
       const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''}${setRun}`;
+      const availWidth = doc.page.width / 2 - runMargin - 10;
       // Left text: Exam Name
-      doc.text(examLabel, runMargin, 30, { width: doc.page.width / 2 - runMargin, align: 'left', lineBreak: false });
+      doc.text(fitTextToWidth(doc, examLabel, availWidth), runMargin, 30, { width: availWidth, align: 'left', lineBreak: false });
       // Right text: Institute Name
-      doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - runMargin, align: 'right', lineBreak: false });
+      doc.text(fitTextToWidth(doc, paper.instituteName || '', availWidth), doc.page.width / 2 + 10, 30, { width: availWidth, align: 'right', lineBreak: false });
       
       // Horizontal Line
       doc.strokeColor('#000000').lineWidth(0.5)
@@ -1267,8 +1393,9 @@ function drawBundleHeadersAndFooters(doc, paper, sections) {
         doc.fill('#000000').font(FONT_BOLD).fontSize(8.5);
 
         const examLabel = `${paper.examName || ''} — ${TEST_TYPE_LABELS[paper.paperType] || paper.paperType || ''} (SET ${sec.setChar})`;
-        doc.text(examLabel, runMargin, 30, { width: doc.page.width / 2 - runMargin, align: 'left', lineBreak: false });
-        doc.text(paper.instituteName || '', doc.page.width / 2, 30, { width: doc.page.width / 2 - runMargin, align: 'right', lineBreak: false });
+        const availWidth = doc.page.width / 2 - runMargin - 10;
+        doc.text(fitTextToWidth(doc, examLabel, availWidth), runMargin, 30, { width: availWidth, align: 'left', lineBreak: false });
+        doc.text(fitTextToWidth(doc, paper.instituteName || '', availWidth), doc.page.width / 2 + 10, 30, { width: availWidth, align: 'right', lineBreak: false });
 
         doc.strokeColor('#000000').lineWidth(0.5)
            .moveTo(runMargin, 42)
@@ -1404,7 +1531,9 @@ function buildPaperPdf(stream, paper, questions, withAnswers) {
   // Solutions section, only when this paper was generated with solutions
   // included (charged 1 credit each at finalize). The answer key above is
   // always free; this is the paid add-on.
-  if (paper.includeSolutions) drawSolutions(doc, questions, pageWidth, optionFormat);
+  if (paper.includeSolutions) {
+    drawSolutions(doc, questions, pageWidth, pageHeight, optionFormat, paper.setLabel, ecoMode);
+  }
 
   drawHeadersAndFooters(doc, paper);
   doc.end();
@@ -1461,6 +1590,10 @@ function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
 
     if (withAnswers) {
       drawAnswerKey(doc, setQuestions, pageWidth, optionFormat, setPaper.setLabel);
+    }
+
+    if (paper.includeSolutions) {
+      drawSolutions(doc, setQuestions, pageWidth, pageHeight, optionFormat, setPaper.setLabel, ecoMode);
     }
 
     const endPageIndex = doc.bufferedPageRange().count - 1;
