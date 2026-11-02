@@ -238,6 +238,9 @@ export const api = {
   deleteExam: (id) => request(`/exams/${id}`, { method: 'DELETE' }),
   getExamPattern: (examName) => request(`/exams/${encodeURIComponent(examName)}/pattern`),
   saveExamPattern: (examName, data) => request(`/exams/${encodeURIComponent(examName)}/pattern`, { method: 'PUT', body: JSON.stringify(data) }),
+  getExamBlueprints: (examName) => request(`/exams/${encodeURIComponent(examName)}/blueprints`),
+  saveExamBlueprint: (examName, data) => request(`/exams/${encodeURIComponent(examName)}/blueprints`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteExamBlueprint: (examName, id) => request(`/exams/${encodeURIComponent(examName)}/blueprints/${id}`, { method: 'DELETE' }),
 
   // ---- Institutes (white-label branding) ----
   listInstitutes: () => request('/institutes'),

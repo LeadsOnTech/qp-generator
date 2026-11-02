@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
+const { getBlueprintsForExam, saveCustomBlueprint, deleteCustomBlueprint } = require('../lib/blueprintsEngine');
 
 const router = express.Router();
 
@@ -120,6 +121,52 @@ router.put('/:name/pattern', requireAdmin, async (req, res) => {
     res.json({ ok: true, examId: exam.id });
   } catch (err) {
     res.status(404).json({ error: 'Exam not found.' });
+  }
+});
+
+/**
+ * GET /api/exams/:name/blueprints
+ * Returns all built-in 5-year exam blueprint presets plus custom saved presets.
+ */
+router.get('/:name/blueprints', async (req, res) => {
+  try {
+    const list = await getBlueprintsForExam(prisma, req.params.name, req.user?.instituteId);
+    res.json(list);
+  } catch (err) {
+    console.error('Failed to get blueprints:', err);
+    res.status(500).json({ error: 'Failed to fetch blueprints: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/exams/:name/blueprints
+ * Saves a custom blueprint preset for this exam / institute.
+ */
+router.post('/:name/blueprints', async (req, res) => {
+  try {
+    const blueprint = req.body;
+    if (!blueprint.name || !Array.isArray(blueprint.subjects) || blueprint.subjects.length === 0) {
+      return res.status(400).json({ error: 'Blueprint requires a name and at least one subject with chapter weightages.' });
+    }
+    const saved = await saveCustomBlueprint(prisma, req.params.name, blueprint, req.user?.instituteId);
+    res.json({ ok: true, blueprint: saved });
+  } catch (err) {
+    console.error('Failed to save blueprint:', err);
+    res.status(500).json({ error: 'Failed to save blueprint: ' + err.message });
+  }
+});
+
+/**
+ * DELETE /api/exams/:name/blueprints/:blueprintId
+ * Deletes a custom blueprint preset.
+ */
+router.delete('/:name/blueprints/:blueprintId', async (req, res) => {
+  try {
+    const result = await deleteCustomBlueprint(prisma, req.params.name, req.params.blueprintId, req.user?.instituteId);
+    res.json(result);
+  } catch (err) {
+    console.error('Failed to delete blueprint:', err);
+    res.status(500).json({ error: 'Failed to delete blueprint: ' + err.message });
   }
 });
 

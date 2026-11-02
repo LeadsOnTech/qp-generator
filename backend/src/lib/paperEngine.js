@@ -117,6 +117,17 @@ async function fetchPool({ examName, subjectName, chapters, selection }) {
   });
 }
 
+function isChapterMatch(qChapterName, targetChapterName) {
+  if (!qChapterName || !targetChapterName) return false;
+  const a = qChapterName.toLowerCase().trim();
+  const b = targetChapterName.toLowerCase().trim();
+  if (a === b) return true;
+  if ((a === 'kinetic theory' || a === 'kinetic theory of gases') && (b === 'kinetic theory' || b === 'kinetic theory of gases')) return true;
+  if ((a === 'laws of motion' || a === 'friction') && (b === 'laws of motion' || b === 'friction')) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  return false;
+}
+
 /**
  * Selects questions for a paper request. Returns:
  *   { selected: [question...], shortages: [{subject, difficulty, requested, got}] }
@@ -149,7 +160,7 @@ async function selectQuestions(request) {
     // question twice — which is exactly the kind of repeat that makes a
     // paper look unprofessional.
     const seenText = new Set();
-    const pool = []; console.log('rawPool length:', rawPool.length);
+    const pool = [];
     for (const q of rawPool) {
       const key = (q.questionText || '').trim().toLowerCase();
       if (key && seenText.has(key)) continue;
@@ -157,28 +168,110 @@ async function selectQuestions(request) {
       pool.push(q);
     }
 
-    const byDifficulty = { EASY: [], MEDIUM: [], HARD: [], UNTAGGED: [] };
-    for (const q of shuffle(pool)) {
-      (byDifficulty[q.difficulty] || byDifficulty.UNTAGGED).push(q);
-    }
+    const pickedForSubject = [];
+    const usedInSubject = new Set();
 
-          const pickedForSubject = [];
-      
+    // 1. Chapter-level weighted distribution (Blueprint Presets mode)
+    if (subj.chapterDistribution && Array.isArray(subj.chapterDistribution) && subj.chapterDistribution.length > 0) {
+      for (const dist of subj.chapterDistribution) {
+        const targetChapter = dist.chapter;
+        const targetCount = dist.count || (dist.mcqCount || 0) + (dist.nvqCount || 0);
+        if (!targetCount || targetCount <= 0) continue;
+
+        const chapterCandidates = pool.filter(
+          (q) => !usedInSubject.has(q.id) && isChapterMatch(q.chapter?.name, targetChapter)
+        );
+
+        const typeBucket = { EASY: [], MEDIUM: [], HARD: [], UNTAGGED: [] };
+        for (const q of shuffle(chapterCandidates)) {
+          (typeBucket[q.difficulty] || typeBucket.UNTAGGED).push(q);
+        }
+
+        const typeWanted = splitCounts(targetCount, mix);
+        let chapterPicked = 0;
+
+        for (const level of ['EASY', 'MEDIUM', 'HARD']) {
+          const bucket = typeBucket[level];
+          const take = Math.min(typeWanted[level], bucket.length);
+          for (let k = 0; k < take; k++) {
+            const q = bucket.pop();
+            pickedForSubject.push(q);
+            usedInSubject.add(q.id);
+            chapterPicked++;
+          }
+        }
+
+        // If targetCount still not reached from this chapter, take remaining from untagged or any difficulty
+        if (chapterPicked < targetCount) {
+          const leftovers = shuffle([
+            ...typeBucket.EASY, ...typeBucket.MEDIUM, ...typeBucket.HARD, ...typeBucket.UNTAGGED,
+          ]);
+          const need = targetCount - chapterPicked;
+          const take = Math.min(need, leftovers.length);
+          for (let k = 0; k < take; k++) {
+            const q = leftovers[k];
+            pickedForSubject.push(q);
+            usedInSubject.add(q.id);
+            chapterPicked++;
+          }
+        }
+
+        if (chapterPicked < targetCount) {
+          shortages.push({
+            subject: subj.name,
+            chapter: targetChapter,
+            difficulty: 'WEIGHTAGE_TARGET',
+            requested: targetCount,
+            got: chapterPicked,
+          });
+        }
+      }
+
+      // Check if total questions picked for subject reached requested total (subj.mcqCount + subj.nvqCount)
+      const wantedTotal = (subj.mcqCount || 0) + (subj.nvqCount || 0);
+      let subjectRemaining = wantedTotal - pickedForSubject.length;
+      if (subjectRemaining > 0) {
+        const remainingPool = shuffle(pool.filter((q) => !usedInSubject.has(q.id)));
+        const take = Math.min(subjectRemaining, remainingPool.length);
+        for (let k = 0; k < take; k++) {
+          const q = remainingPool[k];
+          pickedForSubject.push(q);
+          usedInSubject.add(q.id);
+        }
+        subjectRemaining -= take;
+        if (subjectRemaining > 0) {
+          shortages.push({
+            subject: subj.name,
+            difficulty: 'SUBJECT_TOTAL',
+            requested: wantedTotal,
+            got: pickedForSubject.length,
+          });
+        }
+      }
+    } else {
+      // 2. Standard / legacy flat distribution
+      const byDifficulty = { EASY: [], MEDIUM: [], HARD: [], UNTAGGED: [] };
+      for (const q of shuffle(pool)) {
+        (byDifficulty[q.difficulty] || byDifficulty.UNTAGGED).push(q);
+      }
+
       // Pick MCQ and NVQ separately
       for (const qType of ['MCQ', 'NVQ']) {
         const qCount = qType === 'MCQ' ? subj.mcqCount : subj.nvqCount;
         if (!qCount || qCount <= 0) continue;
-        
+
         const typeWanted = splitCounts(qCount, mix);
-        
+
         // Filter byDifficulty to only include this type
-        console.log('byDifficulty:', Object.keys(byDifficulty).map(k=>k+':'+byDifficulty[k].length));
         const typeBucket = { EASY: [], MEDIUM: [], HARD: [], UNTAGGED: [] };
         for (const level of Object.keys(byDifficulty)) {
-          typeBucket[level] = byDifficulty[level].filter(q => qType === 'MCQ' ? q.questionType !== 'NVQ' && q.questionType !== 'NUMERICAL' && q.questionType !== 'DECIMAL' : (q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL'));
+          typeBucket[level] = byDifficulty[level].filter((q) =>
+            qType === 'MCQ'
+              ? q.questionType !== 'NVQ' && q.questionType !== 'NUMERICAL' && q.questionType !== 'DECIMAL'
+              : q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL'
+          );
         }
 
-        console.log('qType:', qType, 'typeWanted:', typeWanted, 'typeBucket:', Object.keys(typeBucket).map(k=>k+':'+typeBucket[k].length));
         for (const level of ['EASY', 'MEDIUM', 'HARD']) {
           const bucket = typeBucket[level];
           const take = Math.min(typeWanted[level], bucket.length);
@@ -188,7 +281,11 @@ async function selectQuestions(request) {
           }
         }
 
-        const totalPicked = pickedForSubject.filter(q => qType === 'MCQ' ? q.questionType !== 'NVQ' && q.questionType !== 'NUMERICAL' && q.questionType !== 'DECIMAL' : (q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL')).length;
+        const totalPicked = pickedForSubject.filter((q) =>
+          qType === 'MCQ'
+            ? q.questionType !== 'NVQ' && q.questionType !== 'NUMERICAL' && q.questionType !== 'DECIMAL'
+            : q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL'
+        ).length;
         let remaining = qCount - totalPicked;
         if (remaining > 0) {
           const leftovers = shuffle([
@@ -201,6 +298,7 @@ async function selectQuestions(request) {
           }
         }
       }
+    }
 
     selected.push(...pickedForSubject);
   }
