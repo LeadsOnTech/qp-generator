@@ -13,6 +13,24 @@ export default function BatchPerformanceReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  const [remedialModal, setRemedialModal] = useState(null);
+  const [generatingRemedial, setGeneratingRemedial] = useState(false);
+
+  async function handleGenerateBatchRemedial() {
+    try {
+      setGeneratingRemedial(true);
+      const res = await api.generateRemedialPaper({
+        targetType: 'BATCH',
+        paperId,
+        questionCount: 20,
+      });
+      setRemedialModal(res);
+    } catch (err) {
+      alert('Failed to generate batch remedial assignment: ' + err.message);
+    } finally {
+      setGeneratingRemedial(false);
+    }
+  }
 
   useEffect(() => {
     async function fetchBatchReport() {
@@ -276,11 +294,33 @@ export default function BatchPerformanceReport() {
 
         {/* Bottom 10 */}
         <div style={styles.sectionCard}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 18 }}>⚠️</span>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#991b1b' }}>
-              Bottom 10 Remedial Watchlist (Action Required)
-            </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>⚠️</span>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#991b1b' }}>
+                Bottom 10 Remedial Watchlist (Action Required)
+              </h3>
+            </div>
+            <button
+              onClick={handleGenerateBatchRemedial}
+              disabled={generatingRemedial}
+              style={{
+                background: '#dc2626',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '7px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title="Compose a 20-question assignment targeting the weakest topics across the class"
+            >
+              {generatingRemedial ? 'Generating…' : '⚡ Generate Batch Remedial Assignment'}
+            </button>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={styles.table}>
@@ -309,6 +349,51 @@ export default function BatchPerformanceReport() {
           </div>
         </div>
       </div>
+
+      {/* Remedial Paper Modal */}
+      {remedialModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 12, maxWidth: 500, width: '100%', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #e2e8f0' }}>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#059669' }}>
+                🎉 Batch Remedial Assignment Generated!
+              </h3>
+              <button onClick={() => setRemedialModal(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b' }}>✕</button>
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 12 }}>
+                {remedialModal.title}
+              </div>
+              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 16, fontSize: 13 }}>
+                <div style={{ marginBottom: 4 }}>
+                  <b>Questions Assembled:</b> <span style={{ color: '#2563eb', fontWeight: 700 }}>{remedialModal.questionCount} Questions</span>
+                </div>
+                <div>
+                  <b>Targeted Weak Topics:</b> {remedialModal.chaptersTargeted?.join(', ')}
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 18px 0', lineHeight: 1.5 }}>
+                This remedial practice paper has been saved to your <b>Papers</b> list. You can print the paper with solutions, download an OMR sheet, or conduct an online CBT re-test!
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Link
+                  to={remedialModal.previewUrl}
+                  style={{ background: '#2563eb', color: '#fff', padding: '9px 16px', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  📄 Open Paper & Print PDF
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setRemedialModal(null)}
+                  style={{ background: '#fff', color: '#334155', border: '1px solid #cbd5e1', padding: '9px 14px', borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

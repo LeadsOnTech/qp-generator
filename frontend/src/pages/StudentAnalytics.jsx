@@ -18,6 +18,10 @@ export default function StudentAnalytics() {
   const [error, setError] = useState(null);
   const [searchFilter, setSearchFilter] = useState('');
 
+  // Remedial DPP Modal State
+  const [remedialModal, setRemedialModal] = useState(null);
+  const [generatingRemedial, setGeneratingRemedial] = useState(false);
+
   // Load students roster on mount
   useEffect(() => {
     async function fetchRoster() {
@@ -54,6 +58,30 @@ export default function StudentAnalytics() {
     }
     loadStudentData();
   }, [selectedRoll]);
+
+  async function handleGenerateRemedial(specificChapters = []) {
+    if (!analyticsData?.student) return;
+    try {
+      setGeneratingRemedial(true);
+      const chaps = specificChapters.length > 0
+        ? specificChapters
+        : analyticsData.chronicWeakChapters?.map((c) => c.chapterName) || [];
+
+      const res = await api.generateRemedialPaper({
+        targetType: 'STUDENT',
+        studentName: analyticsData.student.studentName,
+        rollNumber: analyticsData.student.rollNumber,
+        chapterNames: chaps,
+        questionCount: 15,
+      });
+
+      setRemedialModal(res);
+    } catch (err) {
+      alert('Failed to generate remedial paper: ' + err.message);
+    } finally {
+      setGeneratingRemedial(false);
+    }
+  }
 
   function handleSelectStudent(roll) {
     setSelectedRoll(roll);
@@ -159,11 +187,34 @@ export default function StudentAnalytics() {
                     Parent Mobile: {analyticsData.student.parentPhoneMasked}
                   </div>
                 </div>
-                <div style={styles.examCountBadge}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: '#1e3a8a' }}>
-                    {analyticsData.careerStats.totalExamsTaken}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <a
+                    href={`${API_BASE}/results/analytics/student/${encodeURIComponent(analyticsData.student.rollNumber)}/csv`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#fff',
+                      color: '#0f172a',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      padding: '8px 14px',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    title="Export complete examination history as CSV spreadsheet"
+                  >
+                    📥 Export CSV
+                  </a>
+                  <div style={styles.examCountBadge}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: '#1e3a8a' }}>
+                      {analyticsData.careerStats.totalExamsTaken}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>Exams Completed</div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>Exams Completed</div>
                 </div>
               </div>
 
@@ -341,10 +392,24 @@ export default function StudentAnalytics() {
 
               {/* Longitudinal Chronic Weak Areas */}
               <div style={styles.sectionCard}>
-                <h3 style={styles.sectionHeading}>Longitudinal Weak Topics (Accuracy &lt; 50% Across Exams)</h3>
-                <p style={{ margin: '0 0 12px 0', fontSize: 12, color: '#64748b' }}>
-                  Identified chapters where the student has consistently struggled across multiple examinations.
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <h3 style={{ ...styles.sectionHeading, margin: 0 }}>Longitudinal Weak Topics (Accuracy &lt; 60%)</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                      Identified chapters where the student has struggled and requires targeted drill practice.
+                    </p>
+                  </div>
+                  {analyticsData.chronicWeakChapters.length > 0 && (
+                    <button
+                      onClick={() => handleGenerateRemedial()}
+                      disabled={generatingRemedial}
+                      style={styles.remedialActionBtn}
+                      title="Automatically create a 15-question remedial DPP paper in these weak chapters"
+                    >
+                      {generatingRemedial ? 'Generating DPP…' : '⚡ Generate 15-Q Remedial DPP'}
+                    </button>
+                  )}
+                </div>
 
                 {analyticsData.chronicWeakChapters.length === 0 ? (
                   <div style={{ padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, color: '#166534', fontSize: 13 }}>
@@ -360,19 +425,99 @@ export default function StudentAnalytics() {
                             Encountered across {c.timesEncountered} tests • {c.totalCorrect} / {c.totalAttempted} correct
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
+                        <div style={{ textAlign: 'right', marginRight: 10 }}>
                           <div style={{ fontSize: 16, fontWeight: 800, color: '#dc2626' }}>{c.overallAccuracy}%</div>
                           <div style={{ fontSize: 10, color: '#64748b' }}>Avg Accuracy</div>
                         </div>
+                        <button
+                          onClick={() => handleGenerateRemedial([c.chapterName])}
+                          disabled={generatingRemedial}
+                          style={styles.singleChapterRemedialBtn}
+                          title="Generate a custom DPP targeting only this specific chapter"
+                        >
+                          Target DPP
+                        </button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+
+              {/* Academic Counseling & Remedial Action Plan */}
+              <div style={{ ...styles.sectionCard, background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+                <h3 style={{ ...styles.sectionHeading, color: '#1e3a8a' }}>📋 Academic Counseling & Remedial Action Plan</h3>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginTop: 10 }}>
+                    <div style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>🎯 Diagnostic Assessment</div>
+                      <p style={{ margin: 0, fontSize: 12.5, color: '#475569' }}>
+                        {analyticsData.careerStats.careerAveragePercentage >= 75
+                          ? `High-caliber student with strong conceptual retention (${analyticsData.careerStats.careerAveragePercentage}% avg). Focus on speed and negative-marking discipline to reach top-tier percentiles.`
+                          : analyticsData.careerStats.careerAveragePercentage >= 50
+                          ? `Consistent performer (${analyticsData.careerStats.careerAveragePercentage}% avg). Needs targeted question drilling in weak chapters to eliminate negative deductions.`
+                          : `Requires academic support in core foundation chapters. Recommend structured daily practice problems (DPPs) before full syllabus mock examinations.`}
+                      </p>
+                    </div>
+                    <div style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>💡 Recommended Action Plan</div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#475569' }}>
+                        <li>Practice 15–20 questions daily from identified weak chapters using generated Remedial DPPs.</li>
+                        <li>Avoid speculative guessing when confidence is below 50% to prevent negative mark deductions.</li>
+                        <li>Review complete step-by-step solutions for incorrect questions before the next exam.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* MODAL: Remedial Paper Generated Notification */}
+      {remedialModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#059669' }}>
+                🎉 Remedial Paper Generated!
+              </h3>
+              <button onClick={() => setRemedialModal(null)} style={styles.modalCloseBtn}>✕</button>
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 12 }}>
+                {remedialModal.title}
+              </div>
+              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 16, fontSize: 13 }}>
+                <div style={{ marginBottom: 4 }}>
+                  <b>Questions Assembled:</b> <span style={{ color: '#2563eb', fontWeight: 700 }}>{remedialModal.questionCount} Questions</span>
+                </div>
+                <div>
+                  <b>Targeted Chapters:</b> {remedialModal.chaptersTargeted?.join(', ')}
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 18px 0', lineHeight: 1.5 }}>
+                This remedial practice paper has been saved to your <b>Papers</b> list. You can print the question paper with detailed solutions, download an OMR sheet, or launch an online CBT test for this student!
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Link
+                  to={remedialModal.previewUrl}
+                  style={styles.openPaperBtn}
+                >
+                  📄 Open Paper & Print PDF
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setRemedialModal(null)}
+                  style={styles.closeBtn}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -617,5 +762,82 @@ const styles = {
     background: '#fef2f2',
     border: '1px solid #fecaca',
     borderRadius: 8,
+  },
+  remedialActionBtn: {
+    background: '#dc2626',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    padding: '8px 14px',
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  singleChapterRemedialBtn: {
+    background: '#fee2e2',
+    color: '#991b1b',
+    border: '1px solid #fecaca',
+    borderRadius: 4,
+    padding: '5px 9px',
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  openPaperBtn: {
+    background: '#2563eb',
+    color: '#fff',
+    padding: '9px 16px',
+    borderRadius: 6,
+    fontWeight: 700,
+    fontSize: 13,
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  closeBtn: {
+    background: '#fff',
+    color: '#334155',
+    border: '1px solid #cbd5e1',
+    padding: '9px 14px',
+    borderRadius: 6,
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: 'pointer',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15,23,42,0.6)',
+    zIndex: 999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    background: '#fff',
+    borderRadius: 12,
+    maxWidth: 500,
+    width: '100%',
+    overflow: 'hidden',
+    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: 18,
+    cursor: 'pointer',
+    color: '#64748b',
   },
 };

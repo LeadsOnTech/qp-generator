@@ -175,7 +175,16 @@ export default function StudentsRoster() {
             Enroll students and register parent WhatsApp mobile numbers for automated test scorecards and reports.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <a
+            href={`${import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api')}/results/students/roster/export-csv`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.secondaryBtn}
+            title="Download complete enrolled student directory as CSV"
+          >
+            📤 Export Roster CSV
+          </a>
           <button onClick={() => setBulkModal(true)} style={styles.secondaryBtn}>
             📥 Bulk Import CSV
           </button>

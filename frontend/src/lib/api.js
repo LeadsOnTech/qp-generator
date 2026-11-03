@@ -317,4 +317,7 @@ export const api = {
   },
   getStudentAnalytics: (rollNumber) => request(`/results/analytics/student/${encodeURIComponent(rollNumber)}`),
   getBatchAnalytics: (paperId) => request(`/results/analytics/batch/${paperId}`),
+
+  // Milestone 3: Diagnostic Intelligence & Targeted Remedial DPP
+  generateRemedialPaper: (payload) => request('/results/generate-remedial-paper', { method: 'POST', body: JSON.stringify(payload) }),
 };

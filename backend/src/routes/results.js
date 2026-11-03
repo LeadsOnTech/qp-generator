@@ -1301,7 +1301,10 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
           overallAccuracy: accuracy,
         };
       })
-      .filter((c) => c.overallAccuracy < 50 && c.totalAttempted >= 2)
+      .filter((c) => {
+        if (exams.length <= 1) return c.overallAccuracy < 60 && c.totalAttempted >= 1;
+        return c.overallAccuracy < 60 && c.totalAttempted >= 2;
+      })
       .sort((a, b) => a.overallAccuracy - b.overallAccuracy);
 
     res.json({
@@ -1856,6 +1859,281 @@ router.delete('/students/roster/:id', async (req, res) => {
   } catch (err) {
     console.error('Failed to delete student:', err);
     res.status(500).json({ error: 'Failed to delete student: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/generate-remedial-paper
+ * Automatically composes a tailored Remedial DPP or Batch Assignment
+ * targeting specific weak chapters from recent examination diagnostic analytics.
+ */
+router.post('/generate-remedial-paper', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID is required' });
+    }
+
+    const institute = await prisma.institute.findUnique({ where: { id: instituteId } });
+    const {
+      targetType = 'STUDENT', // 'STUDENT' | 'BATCH'
+      studentName,
+      rollNumber,
+      paperId,
+      chapterNames = [],
+      questionCount = 15,
+      difficulty = 'ALL',
+      customTitle,
+    } = req.body;
+
+    const count = Math.min(Math.max(parseInt(questionCount, 10) || 15, 5), 45);
+
+    let targetChapters = Array.isArray(chapterNames) ? chapterNames.filter(Boolean) : [];
+
+    // If chapterNames not provided, auto-discover weak chapters
+    if (targetChapters.length === 0) {
+      if (targetType === 'STUDENT' && rollNumber) {
+        const normRoll = String(rollNumber).trim().toUpperCase();
+        const weakResults = await prisma.examChapterResult.findMany({
+          where: {
+            result: {
+              instituteId,
+              rollNumber: normRoll,
+            },
+            accuracyPercentage: { lt: 60 },
+          },
+          orderBy: { accuracyPercentage: 'asc' },
+          take: 4,
+        });
+        targetChapters = Array.from(new Set(weakResults.map((w) => w.chapterName)));
+      } else if (paperId) {
+        const weakBatchResults = await prisma.examChapterResult.groupBy({
+          by: ['chapterName'],
+          where: {
+            result: {
+              paperId,
+              instituteId,
+            },
+          },
+          _avg: { accuracyPercentage: true },
+          orderBy: { _avg: { accuracyPercentage: 'asc' } },
+          take: 4,
+        });
+        targetChapters = weakBatchResults.map((w) => w.chapterName);
+      }
+    }
+
+    // Fallback: If still empty, grab chapters from the source paper or student's latest exam
+    if (targetChapters.length === 0) {
+      if (paperId) {
+        const paperChapters = await prisma.paperQuestion.findMany({
+          where: { paperId },
+          include: { question: { include: { chapter: true } } },
+          take: 3,
+        });
+        targetChapters = Array.from(new Set(paperChapters.map((pq) => pq.question?.chapter?.name).filter(Boolean)));
+      }
+    }
+
+    if (targetChapters.length === 0) {
+      return res.status(400).json({
+        error: 'No weak chapters identified to target. Please select at least one chapter manually.',
+      });
+    }
+
+    // Resolve chapter IDs in database
+    const dbChapters = await prisma.chapter.findMany({
+      where: {
+        name: { in: targetChapters },
+      },
+      include: {
+        subject: true,
+      },
+    });
+
+    const chapterIds = dbChapters.map((c) => c.id);
+    if (chapterIds.length === 0) {
+      return res.status(400).json({
+        error: `Could not find questions matching chapters: ${targetChapters.join(', ')}`,
+      });
+    }
+
+    // Fetch pool of active questions in these chapters
+    const whereQuestions = {
+      chapterId: { in: chapterIds },
+      isActive: true,
+    };
+    if (difficulty && difficulty !== 'ALL') {
+      whereQuestions.difficulty = difficulty;
+    }
+
+    let availableQuestions = await prisma.question.findMany({
+      where: whereQuestions,
+      select: { id: true, chapterId: true, difficulty: true },
+    });
+
+    // If filtered by difficulty yielded too few questions, loosen difficulty filter
+    if (availableQuestions.length < count) {
+      availableQuestions = await prisma.question.findMany({
+        where: {
+          chapterId: { in: chapterIds },
+          isActive: true,
+        },
+        select: { id: true, chapterId: true, difficulty: true },
+      });
+    }
+
+    if (availableQuestions.length === 0) {
+      return res.status(400).json({
+        error: `No active questions found in question bank for chapters: ${targetChapters.join(', ')}.`,
+      });
+    }
+
+    // Fisher-Yates shuffle
+    const shuffled = [...availableQuestions];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const selectedQuestions = shuffled.slice(0, count);
+
+    // Determine title
+    let title = customTitle;
+    if (!title) {
+      if (targetType === 'STUDENT') {
+        const studentLabel = studentName || rollNumber || 'Student';
+        title = `Remedial DPP — ${studentLabel} — Focus: ${targetChapters.slice(0, 2).join(' & ')}`;
+      } else {
+        title = `Batch Remedial Practice — Focus: ${targetChapters.slice(0, 2).join(' & ')}`;
+      }
+    }
+
+    // Determine exam format
+    const sourcePaper = paperId ? await prisma.paper.findUnique({ where: { id: paperId } }) : null;
+    const examName = sourcePaper?.examName || 'NEET';
+
+    // Create the Paper
+    const newPaper = await prisma.paper.create({
+      data: {
+        title,
+        instituteName: institute?.name || null,
+        instituteId,
+        examName,
+        paperType: 'DPP',
+        config: JSON.stringify({
+          isRemedial: true,
+          targetType,
+          studentName,
+          rollNumber,
+          chapters: targetChapters,
+          sourcePaperId: paperId || null,
+        }),
+        includeSolutions: true,
+        questions: {
+          create: selectedQuestions.map((q, idx) => ({
+            questionId: q.id,
+            order: idx + 1,
+          })),
+        },
+      },
+      include: {
+        _count: {
+          select: { questions: true },
+        },
+      },
+    });
+
+    res.json({
+      ok: true,
+      paperId: newPaper.id,
+      title: newPaper.title,
+      questionCount: newPaper._count.questions,
+      chaptersTargeted: targetChapters,
+      previewUrl: `/papers/${newPaper.id}`,
+      message: `Successfully generated ${newPaper._count.questions}-question remedial paper targeting ${targetChapters.join(', ')}!`,
+    });
+  } catch (err) {
+    console.error('Failed to generate remedial paper:', err);
+    res.status(500).json({ error: 'Failed to generate remedial paper: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/analytics/student/:rollNumber/csv
+ * Exports student longitudinal examination progress report as CSV spreadsheet.
+ */
+router.get('/analytics/student/:rollNumber/csv', async (req, res) => {
+  try {
+    const { rollNumber } = req.params;
+    const normRoll = String(rollNumber).trim().toUpperCase();
+    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+
+    const exams = await prisma.examResult.findMany({
+      where: {
+        instituteId,
+        rollNumber: normRoll,
+      },
+      orderBy: { examDate: 'asc' },
+    });
+
+    if (exams.length === 0) {
+      return res.status(404).send(`No exam records found for student ${normRoll}`);
+    }
+
+    let csv = 'Test #,Exam Name,Date,Type,Rank,Total Students,Marks Obtained,Max Marks,Percentage,Accuracy %,Delta (Pts),Correct,Wrong,Unattempted\n';
+
+    exams.forEach((ex, idx) => {
+      let delta = 0;
+      if (idx > 0) {
+        delta = Math.round((ex.percentage - exams[idx - 1].percentage) * 10) / 10;
+      }
+      const dateStr = ex.examDate ? new Date(ex.examDate).toLocaleDateString('en-IN') : '';
+      csv += `${idx + 1},"${ex.examName}","${dateStr}","${ex.examType}",${ex.rank},${ex.totalStudents},${ex.marksObtained},${ex.maxMarks},${ex.percentage},${ex.accuracyPercentage},${delta},${ex.correctAnswers},${ex.incorrectAnswers},${ex.unattemptedQuestions}\n`;
+    });
+
+    const safeFilename = `${normRoll}_Academic_Progress_Report.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    res.send(csv);
+  } catch (err) {
+    console.error('Failed to export student CSV:', err);
+    res.status(500).send('Failed to export CSV: ' + err.message);
+  }
+});
+
+/**
+ * GET /api/results/students/roster/export-csv
+ * Exports the complete enrolled student roster with WhatsApp numbers as CSV.
+ */
+router.get('/students/roster/export-csv', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId) return res.status(400).send('Institute ID required');
+
+    const students = await prisma.studentProfile.findMany({
+      where: { instituteId, isActive: true },
+      orderBy: { rollNumber: 'asc' },
+      include: {
+        _count: {
+          select: { results: true },
+        },
+      },
+    });
+
+    let csv = 'Roll Number,Student Name,Batch,Section,Parent WhatsApp Mobile,Parent Name,Parent Email,Exams Taken,Enrolled Date\n';
+
+    students.forEach((s) => {
+      const enrolled = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN') : '';
+      csv += `"${s.rollNumber}","${s.fullName}","${s.batchName}","${s.section || ''}","${s.parentPhone || ''}","${s.parentName || ''}","${s.parentEmail || ''}",${s._count.results},"${enrolled}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="Students_Roster_Directory.csv"');
+    res.send(csv);
+  } catch (err) {
+    console.error('Failed to export roster CSV:', err);
+    res.status(500).send('Failed to export CSV');
   }
 });
 
