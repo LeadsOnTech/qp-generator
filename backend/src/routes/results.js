@@ -1211,12 +1211,35 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
       return res.status(404).json({ error: `No exam records found for student ${normRoll}` });
     }
 
+    const profile = await prisma.studentProfile.findUnique({
+      where: {
+        instituteId_rollNumber: {
+          instituteId,
+          rollNumber: normRoll,
+        },
+      },
+    });
+
     const studentInfo = {
-      studentName: exams[exams.length - 1].studentName,
+      studentName: profile?.fullName || exams[exams.length - 1].studentName,
       rollNumber: normRoll,
-      batchName: exams[exams.length - 1].batchName,
-      section: exams[exams.length - 1].section,
-      parentPhoneMasked: maskPhoneNumber(exams[exams.length - 1].parentPhone),
+      batchName: profile?.batchName || exams[exams.length - 1].batchName,
+      section: profile?.section || exams[exams.length - 1].section,
+      classYear: profile?.classYear || null,
+      courseTarget: profile?.courseTarget || null,
+      admissionNumber: profile?.admissionNumber || null,
+      gender: profile?.gender || null,
+      nativePlace: profile?.nativePlace || null,
+      district: profile?.district || null,
+      state: profile?.state || null,
+      hostelStatus: profile?.hostelStatus || null,
+      parentName: profile?.parentName || null,
+      parentRelation: profile?.parentRelation || null,
+      parentOccupation: profile?.parentOccupation || null,
+      parentPhone: profile?.parentPhone || exams[exams.length - 1].parentPhone,
+      parentPhoneMasked: maskPhoneNumber(profile?.parentPhone || exams[exams.length - 1].parentPhone),
+      studentPhone: profile?.studentPhone || null,
+      address: profile?.address || null,
       totalExamsTaken: exams.length,
     };
 
@@ -1646,10 +1669,22 @@ router.get('/students/roster', async (req, res) => {
       fullName: s.fullName,
       batchName: s.batchName,
       section: s.section,
+      classYear: s.classYear,
+      courseTarget: s.courseTarget,
+      admissionNumber: s.admissionNumber,
+      gender: s.gender,
+      nativePlace: s.nativePlace,
+      district: s.district,
+      state: s.state,
+      hostelStatus: s.hostelStatus,
       parentName: s.parentName,
+      parentRelation: s.parentRelation,
+      parentOccupation: s.parentOccupation,
       parentPhone: s.parentPhone,
       parentPhoneMasked: maskPhoneNumber(s.parentPhone),
       parentEmail: s.parentEmail,
+      studentPhone: s.studentPhone,
+      address: s.address,
       examCount: s._count.results,
       createdAt: s.createdAt,
     })));
@@ -1670,7 +1705,28 @@ router.post('/students/roster', async (req, res) => {
       return res.status(400).json({ error: 'Institute ID is required' });
     }
 
-    const { rollNumber, fullName, batchName, section, parentName, parentPhone, parentEmail } = req.body;
+    const {
+      rollNumber,
+      fullName,
+      batchName,
+      section,
+      classYear,
+      courseTarget,
+      admissionNumber,
+      gender,
+      nativePlace,
+      district,
+      state,
+      hostelStatus,
+      parentName,
+      parentPhone,
+      parentRelation,
+      parentOccupation,
+      parentEmail,
+      studentPhone,
+      address,
+    } = req.body;
+
     if (!rollNumber || !String(rollNumber).trim()) {
       return res.status(400).json({ error: 'Roll number is required' });
     }
@@ -1682,6 +1738,28 @@ router.post('/students/roster', async (req, res) => {
     const rawPhone = parentPhone ? String(parentPhone).trim() : '';
     const normPhone = rawPhone ? normalizePhoneNumber(rawPhone) : '';
 
+    const studentData = {
+      fullName: String(fullName).trim(),
+      batchName: batchName ? String(batchName).trim() : 'General',
+      section: section ? String(section).trim() : null,
+      classYear: classYear ? String(classYear).trim() : null,
+      courseTarget: courseTarget ? String(courseTarget).trim() : null,
+      admissionNumber: admissionNumber ? String(admissionNumber).trim() : null,
+      gender: gender ? String(gender).trim() : null,
+      nativePlace: nativePlace ? String(nativePlace).trim() : null,
+      district: district ? String(district).trim() : null,
+      state: state ? String(state).trim() : null,
+      hostelStatus: hostelStatus ? String(hostelStatus).trim() : null,
+      parentName: parentName ? String(parentName).trim() : null,
+      parentPhone: normPhone || '',
+      parentRelation: parentRelation ? String(parentRelation).trim() : null,
+      parentOccupation: parentOccupation ? String(parentOccupation).trim() : null,
+      parentEmail: parentEmail ? String(parentEmail).trim() : null,
+      studentPhone: studentPhone ? String(studentPhone).trim() : null,
+      address: address ? String(address).trim() : null,
+      isActive: true,
+    };
+
     const student = await prisma.studentProfile.upsert({
       where: {
         instituteId_rollNumber: {
@@ -1689,25 +1767,11 @@ router.post('/students/roster', async (req, res) => {
           rollNumber: normRoll,
         },
       },
-      update: {
-        fullName: String(fullName).trim(),
-        batchName: batchName ? String(batchName).trim() : 'General',
-        section: section ? String(section).trim() : null,
-        parentName: parentName ? String(parentName).trim() : null,
-        parentPhone: normPhone || '',
-        parentEmail: parentEmail ? String(parentEmail).trim() : null,
-        isActive: true,
-      },
+      update: studentData,
       create: {
         instituteId,
         rollNumber: normRoll,
-        fullName: String(fullName).trim(),
-        batchName: batchName ? String(batchName).trim() : 'General',
-        section: section ? String(section).trim() : null,
-        parentName: parentName ? String(parentName).trim() : null,
-        parentPhone: normPhone || '',
-        parentEmail: parentEmail ? String(parentEmail).trim() : null,
-        isActive: true,
+        ...studentData,
       },
     });
 
@@ -1785,9 +1849,18 @@ router.post('/students/roster/bulk', async (req, res) => {
             fullName: String(s.fullName).trim(),
             batchName: s.batchName ? String(s.batchName).trim() : (existing?.batchName || 'General'),
             section: s.section ? String(s.section).trim() : existing?.section,
+            classYear: s.classYear ? String(s.classYear).trim() : existing?.classYear,
+            courseTarget: s.courseTarget ? String(s.courseTarget).trim() : existing?.courseTarget,
+            nativePlace: s.nativePlace ? String(s.nativePlace).trim() : existing?.nativePlace,
+            district: s.district ? String(s.district).trim() : existing?.district,
+            hostelStatus: s.hostelStatus ? String(s.hostelStatus).trim() : existing?.hostelStatus,
+            gender: s.gender ? String(s.gender).trim() : existing?.gender,
             parentName: s.parentName ? String(s.parentName).trim() : existing?.parentName,
             parentPhone: normPhone || existing?.parentPhone || '',
+            parentRelation: s.parentRelation ? String(s.parentRelation).trim() : existing?.parentRelation,
+            parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : existing?.parentOccupation,
             parentEmail: s.parentEmail ? String(s.parentEmail).trim() : existing?.parentEmail,
+            studentPhone: s.studentPhone ? String(s.studentPhone).trim() : existing?.studentPhone,
             isActive: true,
           },
           create: {
@@ -1796,9 +1869,18 @@ router.post('/students/roster/bulk', async (req, res) => {
             fullName: String(s.fullName).trim(),
             batchName: s.batchName ? String(s.batchName).trim() : 'General',
             section: s.section ? String(s.section).trim() : null,
+            classYear: s.classYear ? String(s.classYear).trim() : null,
+            courseTarget: s.courseTarget ? String(s.courseTarget).trim() : null,
+            nativePlace: s.nativePlace ? String(s.nativePlace).trim() : null,
+            district: s.district ? String(s.district).trim() : null,
+            hostelStatus: s.hostelStatus ? String(s.hostelStatus).trim() : null,
+            gender: s.gender ? String(s.gender).trim() : null,
             parentName: s.parentName ? String(s.parentName).trim() : null,
             parentPhone: normPhone || '',
+            parentRelation: s.parentRelation ? String(s.parentRelation).trim() : null,
+            parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : null,
             parentEmail: s.parentEmail ? String(s.parentEmail).trim() : null,
+            studentPhone: s.studentPhone ? String(s.studentPhone).trim() : null,
           },
         });
 
@@ -2121,11 +2203,11 @@ router.get('/students/roster/export-csv', async (req, res) => {
       },
     });
 
-    let csv = 'Roll Number,Student Name,Batch,Section,Parent WhatsApp Mobile,Parent Name,Parent Email,Exams Taken,Enrolled Date\n';
+    let csv = 'Roll Number,Student Name,Class / Year,Target Course,Batch,Section,Native Place,District,State,Hostel Status,Gender,Parent WhatsApp Mobile,Parent Name,Relation,Occupation,Student Mobile,Parent Email,Address,Exams Taken,Enrolled Date\n';
 
     students.forEach((s) => {
       const enrolled = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN') : '';
-      csv += `"${s.rollNumber}","${s.fullName}","${s.batchName}","${s.section || ''}","${s.parentPhone || ''}","${s.parentName || ''}","${s.parentEmail || ''}",${s._count.results},"${enrolled}"\n`;
+      csv += `"${s.rollNumber}","${s.fullName}","${s.classYear || ''}","${s.courseTarget || ''}","${s.batchName}","${s.section || ''}","${s.nativePlace || ''}","${s.district || ''}","${s.state || ''}","${s.hostelStatus || ''}","${s.gender || ''}","${s.parentPhone || ''}","${s.parentName || ''}","${s.parentRelation || ''}","${s.parentOccupation || ''}","${s.studentPhone || ''}","${s.parentEmail || ''}","${s.address || ''}",${s._count.results},"${enrolled}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');

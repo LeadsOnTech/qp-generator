@@ -457,9 +457,26 @@ model StudentProfile {
   batchName       String         // e.g. "NEET-2026-Batch-A", "Class-12-MPC"
   section         String?        // e.g. "Section A"
 
+  // Academic & Course Info
+  classYear       String?        // e.g. "Inter 1st Year (Class 11)", "Inter 2nd Year (Class 12)", "Long Term / Repeater"
+  courseTarget    String?        // e.g. "NEET (Medical)", "JEE Main & Advanced", "AP EAPCET", "TG EAPCET"
+  admissionNumber String?        // Optional college admission / registration code
+
+  // Personal & Native Demographics
+  gender          String?        // "Male" | "Female" | "Other"
+  nativePlace     String?        // Native Village / Town / City (e.g. "Tenali", "Nuzvid", "Vijayawada")
+  district        String?        // District (e.g. "Krishna", "Guntur", "NTR", "Visakhapatnam")
+  state           String?        // State (e.g. "Andhra Pradesh", "Telangana")
+  hostelStatus    String?        // "Day Scholar" | "Hosteler / Residential"
+
+  // Parent & Contact Details
   parentName      String?
   parentPhone     String         // Normalized E.164 (e.g. "+919876543210")
+  parentRelation  String?        // "Father" | "Mother" | "Guardian"
+  parentOccupation String?       // e.g. "Farmer", "Business", "Teacher", "Govt Service"
   parentEmail     String?
+  studentPhone    String?        // Student's personal mobile
+  address         String?        // Residential address
 
   results         ExamResult[]
   isActive        Boolean        @default(true)
@@ -468,6 +485,7 @@ model StudentProfile {
 
   @@unique([instituteId, rollNumber])
   @@index([instituteId, batchName])
+  @@index([instituteId, courseTarget])
   @@index([parentPhone])
 }
 
