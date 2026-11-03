@@ -15,6 +15,7 @@ const {
   sendResultWhatsAppNotification,
   compileWhatsAppMessage,
   maskPhoneNumber,
+  normalizePhoneNumber,
   DEFAULT_COST_PER_MESSAGE_INR,
 } = require('../lib/whatsappResultService');
 
@@ -96,8 +97,8 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
       return res.status(400).json({ error: 'No student submissions found to generate results' });
     }
 
-    // 1. Evaluate individual submissions
-    const evaluatedList = submissions.map((sub) => {
+    // 1. Evaluate individual submissions and link with StudentProfile roster
+    const evaluatedList = await Promise.all(submissions.map(async (sub) => {
       let answers = {};
       try {
         answers = sub.answersJson ? JSON.parse(sub.answersJson) : {};
@@ -110,19 +111,35 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
         negativeMarks: test.negativeMarks,
       });
 
+      const normRoll = String(sub.rollNumber).trim().toUpperCase();
+
+      // Look up student profile from enrolled roster
+      const profile = await prisma.studentProfile.findUnique({
+        where: {
+          instituteId_rollNumber: {
+            instituteId: targetInstituteId,
+            rollNumber: normRoll,
+          },
+        },
+      });
+
+      const rawPhone = sub.studentPhone || profile?.parentPhone || null;
+      const parentPhone = rawPhone ? normalizePhoneNumber(rawPhone) : null;
+
       return {
         submissionId: sub.id,
-        studentName: sub.studentName,
-        rollNumber: sub.rollNumber,
-        batchName: sub.section || 'General',
-        section: sub.section,
-        parentPhone: sub.studentPhone,
+        studentName: sub.studentName || profile?.fullName,
+        rollNumber: normRoll,
+        batchName: sub.section || profile?.batchName || 'General',
+        section: sub.section || profile?.section,
+        parentPhone,
+        studentProfileId: profile?.id || null,
         evalData,
         marksObtained: evalData.marksObtained,
         accuracyPercentage: evalData.accuracyPercentage,
         negativeMarksDeducted: evalData.negativeMarksDeducted,
       };
-    });
+    }));
 
     // 2. Assign cohort ranks with tie-breaking rules
     const rankedCohort = assignCohortRanks(evaluatedList, test.examName);
@@ -142,6 +159,35 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
         },
       });
 
+      // Ensure student profile exists in roster
+      let studentProfileId = item.studentProfileId;
+      try {
+        const prof = await prisma.studentProfile.upsert({
+          where: {
+            instituteId_rollNumber: {
+              instituteId: targetInstituteId,
+              rollNumber: item.rollNumber,
+            },
+          },
+          update: {
+            fullName: item.studentName || undefined,
+            parentPhone: item.parentPhone || undefined,
+            batchName: item.batchName !== 'General' ? item.batchName : undefined,
+          },
+          create: {
+            instituteId: targetInstituteId,
+            rollNumber: item.rollNumber,
+            fullName: item.studentName,
+            batchName: item.batchName || 'General',
+            section: item.section || null,
+            parentPhone: item.parentPhone || '',
+          },
+        });
+        studentProfileId = prof.id;
+      } catch (err) {
+        console.warn('Could not auto-upsert StudentProfile in CBT evaluation:', err.message);
+      }
+
       let resultRecord;
       if (existing) {
         // Update existing result
@@ -149,10 +195,11 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
           where: { id: existing.id },
           data: {
             cbtTestId: test.id,
+            studentProfileId,
             studentName: item.studentName,
             batchName: item.batchName,
             section: item.section,
-            parentPhone: item.parentPhone,
+            parentPhone: item.parentPhone || existing.parentPhone,
             totalQuestions: evalData.totalQuestions,
             attemptedQuestions: evalData.attemptedQuestions,
             correctAnswers: evalData.correctAnswers,
@@ -180,6 +227,7 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
             instituteId: targetInstituteId,
             paperId: test.paperId,
             cbtTestId: test.id,
+            studentProfileId,
             studentName: item.studentName,
             rollNumber: item.rollNumber,
             batchName: item.batchName,
@@ -800,6 +848,73 @@ router.post('/:resultId/whatsapp-send', async (req, res) => {
   } catch (err) {
     console.error('Failed to send WhatsApp notification:', err);
     res.status(500).json({ error: 'WhatsApp dispatch failed: ' + err.message });
+  }
+});
+
+/**
+ * PATCH /api/results/:resultId/parent-phone
+ * Updates parent phone number for an ExamResult, and synchronizes with StudentProfile.
+ */
+router.patch('/:resultId/parent-phone', async (req, res) => {
+  try {
+    const { resultId } = req.params;
+    const { parentPhone } = req.body;
+    if (!parentPhone || !String(parentPhone).trim()) {
+      return res.status(400).json({ error: 'Parent phone number is required' });
+    }
+
+    const normPhone = normalizePhoneNumber(parentPhone);
+    if (!normPhone) {
+      return res.status(400).json({ error: 'Invalid phone number format. Please provide a valid 10-digit mobile number.' });
+    }
+
+    const result = await prisma.examResult.findUnique({
+      where: { id: resultId },
+    });
+    if (!result) {
+      return res.status(404).json({ error: 'Exam result not found' });
+    }
+
+    // Tenant authorization check
+    if (req.user.role !== 'ADMIN' && result.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized to modify this result' });
+    }
+
+    const updated = await prisma.examResult.update({
+      where: { id: resultId },
+      data: { parentPhone: normPhone },
+    });
+
+    // Also sync to StudentProfile
+    await prisma.studentProfile.upsert({
+      where: {
+        instituteId_rollNumber: {
+          instituteId: result.instituteId,
+          rollNumber: result.rollNumber,
+        },
+      },
+      update: {
+        parentPhone: normPhone,
+      },
+      create: {
+        instituteId: result.instituteId,
+        rollNumber: result.rollNumber,
+        fullName: result.studentName,
+        batchName: result.batchName || 'General',
+        section: result.section || null,
+        parentPhone: normPhone,
+      },
+    });
+
+    res.json({
+      ok: true,
+      resultId: updated.id,
+      parentPhone: updated.parentPhone,
+      parentPhoneMasked: maskPhoneNumber(updated.parentPhone),
+    });
+  } catch (err) {
+    console.error('Failed to update parent phone:', err);
+    res.status(500).json({ error: 'Failed to update phone: ' + err.message });
   }
 });
 
@@ -1498,6 +1613,249 @@ router.get('/analytics/batch/:paperId/csv', async (req, res) => {
   } catch (err) {
     console.error('Failed to export batch CSV:', err);
     res.status(500).send('Failed to export CSV');
+  }
+});
+
+/**
+ * GET /api/results/students/roster
+ * Fetches all student profiles for this institute with examination count.
+ */
+router.get('/students/roster', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID is required' });
+    }
+
+    const students = await prisma.studentProfile.findMany({
+      where: { instituteId, isActive: true },
+      orderBy: { rollNumber: 'asc' },
+      include: {
+        _count: {
+          select: { results: true },
+        },
+      },
+    });
+
+    res.json(students.map((s) => ({
+      id: s.id,
+      rollNumber: s.rollNumber,
+      fullName: s.fullName,
+      batchName: s.batchName,
+      section: s.section,
+      parentName: s.parentName,
+      parentPhone: s.parentPhone,
+      parentPhoneMasked: maskPhoneNumber(s.parentPhone),
+      parentEmail: s.parentEmail,
+      examCount: s._count.results,
+      createdAt: s.createdAt,
+    })));
+  } catch (err) {
+    console.error('Failed to fetch student roster:', err);
+    res.status(500).json({ error: 'Failed to fetch student roster: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/students/roster
+ * Adds or updates a single student profile in the college roster.
+ */
+router.post('/students/roster', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID is required' });
+    }
+
+    const { rollNumber, fullName, batchName, section, parentName, parentPhone, parentEmail } = req.body;
+    if (!rollNumber || !String(rollNumber).trim()) {
+      return res.status(400).json({ error: 'Roll number is required' });
+    }
+    if (!fullName || !String(fullName).trim()) {
+      return res.status(400).json({ error: 'Student full name is required' });
+    }
+
+    const normRoll = String(rollNumber).trim().toUpperCase();
+    const rawPhone = parentPhone ? String(parentPhone).trim() : '';
+    const normPhone = rawPhone ? normalizePhoneNumber(rawPhone) : '';
+
+    const student = await prisma.studentProfile.upsert({
+      where: {
+        instituteId_rollNumber: {
+          instituteId,
+          rollNumber: normRoll,
+        },
+      },
+      update: {
+        fullName: String(fullName).trim(),
+        batchName: batchName ? String(batchName).trim() : 'General',
+        section: section ? String(section).trim() : null,
+        parentName: parentName ? String(parentName).trim() : null,
+        parentPhone: normPhone || '',
+        parentEmail: parentEmail ? String(parentEmail).trim() : null,
+        isActive: true,
+      },
+      create: {
+        instituteId,
+        rollNumber: normRoll,
+        fullName: String(fullName).trim(),
+        batchName: batchName ? String(batchName).trim() : 'General',
+        section: section ? String(section).trim() : null,
+        parentName: parentName ? String(parentName).trim() : null,
+        parentPhone: normPhone || '',
+        parentEmail: parentEmail ? String(parentEmail).trim() : null,
+        isActive: true,
+      },
+    });
+
+    // Backfill phone to existing ExamResults for this student
+    if (normPhone) {
+      await prisma.examResult.updateMany({
+        where: {
+          instituteId,
+          rollNumber: normRoll,
+          OR: [{ parentPhone: null }, { parentPhone: '' }],
+        },
+        data: {
+          parentPhone: normPhone,
+          studentProfileId: student.id,
+        },
+      });
+    }
+
+    res.json({ ok: true, student });
+  } catch (err) {
+    console.error('Failed to save student profile:', err);
+    res.status(500).json({ error: 'Failed to save student: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/students/roster/bulk
+ * Bulk imports student roster (from CSV or rows).
+ */
+router.post('/students/roster/bulk', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID is required' });
+    }
+
+    const { students } = req.body;
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ error: 'Students array is required' });
+    }
+
+    let importedCount = 0;
+    let updatedCount = 0;
+    const errors = [];
+
+    for (let i = 0; i < students.length; i++) {
+      const s = students[i];
+      if (!s.rollNumber || !s.fullName) {
+        errors.push(`Row ${i + 1}: Missing Roll Number or Full Name`);
+        continue;
+      }
+
+      const normRoll = String(s.rollNumber).trim().toUpperCase();
+      const rawPhone = s.parentPhone ? String(s.parentPhone).trim() : '';
+      const normPhone = rawPhone ? normalizePhoneNumber(rawPhone) : '';
+
+      try {
+        const existing = await prisma.studentProfile.findUnique({
+          where: {
+            instituteId_rollNumber: {
+              instituteId,
+              rollNumber: normRoll,
+            },
+          },
+        });
+
+        const profile = await prisma.studentProfile.upsert({
+          where: {
+            instituteId_rollNumber: {
+              instituteId,
+              rollNumber: normRoll,
+            },
+          },
+          update: {
+            fullName: String(s.fullName).trim(),
+            batchName: s.batchName ? String(s.batchName).trim() : (existing?.batchName || 'General'),
+            section: s.section ? String(s.section).trim() : existing?.section,
+            parentName: s.parentName ? String(s.parentName).trim() : existing?.parentName,
+            parentPhone: normPhone || existing?.parentPhone || '',
+            parentEmail: s.parentEmail ? String(s.parentEmail).trim() : existing?.parentEmail,
+            isActive: true,
+          },
+          create: {
+            instituteId,
+            rollNumber: normRoll,
+            fullName: String(s.fullName).trim(),
+            batchName: s.batchName ? String(s.batchName).trim() : 'General',
+            section: s.section ? String(s.section).trim() : null,
+            parentName: s.parentName ? String(s.parentName).trim() : null,
+            parentPhone: normPhone || '',
+            parentEmail: s.parentEmail ? String(s.parentEmail).trim() : null,
+          },
+        });
+
+        if (existing) {
+          updatedCount++;
+        } else {
+          importedCount++;
+        }
+
+        // Backfill phone to past results if missing
+        if (normPhone) {
+          await prisma.examResult.updateMany({
+            where: {
+              instituteId,
+              rollNumber: normRoll,
+              OR: [{ parentPhone: null }, { parentPhone: '' }],
+            },
+            data: {
+              parentPhone: normPhone,
+              studentProfileId: profile.id,
+            },
+          });
+        }
+      } catch (err) {
+        errors.push(`Row ${i + 1} (${normRoll}): ${err.message}`);
+      }
+    }
+
+    res.json({
+      ok: true,
+      importedCount,
+      updatedCount,
+      totalProcessed: students.length,
+      errors: errors.slice(0, 10),
+    });
+  } catch (err) {
+    console.error('Failed to bulk import students:', err);
+    res.status(500).json({ error: 'Bulk import failed: ' + err.message });
+  }
+});
+
+/**
+ * DELETE /api/results/students/roster/:id
+ * Deactivates or removes a student from roster.
+ */
+router.delete('/students/roster/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await prisma.studentProfile.findUnique({ where: { id } });
+    if (!profile) return res.status(404).json({ error: 'Student not found' });
+
+    if (req.user.role !== 'ADMIN' && profile.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await prisma.studentProfile.delete({ where: { id } });
+    res.json({ ok: true, message: 'Student removed from roster' });
+  } catch (err) {
+    console.error('Failed to delete student:', err);
+    res.status(500).json({ error: 'Failed to delete student: ' + err.message });
   }
 });
 

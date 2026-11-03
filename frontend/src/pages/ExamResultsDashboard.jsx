@@ -29,6 +29,11 @@ export default function ExamResultsDashboard() {
   // WhatsApp Ledger
   const [ledgerData, setLedgerData] = useState(null);
 
+  // Phone Edit State
+  const [phoneEditTarget, setPhoneEditTarget] = useState(null);
+  const [phoneInputValue, setPhoneInputValue] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
+
   // Offline Upload State
   const [offlineCsv, setOfflineCsv] = useState('');
   const [posMarks, setPosMarks] = useState(4.0);
@@ -109,6 +114,36 @@ export default function ExamResultsDashboard() {
       alert('Failed to send WhatsApp message: ' + err.message);
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  // Update Parent Phone Number
+  async function handleSavePhone(resultId, phoneStr) {
+    if (!phoneStr || !phoneStr.trim()) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    try {
+      setSavingPhone(true);
+      const res = await api.updateResultParentPhone(resultId, phoneStr.trim());
+      
+      setResults((prev) => prev.map((r) => (r.id === resultId ? { ...r, parentPhone: res.parentPhone, parentPhoneMasked: res.parentPhoneMasked } : r)));
+      
+      if (previewModal && previewModal.result.id === resultId) {
+        setPreviewModal((prev) => ({
+          ...prev,
+          result: { ...prev.result, parentPhone: res.parentPhone, parentPhoneMasked: res.parentPhoneMasked },
+          preview: { ...prev.preview, recipientPhone: res.parentPhone, recipientPhoneMasked: res.parentPhoneMasked },
+        }));
+      }
+
+      setPhoneEditTarget(null);
+      setPhoneInputValue('');
+      alert(`Parent mobile number updated to ${res.parentPhone}!`);
+    } catch (err) {
+      alert('Failed to update phone: ' + err.message);
+    } finally {
+      setSavingPhone(false);
     }
   }
 
@@ -412,8 +447,42 @@ export default function ExamResultsDashboard() {
                         <span style={{ color: '#dc2626', fontWeight: 700 }}>{r.incorrectAnswers}</span> /{' '}
                         <span style={{ color: '#64748b' }}>{r.unattemptedQuestions}</span>
                       </td>
-                      <td style={{ ...styles.td, textAlign: 'center', fontSize: 12, color: '#475569' }}>
-                        {r.parentPhoneMasked || '—'}
+                      <td style={{ ...styles.td, textAlign: 'center', fontSize: 12 }}>
+                        {r.parentPhoneMasked && r.parentPhoneMasked !== '—' ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ color: '#0f172a', fontWeight: 600 }}>{r.parentPhoneMasked}</span>
+                            <button
+                              onClick={() => {
+                                setPhoneEditTarget(r);
+                                setPhoneInputValue(r.parentPhone || '');
+                              }}
+                              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: '#64748b' }}
+                              title="Edit Parent Mobile"
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setPhoneEditTarget(r);
+                              setPhoneInputValue('');
+                            }}
+                            style={{
+                              border: '1px dashed #ef4444',
+                              background: '#fef2f2',
+                              color: '#dc2626',
+                              borderRadius: 4,
+                              padding: '2px 8px',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                            title="Add Parent Mobile"
+                          >
+                            + Add Mobile
+                          </button>
+                        )}
                       </td>
                       <td style={{ ...styles.td, textAlign: 'center' }}>
                         <span
@@ -490,8 +559,48 @@ export default function ExamResultsDashboard() {
             <div style={{ padding: 16 }}>
               <div style={styles.metaRow}>
                 <span><b>Student:</b> {previewModal.result.studentName} ({previewModal.result.rollNumber})</span>
-                <span><b>Parent Mobile:</b> {previewModal.preview.recipientPhoneMasked}</span>
+                <span><b>Parent Mobile:</b> {previewModal.preview.recipientPhoneMasked || '—'}</span>
               </div>
+
+              {/* Inline phone prompt if missing or change requested */}
+              {(!previewModal.preview.recipientPhone || previewModal.preview.recipientPhone === '—' || phoneInputValue) ? (
+                <div style={{ margin: '12px 0', padding: 12, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 6 }}>
+                    📱 Enter Parent WhatsApp Mobile Number
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9848628863"
+                      value={phoneInputValue}
+                      onChange={(e) => setPhoneInputValue(e.target.value)}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSavePhone(previewModal.result.id, phoneInputValue)}
+                      disabled={savingPhone || !phoneInputValue.trim()}
+                      style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      {savingPhone ? 'Saving…' : '💾 Save Mobile'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 4 }}>
+                    Saving updates this exam and permanently enrolls the parent mobile in your college roster.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ margin: '8px 0', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPhoneInputValue(previewModal.preview.recipientPhone || '')}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    ✏️ Change Mobile Number
+                  </button>
+                </div>
+              )}
+
               <div style={{ margin: '12px 0 6px 0', fontSize: 12, fontWeight: 700, color: '#475569' }}>
                 MESSAGE PREVIEW (OFFICIAL TEMPLATE):
               </div>
@@ -503,11 +612,16 @@ export default function ExamResultsDashboard() {
               </div>
             </div>
             <div style={styles.modalFooter}>
-              <button onClick={() => setPreviewModal(null)} style={styles.cancelBtn}>Cancel</button>
+              <button onClick={() => { setPreviewModal(null); setPhoneInputValue(''); }} style={styles.cancelBtn}>Cancel</button>
               <button
                 onClick={() => handleSendSingleWhatsApp(previewModal.result.id)}
-                disabled={actionLoading}
-                style={styles.confirmSendBtn}
+                disabled={actionLoading || !previewModal.preview.recipientPhone || previewModal.preview.recipientPhone === '—'}
+                style={{
+                  ...styles.confirmSendBtn,
+                  opacity: (!previewModal.preview.recipientPhone || previewModal.preview.recipientPhone === '—') ? 0.5 : 1,
+                  cursor: (!previewModal.preview.recipientPhone || previewModal.preview.recipientPhone === '—') ? 'not-allowed' : 'pointer',
+                }}
+                title={(!previewModal.preview.recipientPhone || previewModal.preview.recipientPhone === '—') ? 'Please add a parent phone number first' : 'Send WhatsApp'}
               >
                 {actionLoading ? 'Dispatching...' : '🚀 Send WhatsApp Message'}
               </button>
@@ -696,6 +810,50 @@ export default function ExamResultsDashboard() {
             </div>
             <div style={styles.modalFooter}>
               <button onClick={() => setLedgerModal(false)} style={styles.cancelBtn}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Standalone Phone Edit Modal */}
+      {phoneEditTarget && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#0f172a' }}>
+                📱 Edit Parent Mobile Number
+              </h3>
+              <button onClick={() => { setPhoneEditTarget(null); setPhoneInputValue(''); }} style={styles.modalCloseBtn}>✕</button>
+            </div>
+            <div style={{ padding: 20 }}>
+              <div style={{ marginBottom: 12, fontSize: 13.5, color: '#334155' }}>
+                Student: <b>{phoneEditTarget.studentName}</b> ({phoneEditTarget.rollNumber})
+              </div>
+              <div className="field">
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                  Parent 10-Digit Mobile Number
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9848628863"
+                  value={phoneInputValue}
+                  onChange={(e) => setPhoneInputValue(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' }}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '8px 0 0 0' }}>
+                This phone number will receive the student's exam scorecards, accuracy reports, and college announcements via WhatsApp.
+              </p>
+            </div>
+            <div style={styles.modalFooter}>
+              <button onClick={() => { setPhoneEditTarget(null); setPhoneInputValue(''); }} style={styles.cancelBtn}>Cancel</button>
+              <button
+                onClick={() => handleSavePhone(phoneEditTarget.id, phoneInputValue)}
+                disabled={savingPhone || !phoneInputValue.trim()}
+                style={styles.confirmSendBtn}
+              >
+                {savingPhone ? 'Saving…' : '💾 Save Mobile Number'}
+              </button>
             </div>
           </div>
         </div>

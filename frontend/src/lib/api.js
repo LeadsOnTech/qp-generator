@@ -302,6 +302,13 @@ export const api = {
   getWhatsAppLedger: () => request('/results/whatsapp/ledger'),
   rechargeWhatsAppWallet: (amountRupees) => request('/results/whatsapp/wallet-recharge', { method: 'POST', body: JSON.stringify({ amountRupees }) }),
   getPublicResult: (token) => request(`/public/results/${token}`),
+  updateResultParentPhone: (resultId, parentPhone) => request(`/results/${resultId}/parent-phone`, { method: 'PATCH', body: JSON.stringify({ parentPhone }) }),
+
+  // Student Roster & Directory Management
+  getStudentsRoster: (instituteId) => request(`/results/students/roster${instituteId ? `?instituteId=${instituteId}` : ''}`),
+  saveStudentProfile: (data) => request('/results/students/roster', { method: 'POST', body: JSON.stringify(data) }),
+  bulkImportStudents: (students, instituteId) => request('/results/students/roster/bulk', { method: 'POST', body: JSON.stringify({ students, instituteId }) }),
+  deleteStudentProfile: (id) => request(`/results/students/roster/${id}`, { method: 'DELETE' }),
 
   // Milestone 2: Student Analytics & Batch Reporting
   getAnalyticsStudentsList: (filters = {}) => {

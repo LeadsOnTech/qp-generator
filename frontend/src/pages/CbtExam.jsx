@@ -15,6 +15,7 @@ export default function CbtExam() {
   const [studentName, setStudentName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [section, setSection] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
   const [pin, setPin] = useState('');
   const [registering, setRegistering] = useState(false);
   const [regError, setRegError] = useState(null);
@@ -120,6 +121,7 @@ export default function CbtExam() {
         studentName: studentName.trim(),
         rollNumber: rollNumber.trim(),
         section: section.trim(),
+        phone: parentPhone.trim(),
         pin: pin.trim(),
       });
 
@@ -165,6 +167,7 @@ export default function CbtExam() {
         studentName: student.studentName,
         rollNumber: student.rollNumber,
         section: student.section,
+        phone: student.phone || parentPhone.trim() || undefined,
         answers,
         timeSpentSeconds: timeSpent,
         tabSwitchCount,
@@ -319,6 +322,22 @@ export default function CbtExam() {
                 onChange={(e) => setSection(e.target.value)}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: '#0f172a', border: '1px solid #475569', color: '#fff', fontSize: 14, boxSizing: 'border-box' }}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#38bdf8', marginBottom: 5 }}>
+                Parent WhatsApp Mobile (Optional)
+              </label>
+              <input
+                type="tel"
+                placeholder="e.g. 9848628863 (10-digit number)"
+                value={parentPhone}
+                onChange={(e) => setParentPhone(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: '#0f172a', border: '1px solid #0284c7', color: '#fff', fontSize: 14, boxSizing: 'border-box' }}
+              />
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+                Performance report and scorecard will be sent to this WhatsApp number.
+              </div>
             </div>
 
             {testInfo?.hasPin && (
