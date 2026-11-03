@@ -291,4 +291,106 @@ router.get('/:id/credit-history', async (req, res) => {
   res.json(history);
 });
 
+/**
+ * POST /api/institutes/:id/create-login
+ * ADMIN ONLY — create or reset a login account (email + password) for this institute.
+ */
+router.post('/:id/create-login', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { email, password } = req.body;
+
+    const institute = await prisma.institute.findUnique({ where: { id } });
+    if (!institute) {
+      return res.status(404).json({ error: 'Institute not found.' });
+    }
+
+    if (!email || !email.trim()) {
+      const cleanSlug = institute.slug.replace(/[^a-z0-9]/g, '');
+      email = `${cleanSlug}@questionstudio.local`;
+    }
+    email = email.trim().toLowerCase();
+
+    if (!password || !password.trim()) {
+      password = crypto.randomBytes(4).toString('hex');
+    }
+    password = password.trim();
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    let user = await prisma.user.findFirst({
+      where: { instituteId: institute.id },
+    });
+
+    if (user) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          email,
+          passwordHash,
+          role: 'INSTITUTE',
+        },
+      });
+    } else {
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) {
+        return res.status(400).json({ error: `Email "${email}" is already in use by another user account. Please choose a different email.` });
+      }
+
+      user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: 'INSTITUTE',
+          instituteId: institute.id,
+        },
+      });
+    }
+
+    await prisma.institute.update({
+      where: { id: institute.id },
+      data: { trialPassword: password },
+    });
+
+    res.json({
+      ok: true,
+      message: `Login credentials configured for ${institute.name}`,
+      email,
+      password,
+      instituteId: institute.id,
+      instituteName: institute.name,
+    });
+  } catch (err) {
+    console.error('Failed to create institute login:', err);
+    res.status(500).json({ error: 'Failed to create login: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/institutes/:id/login-info
+ * ADMIN ONLY — view login email and status for this institute.
+ */
+router.get('/:id/login-info', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findFirst({
+      where: { instituteId: id },
+      select: { email: true, createdAt: true, lastLoginAt: true },
+    });
+    const institute = await prisma.institute.findUnique({
+      where: { id },
+      select: { trialPassword: true },
+    });
+
+    res.json({
+      hasLogin: Boolean(user),
+      email: user?.email || null,
+      lastLoginAt: user?.lastLoginAt || null,
+      savedPassword: institute?.trialPassword || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch login info' });
+  }
+});
+
 module.exports = router;

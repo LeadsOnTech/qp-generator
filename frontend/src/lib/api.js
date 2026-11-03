@@ -251,6 +251,8 @@ export const api = {
   deleteInstitute: (id) => request(`/institutes/${id}`, { method: 'DELETE' }),
   myInstitute: () => request('/institutes/me'),
   updateMyInstitute: (data) => request('/institutes/me', { method: 'PATCH', body: JSON.stringify(data) }),
+  createInstituteLogin: (id, data) => request(`/institutes/${id}/create-login`, { method: 'POST', body: JSON.stringify(data) }),
+  getInstituteLoginInfo: (id) => request(`/institutes/${id}/login-info`),
 
   // ---- Trial/Demo logins + Credits (Stage 2) ----
   generateTrialLogin: (instituteName, phone) => request('/institutes/trial', { method: 'POST', body: JSON.stringify({ instituteName, phone }) }),

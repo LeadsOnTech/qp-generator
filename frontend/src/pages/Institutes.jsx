@@ -17,6 +17,49 @@ export default function Institutes() {
   const [rechargeReason, setRechargeReason] = useState('');
   const [rechargeBusy, setRechargeBusy] = useState(false);
 
+  // Login Management State
+  const [loginTarget, setLoginTarget] = useState(null);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(null);
+
+  async function openLoginModal(inst) {
+    setLoginTarget(inst);
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginSuccess(null);
+    setError(null);
+    try {
+      setLoginLoading(true);
+      const info = await api.getInstituteLoginInfo(inst.id);
+      if (info.email) setLoginEmail(info.email);
+      if (info.savedPassword) setLoginPassword(info.savedPassword);
+    } catch (e) {
+      console.warn('Could not fetch existing login info:', e);
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function handleSaveLogin() {
+    if (!loginTarget) return;
+    setLoginLoading(true);
+    setError(null);
+    try {
+      const res = await api.createInstituteLogin(loginTarget.id, {
+        email: loginEmail.trim(),
+        password: loginPassword.trim(),
+      });
+      setLoginSuccess(res);
+      setMessage(`Login configured for ${loginTarget.name}: ${res.email}`);
+    } catch (err) {
+      setError(err.message || 'Failed to configure login credentials');
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
   function load() {
     setLoading(true);
     api.listInstitutes()
@@ -192,9 +235,90 @@ export default function Institutes() {
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => startEdit(inst)}>Edit</button>
                 <button className="btn-danger-ghost" onClick={() => remove(inst.id, inst.name)}>Delete</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => openRecharge(inst)}>+ Credits</button>
+                <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#2563eb', fontWeight: 600 }} onClick={() => openLoginModal(inst)}>🔑 Login</button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Login Management Modal */}
+      {loginTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(16,29,51,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setLoginTarget(null)}
+        >
+          <div className="card card-pad" style={{ width: 440, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 4 }}>🔑 Configure Institute Login</h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 16 }}>
+              {loginTarget.name} ({loginTarget.creditBalance ?? 0} credits)
+            </p>
+
+            {loginSuccess ? (
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                <div style={{ color: '#065f46', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+                  ✅ Login Ready!
+                </div>
+                <div style={{ fontSize: 13, color: '#1e293b', marginBottom: 4 }}>
+                  <b>Email:</b> <span style={{ fontFamily: 'monospace', background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{loginSuccess.email}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#1e293b', marginBottom: 12 }}>
+                  <b>Password:</b> <span style={{ fontFamily: 'monospace', background: '#fff', padding: '2px 6px', borderRadius: 4 }}>{loginSuccess.password}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    const text = `College Login Credentials:\nInstitute: ${loginTarget.name}\nEmail: ${loginSuccess.email}\nPassword: ${loginSuccess.password}\nLogin URL: ${window.location.origin}/#/login`;
+                    navigator.clipboard.writeText(text);
+                    alert('Credentials copied to clipboard!');
+                  }}
+                >
+                  📋 Copy Login Credentials
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="field">
+                  <label>Login Email</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. andhra@inspire.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 4 }}>
+                    Leave blank to auto-generate from institute name.
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>Password</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Inspire@123"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 4 }}>
+                    Leave blank to auto-generate a secure password.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSaveLogin}
+                    disabled={loginLoading}
+                  >
+                    {loginLoading ? 'Saving…' : 'Set Credentials'}
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setLoginTarget(null)}>Close</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
