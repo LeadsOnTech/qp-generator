@@ -300,4 +300,12 @@ export const api = {
   getWhatsAppLedger: () => request('/results/whatsapp/ledger'),
   rechargeWhatsAppWallet: (amountRupees) => request('/results/whatsapp/wallet-recharge', { method: 'POST', body: JSON.stringify({ amountRupees }) }),
   getPublicResult: (token) => request(`/public/results/${token}`),
+
+  // Milestone 2: Student Analytics & Batch Reporting
+  getAnalyticsStudentsList: (filters = {}) => {
+    const params = new URLSearchParams(filters).toString();
+    return request(`/results/analytics/students-list${params ? `?${params}` : ''}`);
+  },
+  getStudentAnalytics: (rollNumber) => request(`/results/analytics/student/${encodeURIComponent(rollNumber)}`),
+  getBatchAnalytics: (paperId) => request(`/results/analytics/batch/${paperId}`),
 };

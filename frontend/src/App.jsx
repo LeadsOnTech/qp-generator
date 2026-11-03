@@ -43,6 +43,8 @@ import CbtExam from './pages/CbtExam';
 import CbtLeaderboard from './pages/CbtLeaderboard';
 import PublicScorecard from './pages/PublicScorecard';
 import ExamResultsDashboard from './pages/ExamResultsDashboard';
+import StudentAnalytics from './pages/StudentAnalytics';
+import BatchPerformanceReport from './pages/BatchPerformanceReport';
 
 export default function App() {
   return (
@@ -80,7 +82,10 @@ export default function App() {
               <Route path="/papers" element={<PapersList />} />
               <Route path="/papers/:id" element={<PaperPreview />} />
               <Route path="/papers/:id/results" element={<ExamResultsDashboard />} />
+              <Route path="/papers/:id/batch-report" element={<BatchPerformanceReport />} />
               <Route path="/results/:id" element={<ExamResultsDashboard />} />
+              <Route path="/batch-report/:id" element={<BatchPerformanceReport />} />
+              <Route path="/student-analytics" element={<StudentAnalytics />} />
               <Route path="/questions" element={<QuestionBank />} />
               <Route path="/images" element={<ImageLibrary />} />
 

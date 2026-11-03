@@ -60,6 +60,7 @@ const adminQualityItems = [
 const paperEngineItems = [
   { to: '/generate', label: 'Generate Paper', icon: '✎' },
   { to: '/papers', label: 'Papers', icon: '▣' },
+  { to: '/student-analytics', label: 'Student Analytics', icon: '📈' },
 ];
 
 const adminOnlyExtras = [
@@ -75,6 +76,7 @@ const instituteNavItems = [
   { to: '/institute-dashboard', label: 'Dashboard', icon: '◆', end: true },
   { to: '/generate', label: 'Generate Paper', icon: '✎' },
   { to: '/papers', label: 'Papers', icon: '▣' },
+  { to: '/student-analytics', label: 'Student Analytics', icon: '📈' },
   { to: '/questions', label: 'Question Bank', icon: '▤' },
   { to: '/my-institute', label: 'My Institute Profile', icon: '🏛' },
   { to: '/recharge', label: 'Recharge Credits', icon: '💳' },

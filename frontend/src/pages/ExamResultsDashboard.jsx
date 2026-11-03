@@ -258,6 +258,13 @@ export default function ExamResultsDashboard() {
           >
             📱 Batch WhatsApp to Parents
           </button>
+          <Link
+            to={`/papers/${paperId}/batch-report`}
+            style={styles.batchAuditLinkBtn}
+            title="View executive batch management report, bell curve, and honor roll"
+          >
+            📈 Batch Performance Report
+          </Link>
         </div>
       </div>
 
@@ -797,6 +804,19 @@ const styles = {
     fontWeight: 700,
     cursor: 'pointer',
     boxShadow: '0 2px 4px rgba(5,150,105,0.2)',
+  },
+  batchAuditLinkBtn: {
+    background: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    padding: '10px 16px',
+    fontSize: 13,
+    fontWeight: 700,
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    cursor: 'pointer',
   },
   alertSuccess: {
     background: '#dcfce7',

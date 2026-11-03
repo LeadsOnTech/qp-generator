@@ -10,6 +10,7 @@ const {
   generateResultToken,
 } = require('../lib/resultEngine');
 const { buildStudentPerformancePdf } = require('../lib/studentReportPdf');
+const { buildBatchPerformancePdf } = require('../lib/batchReportPdf');
 const {
   sendResultWhatsAppNotification,
   compileWhatsAppMessage,
@@ -996,6 +997,507 @@ router.post('/whatsapp/wallet-recharge', async (req, res) => {
   } catch (err) {
     console.error('Failed to recharge WhatsApp wallet:', err);
     res.status(500).json({ error: 'Recharge failed: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/analytics/students-list
+ * Lists unique students who have taken exams in this institute.
+ */
+router.get('/analytics/students-list', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID required' });
+    }
+
+    const allResults = await prisma.examResult.findMany({
+      where: { instituteId },
+      orderBy: { examDate: 'desc' },
+      select: {
+        rollNumber: true,
+        studentName: true,
+        batchName: true,
+        section: true,
+        parentPhone: true,
+        marksObtained: true,
+        maxMarks: true,
+        percentage: true,
+        accuracyPercentage: true,
+        rank: true,
+        examDate: true,
+      },
+    });
+
+    const studentMap = {};
+    allResults.forEach((r) => {
+      const roll = r.rollNumber;
+      if (!studentMap[roll]) {
+        studentMap[roll] = {
+          rollNumber: roll,
+          studentName: r.studentName,
+          batchName: r.batchName,
+          section: r.section,
+          parentPhoneMasked: maskPhoneNumber(r.parentPhone),
+          totalExams: 0,
+          totalPercentage: 0,
+          latestExamDate: r.examDate,
+          latestScore: r.marksObtained,
+          latestPercentage: r.percentage,
+          latestRank: r.rank,
+        };
+      }
+      studentMap[roll].totalExams++;
+      studentMap[roll].totalPercentage += r.percentage;
+    });
+
+    const students = Object.values(studentMap).map((s) => ({
+      ...s,
+      averagePercentage: Math.round((s.totalPercentage / s.totalExams) * 10) / 10,
+    }));
+
+    students.sort((a, b) => a.studentName.localeCompare(b.studentName));
+
+    res.json({ students });
+  } catch (err) {
+    console.error('Failed to list students for analytics:', err);
+    res.status(500).json({ error: 'Failed to fetch student list' });
+  }
+});
+
+/**
+ * GET /api/results/analytics/student/:rollNumber
+ * Returns multi-exam progression history, percentage-point deltas, subject trends, and weak chapters.
+ */
+router.get('/analytics/student/:rollNumber', async (req, res) => {
+  try {
+    const { rollNumber } = req.params;
+    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID required' });
+    }
+
+    const normRoll = String(rollNumber).trim().toUpperCase();
+
+    const exams = await prisma.examResult.findMany({
+      where: {
+        instituteId,
+        rollNumber: normRoll,
+      },
+      orderBy: { examDate: 'asc' },
+      include: {
+        subjectResults: true,
+        chapterResults: true,
+        accessTokens: { where: { isRevoked: false }, take: 1 },
+      },
+    });
+
+    if (exams.length === 0) {
+      return res.status(404).json({ error: `No exam records found for student ${normRoll}` });
+    }
+
+    const studentInfo = {
+      studentName: exams[exams.length - 1].studentName,
+      rollNumber: normRoll,
+      batchName: exams[exams.length - 1].batchName,
+      section: exams[exams.length - 1].section,
+      parentPhoneMasked: maskPhoneNumber(exams[exams.length - 1].parentPhone),
+      totalExamsTaken: exams.length,
+    };
+
+    const timeline = exams.map((ex, idx) => {
+      let percentagePointsDelta = 0;
+      let accuracyPointsDelta = 0;
+      let rankDelta = 0;
+
+      if (idx > 0) {
+        const prev = exams[idx - 1];
+        percentagePointsDelta = Math.round((ex.percentage - prev.percentage) * 10) / 10;
+        accuracyPointsDelta = Math.round((ex.accuracyPercentage - prev.accuracyPercentage) * 10) / 10;
+        rankDelta = prev.rank - ex.rank;
+      }
+
+      return {
+        resultId: ex.id,
+        examName: ex.examName,
+        examDate: ex.examDate,
+        examType: ex.examType,
+        marksObtained: ex.marksObtained,
+        maxMarks: ex.maxMarks,
+        percentage: ex.percentage,
+        accuracyPercentage: ex.accuracyPercentage,
+        rank: ex.rank,
+        totalStudents: ex.totalStudents,
+        percentagePointsDelta,
+        accuracyPointsDelta,
+        rankDelta,
+        publicToken: ex.accessTokens[0]?.token || null,
+        academicInsight: ex.academicInsight,
+      };
+    });
+
+    const totalScorePct = timeline.reduce((acc, t) => acc + t.percentage, 0);
+    const totalAccPct = timeline.reduce((acc, t) => acc + t.accuracyPercentage, 0);
+    const careerAveragePercentage = Math.round((totalScorePct / timeline.length) * 10) / 10;
+    const careerAverageAccuracy = Math.round((totalAccPct / timeline.length) * 10) / 10;
+    const bestRank = Math.min(...timeline.map((t) => t.rank));
+
+    const subjectMap = {};
+    exams.forEach((ex) => {
+      (ex.subjectResults || []).forEach((sub) => {
+        if (!subjectMap[sub.subjectName]) {
+          subjectMap[sub.subjectName] = [];
+        }
+        subjectMap[sub.subjectName].push({
+          examName: ex.examName,
+          examDate: ex.examDate,
+          score: sub.marksObtained,
+          maxMarks: sub.maxMarks,
+          percentage: sub.percentage,
+          accuracyPercentage: sub.accuracyPercentage,
+        });
+      });
+    });
+
+    const chapterStats = {};
+    exams.forEach((ex) => {
+      (ex.chapterResults || []).forEach((chap) => {
+        if (!chapterStats[chap.chapterName]) {
+          chapterStats[chap.chapterName] = {
+            chapterName: chap.chapterName,
+            timesEncountered: 0,
+            totalAttempted: 0,
+            totalCorrect: 0,
+          };
+        }
+        chapterStats[chap.chapterName].timesEncountered++;
+        chapterStats[chap.chapterName].totalAttempted += chap.attemptedQuestions;
+        chapterStats[chap.chapterName].totalCorrect += chap.correctCount;
+      });
+    });
+
+    const chronicWeakChapters = Object.values(chapterStats)
+      .map((c) => {
+        const accuracy = c.totalAttempted > 0
+          ? Math.round((c.totalCorrect / c.totalAttempted) * 1000) / 10
+          : 0;
+        return {
+          ...c,
+          overallAccuracy: accuracy,
+        };
+      })
+      .filter((c) => c.overallAccuracy < 50 && c.totalAttempted >= 2)
+      .sort((a, b) => a.overallAccuracy - b.overallAccuracy);
+
+    res.json({
+      student: studentInfo,
+      careerStats: {
+        totalExamsTaken: exams.length,
+        careerAveragePercentage,
+        careerAverageAccuracy,
+        bestRank,
+        latestRank: timeline[timeline.length - 1].rank,
+        latestPercentage: timeline[timeline.length - 1].percentage,
+        latestDelta: timeline[timeline.length - 1].percentagePointsDelta,
+      },
+      timeline,
+      subjectProgression: subjectMap,
+      chronicWeakChapters,
+    });
+  } catch (err) {
+    console.error('Failed to get student analytics:', err);
+    res.status(500).json({ error: 'Failed to fetch student analytics: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/analytics/batch/:paperId
+ * Consolidated Batch Performance Report for management and principals.
+ */
+router.get('/analytics/batch/:paperId', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+      include: { institute: true },
+    });
+
+    if (!paper) {
+      return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && paper.instituteId && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const results = await prisma.examResult.findMany({
+      where: { paperId },
+      orderBy: [{ rank: 'asc' }, { marksObtained: 'desc' }],
+      include: {
+        subjectResults: true,
+        chapterResults: true,
+      },
+    });
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No exam results available for this paper yet' });
+    }
+
+    const totalStudents = results.length;
+    const scores = results.map((r) => r.marksObtained);
+    const totalScore = scores.reduce((a, b) => a + b, 0);
+    const averageScore = Math.round((totalScore / totalStudents) * 10) / 10;
+    const topScore = Math.max(...scores);
+    const lowestScore = Math.min(...scores);
+
+    const sortedScores = [...scores].sort((a, b) => a - b);
+    const mid = Math.floor(sortedScores.length / 2);
+    const medianScore = sortedScores.length % 2 !== 0
+      ? sortedScores[mid]
+      : Math.round(((sortedScores[mid - 1] + sortedScores[mid]) / 2) * 10) / 10;
+
+    const maxMarks = results[0].maxMarks || 100;
+    const passThreshold = maxMarks * 0.4;
+    const passedCount = results.filter((r) => r.marksObtained >= passThreshold).length;
+    const passPercentage = Math.round((passedCount / totalStudents) * 1000) / 10;
+
+    const distribution = { outstanding: 0, distinction: 0, firstClass: 0, secondClass: 0, remedial: 0 };
+    results.forEach((r) => {
+      const p = r.percentage;
+      if (p >= 90) distribution.outstanding++;
+      else if (p >= 75) distribution.distinction++;
+      else if (p >= 60) distribution.firstClass++;
+      else if (p >= 40) distribution.secondClass++;
+      else distribution.remedial++;
+    });
+
+    const subjectSums = {};
+    results.forEach((r) => {
+      (r.subjectResults || []).forEach((s) => {
+        if (!subjectSums[s.subjectName]) {
+          subjectSums[s.subjectName] = {
+            subjectName: s.subjectName,
+            totalMarks: 0,
+            totalAccuracy: 0,
+            count: 0,
+            maxMarks: s.maxMarks,
+          };
+        }
+        subjectSums[s.subjectName].totalMarks += s.marksObtained;
+        subjectSums[s.subjectName].totalAccuracy += s.accuracyPercentage;
+        subjectSums[s.subjectName].count++;
+      });
+    });
+
+    const subjectAverages = Object.values(subjectSums).map((sub) => ({
+      subjectName: sub.subjectName,
+      averageMarks: Math.round((sub.totalMarks / sub.count) * 10) / 10,
+      averageAccuracy: Math.round((sub.totalAccuracy / sub.count) * 10) / 10,
+      maxMarks: sub.maxMarks,
+    }));
+
+    const batchMap = {};
+    results.forEach((r) => {
+      const bName = r.batchName || 'General';
+      if (!batchMap[bName]) {
+        batchMap[bName] = { batchName: bName, totalStudents: 0, totalScore: 0, passed: 0 };
+      }
+      batchMap[bName].totalStudents++;
+      batchMap[bName].totalScore += r.marksObtained;
+      if (r.marksObtained >= passThreshold) batchMap[bName].passed++;
+    });
+
+    const sectionComparison = Object.values(batchMap).map((b) => ({
+      batchName: b.batchName,
+      totalStudents: b.totalStudents,
+      averageScore: Math.round((b.totalScore / b.totalStudents) * 10) / 10,
+      passPercentage: Math.round((b.passed / b.totalStudents) * 1000) / 10,
+    }));
+
+    const top10 = results.slice(0, 10).map((r) => ({
+      id: r.id,
+      rank: r.rank,
+      studentName: r.studentName,
+      rollNumber: r.rollNumber,
+      batchName: r.batchName,
+      marksObtained: r.marksObtained,
+      percentage: r.percentage,
+      accuracyPercentage: r.accuracyPercentage,
+    }));
+
+    const bottom10 = [...results]
+      .reverse()
+      .slice(0, 10)
+      .map((r) => ({
+        id: r.id,
+        rank: r.rank,
+        studentName: r.studentName,
+        rollNumber: r.rollNumber,
+        batchName: r.batchName,
+        marksObtained: r.marksObtained,
+        percentage: r.percentage,
+        accuracyPercentage: r.accuracyPercentage,
+      }));
+
+    res.json({
+      paper: {
+        id: paper.id,
+        title: paper.title,
+        examName: paper.examName,
+        createdAt: paper.createdAt,
+        instituteName: paper.instituteName || paper.institute?.name,
+      },
+      stats: {
+        totalStudents,
+        averageScore,
+        medianScore,
+        topScore,
+        lowestScore,
+        passPercentage,
+        maxMarks,
+      },
+      distribution,
+      subjectAverages,
+      sectionComparison,
+      top10,
+      bottom10,
+    });
+  } catch (err) {
+    console.error('Failed to get batch analytics:', err);
+    res.status(500).json({ error: 'Failed to fetch batch report: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/analytics/batch/:paperId/pdf
+ * Streams Executive Batch Performance PDF for Management.
+ */
+router.get('/analytics/batch/:paperId/pdf', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+      include: { institute: true },
+    });
+
+    if (!paper) {
+      return res.status(404).send('Paper not found');
+    }
+
+    if (req.user.role !== 'ADMIN' && paper.instituteId && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).send('Unauthorized');
+    }
+
+    const results = await prisma.examResult.findMany({
+      where: { paperId },
+      orderBy: [{ rank: 'asc' }, { marksObtained: 'desc' }],
+      include: { subjectResults: true },
+    });
+
+    if (results.length === 0) {
+      return res.status(400).send('No results found for this paper');
+    }
+
+    const totalStudents = results.length;
+    const scores = results.map((r) => r.marksObtained);
+    const totalScore = scores.reduce((a, b) => a + b, 0);
+    const averageScore = Math.round((totalScore / totalStudents) * 10) / 10;
+    const topScore = Math.max(...scores);
+    const lowestScore = Math.min(...scores);
+    const maxMarks = results[0].maxMarks || 100;
+    const passThreshold = maxMarks * 0.4;
+    const passedCount = results.filter((r) => r.marksObtained >= passThreshold).length;
+    const passPercentage = Math.round((passedCount / totalStudents) * 1000) / 10;
+
+    const distribution = { outstanding: 0, distinction: 0, firstClass: 0, secondClass: 0, remedial: 0 };
+    results.forEach((r) => {
+      const p = r.percentage;
+      if (p >= 90) distribution.outstanding++;
+      else if (p >= 75) distribution.distinction++;
+      else if (p >= 60) distribution.firstClass++;
+      else if (p >= 40) distribution.secondClass++;
+      else distribution.remedial++;
+    });
+
+    const subjectSums = {};
+    results.forEach((r) => {
+      (r.subjectResults || []).forEach((s) => {
+        if (!subjectSums[s.subjectName]) {
+          subjectSums[s.subjectName] = { subjectName: s.subjectName, totalMarks: 0, totalAccuracy: 0, count: 0, maxMarks: s.maxMarks };
+        }
+        subjectSums[s.subjectName].totalMarks += s.marksObtained;
+        subjectSums[s.subjectName].totalAccuracy += s.accuracyPercentage;
+        subjectSums[s.subjectName].count++;
+      });
+    });
+
+    const subjectAverages = Object.values(subjectSums).map((sub) => ({
+      subjectName: sub.subjectName,
+      averageMarks: Math.round((sub.totalMarks / sub.count) * 10) / 10,
+      averageAccuracy: Math.round((sub.totalAccuracy / sub.count) * 10) / 10,
+      maxMarks: sub.maxMarks,
+    }));
+
+    const top10 = results.slice(0, 10);
+    const bottom10 = [...results].reverse().slice(0, 10);
+
+    const pdfBuffer = await buildBatchPerformancePdf({
+      paper,
+      stats: { totalStudents, averageScore, topScore, lowestScore, passPercentage, maxMarks },
+      distribution,
+      subjectAverages,
+      top10,
+      bottom10,
+      institute: paper.institute || {},
+    });
+
+    const safeFilename = `${paper.title.replace(/[^a-zA-Z0-9]/g, '_')}_Batch_Report.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Failed to generate batch PDF:', err);
+    res.status(500).send('Failed to generate batch report PDF');
+  }
+});
+
+/**
+ * GET /api/results/analytics/batch/:paperId/csv
+ * Exports the entire batch results spreadsheet as CSV.
+ */
+router.get('/analytics/batch/:paperId/csv', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+    });
+
+    if (!paper) {
+      return res.status(404).send('Paper not found');
+    }
+
+    const results = await prisma.examResult.findMany({
+      where: { paperId },
+      orderBy: { rank: 'asc' },
+    });
+
+    let csv = 'Rank,Roll Number,Student Name,Batch,Section,Marks Obtained,Max Marks,Percentage,Accuracy %,Correct,Incorrect,Unattempted,Negative Marks Deducted,Parent Phone\n';
+
+    results.forEach((r) => {
+      csv += `${r.rank},"${r.rollNumber}","${r.studentName}","${r.batchName}","${r.section || ''}",${r.marksObtained},${r.maxMarks},${r.percentage},${r.accuracyPercentage},${r.correctAnswers},${r.incorrectAnswers},${r.unattemptedQuestions},${r.negativeMarksDeducted},"${r.parentPhone || ''}"\n`;
+    });
+
+    const safeFilename = `${paper.title.replace(/[^a-zA-Z0-9]/g, '_')}_Results.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    res.send(csv);
+  } catch (err) {
+    console.error('Failed to export batch CSV:', err);
+    res.status(500).send('Failed to export CSV');
   }
 });
 
