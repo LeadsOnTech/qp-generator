@@ -86,7 +86,7 @@ router.get('/', requireAdmin, async (req, res) => {
  * has logged in themselves.)
  */
 router.post('/', requireAdmin, async (req, res) => {
-  const { name, phone, address, tagline, logoFilename } = req.body;
+  const { name, phone, address, tagline, logoFilename, email, password, initialCredits } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Institute name is required.' });
   }
@@ -94,6 +94,20 @@ router.post('/', requireAdmin, async (req, res) => {
   let slug = slugify(name);
   const existing = await prisma.institute.findUnique({ where: { slug } });
   if (existing) slug = `${slug}-${Date.now().toString(36)}`;
+
+  const credits = Number(initialCredits);
+  const initialBalance = Number.isInteger(credits) && credits > 0 ? credits : 0;
+
+  let userEmail = (email || '').trim().toLowerCase();
+  let userPassword = (password || '').trim();
+
+  // If email is provided, check if user already exists
+  if (userEmail) {
+    const existingUser = await prisma.user.findUnique({ where: { email: userEmail } });
+    if (existingUser) {
+      return res.status(400).json({ error: `A user account with email "${userEmail}" already exists.` });
+    }
+  }
 
   const institute = await prisma.institute.create({
     data: {
@@ -103,10 +117,43 @@ router.post('/', requireAdmin, async (req, res) => {
       address: address || null,
       tagline: tagline || null,
       logoFilename: logoFilename || null,
+      creditBalance: initialBalance,
+      trialPassword: userPassword || null,
     },
   });
 
-  res.json({ id: institute.id, name: institute.name, slug: institute.slug });
+  // Create login user if email is provided, or if password is provided generate email
+  let createdUser = null;
+  if (userEmail || userPassword) {
+    if (!userEmail) {
+      userEmail = `${slugify(name)}@questionstudio.local`;
+    }
+    if (!userPassword) {
+      userPassword = `${slugify(name).slice(0, 6)}@${Math.floor(100 + Math.random() * 900)}`;
+    }
+    const passwordHash = await bcrypt.hash(userPassword, 10);
+    createdUser = await prisma.user.create({
+      data: {
+        email: userEmail,
+        passwordHash,
+        role: 'INSTITUTE',
+        instituteId: institute.id,
+      },
+    });
+    await prisma.institute.update({
+      where: { id: institute.id },
+      data: { trialPassword: userPassword },
+    });
+  }
+
+  res.json({
+    id: institute.id,
+    name: institute.name,
+    slug: institute.slug,
+    creditBalance: institute.creditBalance,
+    loginEmail: createdUser?.email || null,
+    loginPassword: userPassword || null,
+  });
 });
 
 /**

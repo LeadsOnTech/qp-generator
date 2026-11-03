@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 
-const emptyForm = { name: '', phone: '', address: '', tagline: '', logoFilename: '' };
+const emptyForm = { name: '', phone: '', address: '', tagline: '', logoFilename: '', email: '', password: '', initialCredits: '' };
 
 export default function Institutes() {
   const [institutes, setInstitutes] = useState([]);
@@ -92,8 +92,12 @@ export default function Institutes() {
         await api.updateInstitute(editingId, form);
         setMessage(`Updated ${form.name}.`);
       } else {
-        await api.createInstitute(form);
-        setMessage(`Added ${form.name} — it will now appear as an option on Generate Paper.`);
+        const res = await api.createInstitute(form);
+        if (res.loginEmail && res.loginPassword) {
+          setMessage(`✅ Added ${form.name}! Login Email: ${res.loginEmail} | Password: ${res.loginPassword}`);
+        } else {
+          setMessage(`Added ${form.name} — it will now appear as an option on Generate Paper.`);
+        }
       }
       setForm(emptyForm);
       setEditingId(null);
@@ -197,6 +201,46 @@ export default function Institutes() {
             <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg" style={{ display: 'none' }} onChange={(e) => handleLogoUpload(e.target.files?.[0])} />
           </div>
         </div>
+
+        {!editingId && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-dim)' }}>
+            <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)', marginBottom: 8 }}>
+              🔐 Institute Login Account (Optional)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Login Email</label>
+                <input
+                  type="email"
+                  placeholder="e.g. college@example.com"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Password</label>
+                <input
+                  type="text"
+                  placeholder="e.g. College@123"
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="field" style={{ marginTop: 10 }}>
+              <label>Initial Credits</label>
+              <input
+                type="number"
+                placeholder="e.g. 3000"
+                value={form.initialCredits}
+                onChange={(e) => setForm((f) => ({ ...f, initialCredits: e.target.value }))}
+              />
+            </div>
+            <p style={{ fontSize: 11.5, color: 'var(--ink-soft)', marginTop: 4 }}>
+              Enter email & password to automatically create their login right now. You can also configure or reset it later anytime using the <b>🔑 Login</b> button below.
+            </p>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
           <button className="btn btn-primary" onClick={save}>{editingId ? 'Save changes' : 'Add institute'}</button>
