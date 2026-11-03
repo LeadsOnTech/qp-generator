@@ -1,11 +1,93 @@
 // frontend/src/pages/StudentAnalytics.jsx
 // Student Performance Dashboard, Historical Progress Tracker & Multi-Test Trend Analytics.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
+
+const CLASS_YEAR_OPTIONS = [
+  'Inter 1st Year (11th)',
+  'Inter 2nd Year (12th)',
+  'Long Term / Repeater',
+  'Class 10 Foundation',
+  'Class 9 Foundation',
+  'Class 8 Foundation',
+  'Degree / Graduation',
+  'Other',
+];
+
+const COURSE_TARGET_OPTIONS = [
+  'NEET (Medical)',
+  'JEE Main & Advanced',
+  'AP EAPCET (Engg & Agri)',
+  'TG EAPCET (Engg & Agri)',
+  'IIT-JEE + CBSE Foundation',
+  'BITSAT / VITEEE / State CET',
+  'State Boards / CBSE Boards',
+  'Other / General',
+];
+
+const HOSTEL_OPTIONS = [
+  'Day Scholar',
+  'Hosteler / Residential',
+  'Semi-Residential',
+];
+
+const GENDER_OPTIONS = ['Female', 'Male', 'Other'];
+const PARENT_RELATION_OPTIONS = ['Father', 'Mother', 'Guardian'];
+const PARENT_OCCUPATION_OPTIONS = [
+  'Farmer / Agriculture',
+  'Business / Self-Employed',
+  'Teacher / Lecturer / Educator',
+  'Government Employee',
+  'Private Sector Employee',
+  'Doctor / Engineer / Professional',
+  'Daily Wage / Artisan',
+  'Homemaker',
+  'Other',
+];
+
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Telangana',
+  'Karnataka',
+  'Tamil Nadu',
+  'Kerala',
+  'Maharashtra',
+  'Odisha',
+  'Chhattisgarh',
+  'Gujarat',
+  'Rajasthan',
+  'Uttar Pradesh',
+  'Bihar',
+  'Madhya Pradesh',
+  'West Bengal',
+  'Delhi (NCT)',
+  'Punjab',
+  'Haryana',
+  'Assam',
+  'Jharkhand',
+  'Uttarakhand',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Goa',
+  'Tripura',
+  'Meghalaya',
+  'Manipur',
+  'Nagaland',
+  'Arunachal Pradesh',
+  'Mizoram',
+  'Sikkim',
+  'Puducherry',
+  'Chandigarh',
+  'Ladakh',
+  'Andaman and Nicobar Islands',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Lakshadweep',
+  'Other / International',
+];
 
 export default function StudentAnalytics() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,6 +104,34 @@ export default function StudentAnalytics() {
   const [remedialModal, setRemedialModal] = useState(null);
   const [generatingRemedial, setGeneratingRemedial] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
+
+  // Edit Student Profile & Photo State
+  const [editModal, setEditModal] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editForm, setEditForm] = useState({
+    rollNumber: '',
+    fullName: '',
+    photoUrl: '',
+    admissionNumber: '',
+    classYear: 'Inter 2nd Year (12th)',
+    courseTarget: 'NEET (Medical)',
+    batchName: 'MPC Section-A',
+    section: '',
+    gender: 'Female',
+    nativePlace: '',
+    district: '',
+    state: 'Andhra Pradesh',
+    hostelStatus: 'Day Scholar',
+    parentName: '',
+    parentRelation: 'Father',
+    parentOccupation: 'Farmer / Agriculture',
+    parentPhone: '',
+    parentEmail: '',
+    studentPhone: '',
+    address: '',
+  });
+  const fileInputRef = useRef(null);
 
   // Load students roster on mount
   useEffect(() => {
@@ -41,24 +151,100 @@ export default function StudentAnalytics() {
   }, []);
 
   // Load selected student analytics
-  useEffect(() => {
-    if (!selectedRoll) return;
-
-    async function loadStudentData() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.getStudentAnalytics(selectedRoll);
-        setAnalyticsData(data);
-      } catch (err) {
-        setError(err.message || 'Failed to load student progress');
-        setAnalyticsData(null);
-      } finally {
-        setLoading(false);
-      }
+  const loadStudentData = useCallback(async (roll = selectedRoll) => {
+    if (!roll) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getStudentAnalytics(roll);
+      setAnalyticsData(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load student progress');
+      setAnalyticsData(null);
+    } finally {
+      setLoading(false);
     }
-    loadStudentData();
   }, [selectedRoll]);
+
+  useEffect(() => {
+    loadStudentData(selectedRoll);
+  }, [selectedRoll, loadStudentData]);
+
+  function openEditModal() {
+    if (!analyticsData?.student) return;
+    const s = analyticsData.student;
+    setEditForm({
+      rollNumber: s.rollNumber || '',
+      fullName: s.studentName || '',
+      photoUrl: s.photoUrl || '',
+      admissionNumber: s.admissionNumber || '',
+      classYear: s.classYear || 'Inter 2nd Year (12th)',
+      courseTarget: s.courseTarget || 'NEET (Medical)',
+      batchName: s.batchName || 'General',
+      section: s.section || '',
+      gender: s.gender || 'Female',
+      nativePlace: s.nativePlace || '',
+      district: s.district || '',
+      state: s.state || 'Andhra Pradesh',
+      hostelStatus: s.hostelStatus || 'Day Scholar',
+      parentName: s.parentName || '',
+      parentRelation: s.parentRelation || 'Father',
+      parentOccupation: s.parentOccupation || 'Farmer / Agriculture',
+      parentPhone: s.parentPhone || '',
+      parentEmail: s.parentEmail || '',
+      studentPhone: s.studentPhone || '',
+      address: s.address || '',
+    });
+    setEditModal(true);
+  }
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo file size exceeds 5MB limit. Please select a smaller photo.');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      const res = await api.uploadStudentPhoto(file);
+      if (res.photoUrl) {
+        setEditForm((f) => ({ ...f, photoUrl: res.photoUrl }));
+      }
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEditForm((f) => ({ ...f, photoUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleSaveEditProfile(e) {
+    e.preventDefault();
+    if (!editForm.rollNumber.trim() || !editForm.fullName.trim()) {
+      alert('Roll Number and Full Name are required.');
+      return;
+    }
+    try {
+      setSavingEdit(true);
+      await api.saveStudentProfile(editForm);
+      setEditModal(false);
+      await loadStudentData(selectedRoll);
+      // Refresh list in case name changed
+      const listData = await api.getAnalyticsStudentsList();
+      setStudentsList(listData.students || []);
+    } catch (err) {
+      alert('Failed to save profile: ' + err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   async function handleGenerateRemedial(specificChapters = []) {
     if (!analyticsData?.student) return;
@@ -139,8 +325,8 @@ export default function StudentAnalytics() {
           </div>
           <div style={styles.rosterList}>
             {filteredStudents.length === 0 ? (
-              <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                No students found
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                No matching students found
               </div>
             ) : (
               filteredStudents.map((s) => {
@@ -151,12 +337,14 @@ export default function StudentAnalytics() {
                     onClick={() => handleSelectStudent(s.rollNumber)}
                     style={{
                       ...styles.rosterItem,
-                      background: isSelected ? '#eff6ff' : '#ffffff',
+                      background: isSelected ? '#eff6ff' : '#fff',
                       borderLeft: isSelected ? '4px solid #2563eb' : '4px solid transparent',
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 13 }}>{s.studentName}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: isSelected ? '#1d4ed8' : '#0f172a' }}>
+                      {s.studentName}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
                       Roll: <span style={{ fontWeight: 600 }}>{s.rollNumber}</span> • {s.batchName}
                     </div>
                     <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 600, marginTop: 4 }}>
@@ -190,39 +378,67 @@ export default function StudentAnalytics() {
               {/* Student Profile Bar */}
               <div style={styles.profileBanner}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
-                  {analyticsData.student.photoUrl ? (
-                    <img
-                      src={analyticsData.student.photoUrl}
-                      alt={analyticsData.student.studentName}
-                      style={{
+                  {/* Interactive Avatar */}
+                  <div
+                    onClick={openEditModal}
+                    style={{
+                      position: 'relative',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                    title="Click to edit profile or upload photo"
+                  >
+                    {analyticsData.student.photoUrl ? (
+                      <img
+                        src={analyticsData.student.photoUrl}
+                        alt={analyticsData.student.studentName}
+                        style={{
+                          width: 68,
+                          height: 68,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '3px solid #2563eb',
+                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                          display: 'block',
+                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{
                         width: 68,
                         height: 68,
                         borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '3px solid #2563eb',
-                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                        flexShrink: 0,
-                      }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '2px solid #bfdbfe',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 26,
+                        fontWeight: 800,
+                      }}>
+                        {analyticsData.student.studentName?.charAt(0).toUpperCase() || '👤'}
+                      </div>
+                    )}
                     <div style={{
-                      width: 68,
-                      height: 68,
+                      position: 'absolute',
+                      bottom: -2,
+                      right: -2,
+                      background: '#2563eb',
+                      color: '#fff',
+                      width: 22,
+                      height: 22,
                       borderRadius: '50%',
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
-                      border: '2px solid #bfdbfe',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 26,
-                      fontWeight: 800,
-                      flexShrink: 0,
-                    }}>
-                      {analyticsData.student.studentName?.charAt(0).toUpperCase() || '👤'}
+                      fontSize: 11,
+                      border: '2px solid #fff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} title="Upload photo / Edit profile">
+                      📷
                     </div>
-                  )}
+                  </div>
 
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -300,7 +516,28 @@ export default function StudentAnalytics() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={openEditModal}
+                    style={{
+                      background: '#2563eb',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '8px 14px',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    title="Edit student profile, course target, native village, parent contact, or upload photo"
+                  >
+                    ✏️ Edit Profile & Photo
+                  </button>
+
                   <button
                     onClick={handleExportCsv}
                     disabled={exportingCsv}
@@ -321,6 +558,7 @@ export default function StudentAnalytics() {
                   >
                     {exportingCsv ? 'Exporting…' : '📥 Export CSV'}
                   </button>
+
                   <div style={styles.examCountBadge}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#1e3a8a' }}>
                       {analyticsData.careerStats.totalExamsTaken}
@@ -362,190 +600,193 @@ export default function StudentAnalytics() {
                       <span style={{ color: '#dc2626' }}>{analyticsData.careerStats.latestDelta} pts ▼</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>percentage points vs previous test</div>
                 </div>
               </div>
 
-              {/* Visual Performance Progression Timeline Chart */}
+              {/* Progression Chart */}
               <div style={styles.sectionCard}>
-                <div style={styles.sectionHeaderRow}>
-                  <div>
-                    <h3 style={styles.sectionHeading}>Test Progression Trend (Percentage Points & Accuracy)</h3>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                      Tracks sequential examination scores and accuracy. Improvement shown as percentage points.
-                    </p>
-                  </div>
-                </div>
+                <h3 style={styles.sectionHeading}>Test Progression Trend (Percentage Points & Accuracy)</h3>
+                <p style={{ margin: '0 0 16px 0', fontSize: 12.5, color: '#64748b' }}>
+                  Tracks sequential examination scores and accuracy. Improvement shown as percentage points.
+                </p>
 
                 <div style={styles.chartContainer}>
-                  {analyticsData.timeline.map((item, idx) => {
-                    const isPositive = item.percentagePointsDelta >= 0;
-                    return (
-                      <div key={item.resultId} style={styles.timelineBarCol}>
-                        {/* Score bar */}
-                        <div style={styles.barTrack}>
-                          <div
-                            style={{
-                              ...styles.barFill,
-                              height: `${Math.min(item.percentage, 100)}%`,
-                              background: item.percentage >= 75 ? '#059669' : item.percentage >= 50 ? '#2563eb' : '#dc2626',
-                            }}
-                          >
-                            <span style={styles.barLabel}>{item.percentage}%</span>
-                          </div>
-                        </div>
-
-                        {/* Test label */}
-                        <div style={styles.barBottomMeta}>
-                          <div style={{ fontWeight: 700, fontSize: 11, color: '#0f172a' }}>T{idx + 1}</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>#{item.rank}</div>
-                          {idx > 0 && (
-                            <div
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                color: isPositive ? '#16a34a' : '#dc2626',
-                                marginTop: 2,
-                              }}
-                            >
-                              {isPositive ? `+${item.percentagePointsDelta} pts` : `${item.percentagePointsDelta} pts`}
-                            </div>
-                          )}
+                  {analyticsData.timeline.map((item, idx) => (
+                    <div key={item.resultId} style={styles.chartBarCol}>
+                      <div style={styles.chartBarWrapper}>
+                        <div
+                          style={{
+                            ...styles.chartBarScore,
+                            height: `${Math.max(item.percentage, 8)}%`,
+                          }}
+                          title={`Score: ${item.percentage}% (${item.marksObtained}/${item.maxMarks})`}
+                        >
+                          <span style={styles.barLabelText}>{item.percentage}%</span>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div style={styles.barSubText}>T{idx + 1}</div>
+                      <div style={{ fontSize: 10, color: '#64748b' }}>#{item.rank}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Examination History Table with Exact Deltas */}
+              {/* Examination Breakdown Table */}
               <div style={styles.sectionCard}>
-                <h3 style={styles.sectionHeading}>Comprehensive Examination History</h3>
+                <h3 style={styles.sectionHeading}>Detailed Examination History & Subject Breakdown</h3>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={styles.table}>
                     <thead>
-                      <tr style={styles.thRow}>
-                        <th style={styles.th}>Exam Name & Date</th>
+                      <tr style={styles.theadRow}>
+                        <th style={styles.th}>Test</th>
+                        <th style={styles.th}>Exam Name</th>
+                        <th style={styles.th}>Date</th>
+                        <th style={styles.th}>Type</th>
                         <th style={{ ...styles.th, textAlign: 'center' }}>Rank</th>
-                        <th style={{ ...styles.th, textAlign: 'right' }}>Score / Max</th>
-                        <th style={{ ...styles.th, textAlign: 'center' }}>Percentage</th>
+                        <th style={{ ...styles.th, textAlign: 'right' }}>Score</th>
                         <th style={{ ...styles.th, textAlign: 'center' }}>Accuracy</th>
-                        <th style={{ ...styles.th, textAlign: 'center' }}>Trend Delta</th>
-                        <th style={{ ...styles.th, textAlign: 'right' }}>Scorecard</th>
+                        <th style={{ ...styles.th, textAlign: 'center' }}>Gain</th>
+                        <th style={{ ...styles.th, textAlign: 'center' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {analyticsData.timeline.map((item, idx) => {
-                        const dateStr = item.examDate
-                          ? new Date(item.examDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                          : 'Recent';
-                        const isPos = item.percentagePointsDelta >= 0;
-
-                        return (
-                          <tr key={item.resultId} style={styles.tr}>
-                            <td style={styles.td}>
-                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.examName}</div>
-                              <div style={{ fontSize: 11, color: '#64748b' }}>{dateStr} • {item.examType}</div>
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'center', fontWeight: 800, color: '#d97706' }}>
-                              #{item.rank} <span style={{ fontSize: 11, color: '#64748b' }}>/ {item.totalStudents}</span>
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'right', fontWeight: 700 }}>
-                              {item.marksObtained} <span style={{ fontSize: 11, color: '#64748b' }}>/ {item.maxMarks}</span>
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700, color: '#2563eb' }}>
-                              {item.percentage}%
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700 }}>
-                              <span
-                                style={{
-                                  padding: '2px 8px',
-                                  borderRadius: 10,
-                                  fontSize: 11,
-                                  background: item.accuracyPercentage >= 75 ? '#dcfce7' : item.accuracyPercentage >= 50 ? '#fef3c7' : '#fee2e2',
-                                  color: item.accuracyPercentage >= 75 ? '#15803d' : item.accuracyPercentage >= 50 ? '#b45309' : '#b91c1c',
-                                }}
-                              >
-                                {item.accuracyPercentage}%
-                              </span>
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'center' }}>
-                              {idx === 0 ? (
-                                <span style={{ color: '#94a3b8', fontSize: 11 }}>Baseline</span>
-                              ) : (
-                                <span
-                                  style={{
-                                    fontWeight: 700,
-                                    fontSize: 11,
-                                    color: isPos ? '#16a34a' : '#dc2626',
-                                  }}
-                                >
-                                  {isPos ? `+${item.percentagePointsDelta} pts ▲` : `${item.percentagePointsDelta} pts ▼`}
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ ...styles.td, textAlign: 'right' }}>
+                      {analyticsData.timeline.map((item, idx) => (
+                        <tr key={item.resultId} style={styles.tr}>
+                          <td style={{ ...styles.td, fontWeight: 700, color: '#475569' }}>T{idx + 1}</td>
+                          <td style={{ ...styles.td, fontWeight: 700, color: '#0f172a' }}>{item.examName}</td>
+                          <td style={{ ...styles.td, color: '#64748b', fontSize: 12 }}>
+                            {item.examDate ? new Date(item.examDate).toLocaleDateString('en-IN') : '—'}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={styles.examTypePill}>{item.examType}</span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700, color: item.rank <= 3 ? '#d97706' : '#334155' }}>
+                            #{item.rank} <span style={{ fontSize: 10.5, color: '#94a3b8' }}>/{item.totalStudents}</span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'right' }}>
+                            <div style={{ fontWeight: 800, color: '#0f172a' }}>{item.marksObtained} / {item.maxMarks}</div>
+                            <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 600 }}>{item.percentage}%</div>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <span
+                              style={{
+                                ...styles.accuracyBadge,
+                                background: item.accuracyPercentage >= 70 ? '#dcfce7' : item.accuracyPercentage >= 50 ? '#fef3c7' : '#fee2e2',
+                                color: item.accuracyPercentage >= 70 ? '#15803d' : item.accuracyPercentage >= 50 ? '#b45309' : '#b91c1c',
+                              }}
+                            >
+                              {item.accuracyPercentage}%
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700 }}>
+                            {idx === 0 ? (
+                              <span style={{ color: '#94a3b8' }}>—</span>
+                            ) : item.percentagePointsDelta >= 0 ? (
+                              <span style={{ color: '#16a34a' }}>+{item.percentagePointsDelta}</span>
+                            ) : (
+                              <span style={{ color: '#dc2626' }}>{item.percentagePointsDelta}</span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', gap: 6 }}>
                               <a
-                                href={`${API_BASE}/results/${item.resultId}/pdf?token=${encodeURIComponent(localStorage.getItem('qpgen_token') || '')}`}
+                                href={`${API_BASE}/results/${item.resultId}/pdf`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={styles.pdfBtn}
+                                style={styles.actionBtnIcon}
+                                title="Download PDF Scorecard"
                               >
-                                📄 A4 PDF
+                                📄 PDF
                               </a>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              {item.publicToken && (
+                                <Link
+                                  to={`/scorecard/${item.publicToken}`}
+                                  target="_blank"
+                                  style={styles.actionBtnIcon}
+                                  title="View Web Scorecard"
+                                >
+                                  🔗 View
+                                </Link>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Longitudinal Chronic Weak Areas */}
+              {/* Subject Mastery Radar */}
               <div style={styles.sectionCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                <h3 style={styles.sectionHeading}>Subject Mastery & Historical Consistency</h3>
+                <div style={styles.subjectGrid}>
+                  {analyticsData.subjectPerformance.map((subj) => (
+                    <div key={subj.subjectName} style={styles.subjectCard}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>{subj.subjectName}</div>
+                        <span style={styles.subjectAccuracyPill}>{subj.averageAccuracy}% Accuracy</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>
+                        {subj.testsAppeared} Tests Appeared • Avg Score: <b>{subj.averagePercentage}%</b>
+                      </div>
+                      <div style={styles.progressBarBg}>
+                        <div
+                          style={{
+                            ...styles.progressBarFill,
+                            width: `${Math.min(subj.averagePercentage, 100)}%`,
+                            background: subj.averagePercentage >= 70 ? '#10b981' : subj.averagePercentage >= 50 ? '#f59e0b' : '#ef4444',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Diagnostic Weak Chapter Matrix */}
+              <div style={styles.sectionCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
                   <div>
-                    <h3 style={{ ...styles.sectionHeading, margin: 0 }}>Longitudinal Weak Topics (Accuracy &lt; 60%)</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                      Identified chapters where the student has struggled and requires targeted drill practice.
+                    <h3 style={styles.sectionHeading}>Chronic Weak Chapters (Diagnostic Audit)</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: '#64748b' }}>
+                      Chapters with persistent low accuracy (&lt;60%) across examinations.
                     </p>
                   </div>
-                  {analyticsData.chronicWeakChapters.length > 0 && (
+                  {analyticsData.chronicWeakChapters?.length > 0 && (
                     <button
                       onClick={() => handleGenerateRemedial()}
                       disabled={generatingRemedial}
-                      style={styles.remedialActionBtn}
-                      title="Automatically create a 15-question remedial DPP paper in these weak chapters"
+                      style={styles.remedialBtn}
+                      title="Generate customized remedial Daily Practice Problem targeting all weak chapters"
                     >
-                      {generatingRemedial ? 'Generating DPP…' : '⚡ Generate 15-Q Remedial DPP'}
+                      {generatingRemedial ? 'Generating DPP…' : '⚡ 1-Click Tailored Remedial DPP'}
                     </button>
                   )}
                 </div>
 
-                {analyticsData.chronicWeakChapters.length === 0 ? (
-                  <div style={{ padding: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, color: '#166534', fontSize: 13 }}>
-                    🎉 No chronic weak topics detected! Student maintains satisfactory accuracy across all assessed chapters.
+                {analyticsData.chronicWeakChapters?.length === 0 ? (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#059669', background: '#ecfdf5', borderRadius: 8 }}>
+                    ✅ <b>Outstanding Mastery!</b> No chronic weak chapters detected below 60% accuracy threshold.
                   </div>
                 ) : (
-                  <div style={styles.weakGrid}>
-                    {analyticsData.chronicWeakChapters.map((c, i) => (
-                      <div key={i} style={styles.weakItem}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#b91c1c' }}>{c.chapterName}</div>
-                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                            Encountered across {c.timesEncountered} tests • {c.totalCorrect} / {c.totalAttempted} correct
+                  <div style={styles.weakChapterGrid}>
+                    {analyticsData.chronicWeakChapters.map((w) => (
+                      <div key={w.chapterName} style={styles.weakChapterCard}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', flex: 1, paddingRight: 8 }}>
+                            {w.chapterName}
                           </div>
+                          <span style={styles.weakAccuracyTag}>{w.averageAccuracy}% Acc</span>
                         </div>
-                        <div style={{ textAlign: 'right', marginRight: 10 }}>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#dc2626' }}>{c.overallAccuracy}%</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>Avg Accuracy</div>
+                        <div style={{ fontSize: 11.5, color: '#78350f', marginTop: 4 }}>
+                          Failed or below threshold in <b>{w.occurrenceCount}</b> test{w.occurrenceCount === 1 ? '' : 's'}
                         </div>
                         <button
-                          onClick={() => handleGenerateRemedial([c.chapterName])}
+                          onClick={() => handleGenerateRemedial([w.chapterName])}
                           disabled={generatingRemedial}
-                          style={styles.singleChapterRemedialBtn}
-                          title="Generate a custom DPP targeting only this specific chapter"
+                          style={{ ...styles.singleChapterRemedialBtn, marginTop: 8 }}
+                          title={`Generate practice paper targeting ${w.chapterName}`}
                         >
                           Target DPP
                         </button>
@@ -586,7 +827,366 @@ export default function StudentAnalytics() {
         </div>
       </div>
 
-      {/* MODAL: Remedial Paper Generated Notification */}
+      {/* MODAL 1: Edit Student Profile & Upload Photo */}
+      {editModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContent, maxWidth: 680 }}>
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 17, color: '#0f172a', fontWeight: 800 }}>
+                  ✏️ Edit Student Profile & Upload Photo
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                  Update passport photograph, target course, native place, and parent WhatsApp contact.
+                </p>
+              </div>
+              <button onClick={() => setEditModal(false)} style={styles.modalCloseBtn}>✕</button>
+            </div>
+            <form onSubmit={handleSaveEditProfile}>
+              <div style={{ padding: '16px 20px', maxHeight: '76vh', overflowY: 'auto' }}>
+                
+                {/* PHOTOGRAPH UPLOAD WIDGET */}
+                <div style={styles.photoUploadCard}>
+                  <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                    {editForm.photoUrl ? (
+                      <img
+                        src={editForm.photoUrl}
+                        alt="Student"
+                        style={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '3px solid #2563eb',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: '50%',
+                        background: '#e2e8f0',
+                        color: '#64748b',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px dashed #94a3b8',
+                        fontSize: 24,
+                      }}>
+                        📷
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 2 }}>
+                      Student Photograph (Passport Photo)
+                    </div>
+                    <p style={{ margin: '0 0 8px 0', fontSize: 11.5, color: '#64748b' }}>
+                      Upload passport photo for ID cards, hall tickets, and scorecards (JPG, PNG, WebP up to 5MB).
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={handlePhotoUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                        style={{
+                          background: '#fff',
+                          color: '#2563eb',
+                          border: '1px solid #93c5fd',
+                          borderRadius: 6,
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        {uploadingPhoto ? '⏳ Uploading…' : editForm.photoUrl ? '🔄 Change Photo' : '📷 Upload Photo'}
+                      </button>
+                      {editForm.photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditForm((f) => ({ ...f, photoUrl: '' }))}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: 6,
+                            padding: '6px 10px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 1: Academic & Course */}
+                <div style={styles.sectionHeader}>
+                  <span style={styles.sectionIcon}>🎓</span>
+                  <span style={styles.sectionTitle}>1. Academic & Course Enrollment</span>
+                </div>
+                
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Roll Number / Hall Ticket *</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={editForm.rollNumber}
+                      style={{ ...styles.input, fontWeight: 700, background: '#f1f5f9', cursor: 'not-allowed' }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Student Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Target Course Joined *</label>
+                    <select
+                      value={editForm.courseTarget}
+                      onChange={(e) => setEditForm((f) => ({ ...f, courseTarget: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {COURSE_TARGET_OPTIONS.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Class / Academic Year *</label>
+                    <select
+                      value={editForm.classYear}
+                      onChange={(e) => setEditForm((f) => ({ ...f, classYear: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {CLASS_YEAR_OPTIONS.map((cy) => (
+                        <option key={cy} value={cy}>{cy}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={styles.formGrid3}>
+                  <div className="field">
+                    <label style={styles.label}>Batch / Class</label>
+                    <input
+                      type="text"
+                      value={editForm.batchName}
+                      onChange={(e) => setEditForm((f) => ({ ...f, batchName: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Section (Optional)</label>
+                    <input
+                      type="text"
+                      value={editForm.section}
+                      onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Admission No</label>
+                    <input
+                      type="text"
+                      value={editForm.admissionNumber}
+                      onChange={(e) => setEditForm((f) => ({ ...f, admissionNumber: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                {/* SECTION 2: Personal & Native Details */}
+                <div style={{ ...styles.sectionHeader, marginTop: 18 }}>
+                  <span style={styles.sectionIcon}>🏡</span>
+                  <span style={styles.sectionTitle}>2. Personal, Native & Residence Background</span>
+                </div>
+
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Native Village / Town / City</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Tenali, Nuzvid, Tirupati, Vijayawada"
+                      value={editForm.nativePlace}
+                      onChange={(e) => setEditForm((f) => ({ ...f, nativePlace: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>District</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Krishna, Guntur, NTR, Visakhapatnam"
+                      value={editForm.district}
+                      onChange={(e) => setEditForm((f) => ({ ...f, district: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.formGrid3}>
+                  <div className="field">
+                    <label style={styles.label}>Residence / Hostel Status</label>
+                    <select
+                      value={editForm.hostelStatus}
+                      onChange={(e) => setEditForm((f) => ({ ...f, hostelStatus: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {HOSTEL_OPTIONS.map((h) => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Gender</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {GENDER_OPTIONS.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>State *</label>
+                    <select
+                      value={editForm.state}
+                      onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
+                      style={{ ...styles.select, fontWeight: 600 }}
+                    >
+                      {INDIAN_STATES.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* SECTION 3: Parent WhatsApp & Contact */}
+                <div style={{ ...styles.sectionHeader, marginTop: 18 }}>
+                  <span style={styles.sectionIcon}>📱</span>
+                  <span style={styles.sectionTitle}>3. Parent WhatsApp Mobile & Family Details</span>
+                </div>
+
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Parent Mobile (WhatsApp) *</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9848628863 (10 digits)"
+                      value={editForm.parentPhone}
+                      onChange={(e) => setEditForm((f) => ({ ...f, parentPhone: e.target.value }))}
+                      style={{ ...styles.input, borderColor: '#0284c7', background: '#f0f9ff' }}
+                    />
+                    <span style={{ fontSize: 11, color: '#0369a1', display: 'block', marginTop: 3 }}>
+                      Automated exam scorecards and PDF reports are dispatched here.
+                    </span>
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Parent / Guardian Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. K. Venkat Reddy"
+                      value={editForm.parentName}
+                      onChange={(e) => setEditForm((f) => ({ ...f, parentName: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Relationship</label>
+                    <select
+                      value={editForm.parentRelation}
+                      onChange={(e) => setEditForm((f) => ({ ...f, parentRelation: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {PARENT_RELATION_OPTIONS.map((pr) => (
+                        <option key={pr} value={pr}>{pr}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Parent Occupation</label>
+                    <select
+                      value={editForm.parentOccupation}
+                      onChange={(e) => setEditForm((f) => ({ ...f, parentOccupation: e.target.value }))}
+                      style={styles.select}
+                    >
+                      {PARENT_OCCUPATION_OPTIONS.map((po) => (
+                        <option key={po} value={po}>{po}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={styles.formGrid}>
+                  <div className="field">
+                    <label style={styles.label}>Student Personal Mobile (Optional)</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9848628800"
+                      value={editForm.studentPhone}
+                      onChange={(e) => setEditForm((f) => ({ ...f, studentPhone: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                  <div className="field">
+                    <label style={styles.label}>Permanent / Native Address (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. D.No 4-12, Main Road, Tenali"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+              </div>
+              <div style={styles.modalFooter}>
+                <button type="button" onClick={() => setEditModal(false)} style={styles.cancelBtn}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={savingEdit || uploadingPhoto} style={styles.primaryBtn}>
+                  {savingEdit ? 'Saving…' : 'Save Profile Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Remedial Paper Generated Notification */}
       {remedialModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
@@ -652,48 +1252,44 @@ const styles = {
     background: '#eff6ff',
     padding: '3px 8px',
     borderRadius: 4,
-    letterSpacing: '0.05em',
     marginBottom: 6,
+    letterSpacing: '0.04em',
   },
   title: {
-    margin: '0 0 6px 0',
     fontSize: 24,
     fontWeight: 800,
     color: '#0f172a',
+    margin: '0 0 6px 0',
   },
   subtitle: {
-    margin: 0,
-    fontSize: 13,
+    fontSize: 13.5,
     color: '#64748b',
+    margin: 0,
   },
   layoutGrid: {
     display: 'grid',
     gridTemplateColumns: '300px 1fr',
-    gap: 20,
+    gap: 16,
+    alignItems: 'start',
   },
   rosterCard: {
-    background: '#ffffff',
-    borderRadius: 12,
+    background: '#fff',
     border: '1px solid #e2e8f0',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    borderRadius: 10,
     overflow: 'hidden',
-    height: 'fit-content',
-    maxHeight: 'calc(100vh - 160px)',
-    display: 'flex',
-    flexDirection: 'column',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
   rosterSearchInput: {
     width: '100%',
-    padding: '8px 10px',
+    padding: '7px 10px',
     border: '1px solid #cbd5e1',
     borderRadius: 6,
-    fontSize: 12,
-    outline: 'none',
+    fontSize: 12.5,
     boxSizing: 'border-box',
   },
   rosterList: {
+    maxHeight: 'calc(100vh - 280px)',
     overflowY: 'auto',
-    flex: 1,
   },
   rosterItem: {
     padding: '12px 14px',
@@ -702,66 +1298,47 @@ const styles = {
     transition: 'background 0.15s ease',
   },
   analyticsCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  emptyCard: {
-    background: '#ffffff',
-    borderRadius: 12,
-    border: '1px solid #e2e8f0',
-    padding: 60,
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spinner: {
-    width: 36,
-    height: 36,
-    border: '4px solid #cbd5e1',
-    borderTop: '4px solid #2563eb',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
+    minWidth: 0,
   },
   profileBanner: {
-    background: '#ffffff',
-    borderRadius: 12,
+    background: '#fff',
     border: '1px solid #e2e8f0',
-    padding: 20,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 16,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
   examCountBadge: {
     background: '#eff6ff',
     border: '1px solid #bfdbfe',
-    borderRadius: 10,
-    padding: '10px 18px',
+    borderRadius: 8,
+    padding: '8px 16px',
     textAlign: 'center',
   },
   kpiGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: 12,
+    marginBottom: 16,
   },
   kpiCard: {
-    background: '#ffffff',
-    padding: 16,
-    borderRadius: 10,
+    background: '#fff',
     border: '1px solid #e2e8f0',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+    borderRadius: 10,
+    padding: 14,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
   kpiLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: 700,
     color: '#64748b',
-    marginBottom: 4,
     letterSpacing: '0.04em',
+    marginBottom: 4,
   },
   kpiValue: {
     fontSize: 22,
@@ -769,113 +1346,168 @@ const styles = {
     color: '#0f172a',
   },
   sectionCard: {
-    background: '#ffffff',
-    borderRadius: 12,
+    background: '#fff',
     border: '1px solid #e2e8f0',
-    padding: 20,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  },
-  sectionHeaderRow: {
+    borderRadius: 10,
+    padding: 18,
     marginBottom: 16,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
   sectionHeading: {
     fontSize: 15,
-    fontWeight: 700,
+    fontWeight: 800,
     color: '#0f172a',
     margin: '0 0 4px 0',
   },
   chartContainer: {
     display: 'flex',
-    gap: 14,
-    overflowX: 'auto',
-    padding: '16px 8px 8px 8px',
     alignItems: 'flex-end',
+    gap: 12,
     height: 180,
-    borderBottom: '2px solid #e2e8f0',
+    paddingTop: 20,
+    paddingBottom: 10,
+    borderBottom: '1px solid #e2e8f0',
+    overflowX: 'auto',
   },
-  timelineBarCol: {
+  chartBarCol: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: 58,
-    height: '100%',
+    minWidth: 44,
   },
-  barTrack: {
-    width: 28,
-    flex: 1,
-    background: '#f1f5f9',
-    borderRadius: '4px 4px 0 0',
+  chartBarWrapper: {
+    height: 140,
     display: 'flex',
     alignItems: 'flex-end',
-    overflow: 'hidden',
+    width: 28,
   },
-  barFill: {
+  chartBarScore: {
     width: '100%',
+    background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
     borderRadius: '4px 4px 0 0',
+    position: 'relative',
     display: 'flex',
-    alignItems: 'flex-start',
     justifyContent: 'center',
-    paddingTop: 4,
-    transition: 'height 0.4s ease',
+    transition: 'height 0.3s ease',
   },
-  barLabel: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: 800,
+  barLabelText: {
+    position: 'absolute',
+    top: -18,
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: '#1e3a8a',
+    whiteSpace: 'nowrap',
   },
-  barBottomMeta: {
-    textAlign: 'center',
+  barSubText: {
     marginTop: 6,
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: '#0f172a',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: 13,
+    textAlign: 'left',
   },
-  thRow: {
+  theadRow: {
     background: '#f8fafc',
     borderBottom: '1px solid #e2e8f0',
   },
   th: {
     padding: '10px 12px',
-    color: '#475569',
     fontSize: 11.5,
     fontWeight: 700,
-    textAlign: 'left',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
   tr: {
     borderBottom: '1px solid #f1f5f9',
   },
   td: {
-    padding: '12px',
-    color: '#334155',
+    padding: '11px 12px',
+    fontSize: 12.5,
     verticalAlign: 'middle',
   },
-  pdfBtn: {
-    padding: '4px 8px',
-    background: '#ffffff',
-    border: '1px solid #cbd5e1',
+  examTypePill: {
+    background: '#f1f5f9',
+    color: '#475569',
+    padding: '2px 6px',
     borderRadius: 4,
     fontSize: 11,
     fontWeight: 600,
-    color: '#2563eb',
-    textDecoration: 'none',
   },
-  weakGrid: {
+  accuracyBadge: {
+    display: 'inline-block',
+    padding: '2px 7px',
+    borderRadius: 12,
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  actionBtnIcon: {
+    background: '#f1f5f9',
+    color: '#2563eb',
+    border: '1px solid #e2e8f0',
+    borderRadius: 4,
+    padding: '3px 8px',
+    fontSize: 11,
+    fontWeight: 700,
+    textDecoration: 'none',
+    cursor: 'pointer',
+  },
+  subjectGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 12,
+  },
+  subjectCard: {
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    padding: 14,
+  },
+  subjectAccuracyPill: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#065f46',
+    background: '#ecfdf5',
+    padding: '2px 6px',
+    borderRadius: 4,
+  },
+  progressBarBg: {
+    width: '100%',
+    height: 8,
+    background: '#e2e8f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  weakChapterGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
     gap: 10,
+    marginTop: 10,
   },
-  weakItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 14px',
+  weakChapterCard: {
     background: '#fef2f2',
     border: '1px solid #fecaca',
     borderRadius: 8,
+    padding: 12,
   },
-  remedialActionBtn: {
+  weakAccuracyTag: {
+    fontSize: 11,
+    fontWeight: 800,
+    color: '#991b1b',
+    background: '#fff',
+    border: '1px solid #fca5a5',
+    padding: '1px 5px',
+    borderRadius: 4,
+    whiteSpace: 'nowrap',
+  },
+  remedialBtn: {
     background: '#dc2626',
     color: '#fff',
     border: 'none',
@@ -923,20 +1555,21 @@ const styles = {
   modalOverlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(15,23,42,0.6)',
+    background: 'rgba(15,23,42,0.65)',
     zIndex: 999,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
+    backdropFilter: 'blur(2px)',
   },
   modalContent: {
     background: '#fff',
-    borderRadius: 12,
-    maxWidth: 500,
+    borderRadius: 14,
+    maxWidth: 680,
     width: '100%',
     overflow: 'hidden',
-    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
   },
   modalHeader: {
     display: 'flex',
@@ -944,6 +1577,7 @@ const styles = {
     alignItems: 'center',
     padding: '16px 20px',
     borderBottom: '1px solid #e2e8f0',
+    background: '#f8fafc',
   },
   modalCloseBtn: {
     background: 'none',
@@ -951,5 +1585,114 @@ const styles = {
     fontSize: 18,
     cursor: 'pointer',
     color: '#64748b',
+    padding: '4px 8px',
+  },
+  modalFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: 10,
+    padding: '14px 20px',
+    borderTop: '1px solid #e2e8f0',
+    background: '#f8fafc',
+  },
+  cancelBtn: {
+    background: '#fff',
+    border: '1px solid #cbd5e1',
+    borderRadius: 6,
+    padding: '8px 14px',
+    fontSize: 13,
+    cursor: 'pointer',
+    fontWeight: 600,
+  },
+  primaryBtn: {
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    padding: '8px 16px',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  photoUploadCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    padding: '12px 16px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 6,
+    borderBottom: '1px solid #e2e8f0',
+    marginBottom: 10,
+  },
+  sectionIcon: {
+    fontSize: 16,
+  },
+  sectionTitle: {
+    fontWeight: 800,
+    fontSize: 13,
+    color: '#0f172a',
+    letterSpacing: 0.2,
+  },
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 12,
+    marginBottom: 10,
+  },
+  formGrid3: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: 10,
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: '#334155',
+    display: 'block',
+    marginBottom: 4,
+  },
+  input: {
+    width: '100%',
+    padding: '8px 11px',
+    borderRadius: 6,
+    border: '1px solid #cbd5e1',
+    fontSize: 13,
+    boxSizing: 'border-box',
+    color: '#0f172a',
+  },
+  select: {
+    width: '100%',
+    padding: '8px 11px',
+    borderRadius: 6,
+    border: '1px solid #cbd5e1',
+    fontSize: 13,
+    boxSizing: 'border-box',
+    background: '#fff',
+    color: '#0f172a',
+  },
+  emptyCard: {
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: 10,
+    padding: 40,
+    textAlign: 'center',
+  },
+  spinner: {
+    width: 36,
+    height: 36,
+    border: '3px solid #e2e8f0',
+    borderTopColor: '#2563eb',
+    borderRadius: '50%',
+    margin: '0 auto',
+    animation: 'spin 1s linear infinite',
   },
 };
