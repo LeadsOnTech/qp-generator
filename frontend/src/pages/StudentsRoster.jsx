@@ -156,12 +156,12 @@ export default function StudentsRoster() {
   }, []);
 
   // Filter students
-  const filteredStudents = students.filter((s) => {
-    const q = search.toLowerCase();
+  const filteredStudents = (students || []).filter((s) => {
+    const q = (search || '').toLowerCase();
     const matchesSearch =
       !q ||
-      s.rollNumber.toLowerCase().includes(q) ||
-      s.fullName.toLowerCase().includes(q) ||
+      ((s.rollNumber || '').toLowerCase().includes(q)) ||
+      ((s.fullName || '').toLowerCase().includes(q)) ||
       (s.admissionNumber && s.admissionNumber.toLowerCase().includes(q)) ||
       (s.parentPhone && s.parentPhone.includes(q)) ||
       (s.studentPhone && s.studentPhone.includes(q)) ||

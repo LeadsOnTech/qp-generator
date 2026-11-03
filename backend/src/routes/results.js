@@ -1180,9 +1180,9 @@ router.get('/analytics/students-list', async (req, res) => {
       if (!studentMap[roll]) {
         studentMap[roll] = {
           rollNumber: roll,
-          studentName: r.studentName,
-          batchName: r.batchName,
-          section: r.section,
+          studentName: r.studentName || roll,
+          batchName: r.batchName || 'General',
+          section: r.section || '',
           parentPhoneMasked: maskPhoneNumber(r.parentPhone),
           totalExams: 0,
           totalPercentage: 0,
@@ -1193,15 +1193,15 @@ router.get('/analytics/students-list', async (req, res) => {
         };
       }
       studentMap[roll].totalExams++;
-      studentMap[roll].totalPercentage += r.percentage;
+      studentMap[roll].totalPercentage += (r.percentage || 0);
     });
 
     const students = Object.values(studentMap).map((s) => ({
       ...s,
-      averagePercentage: Math.round((s.totalPercentage / s.totalExams) * 10) / 10,
+      averagePercentage: Math.round((s.totalPercentage / (s.totalExams || 1)) * 10) / 10,
     }));
 
-    students.sort((a, b) => a.studentName.localeCompare(b.studentName));
+    students.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || ''));
 
     res.json({ students });
   } catch (err) {
@@ -1361,20 +1361,35 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
       })
       .sort((a, b) => a.overallAccuracy - b.overallAccuracy);
 
+    const subjectPerformance = Object.entries(subjectMap).map(([subjectName, tests]) => {
+      const testsAppeared = tests.length;
+      const totalPct = tests.reduce((sum, t) => sum + (t.percentage || 0), 0);
+      const totalAcc = tests.reduce((sum, t) => sum + (t.accuracyPercentage || 0), 0);
+      const averagePercentage = Math.round((totalPct / (testsAppeared || 1)) * 10) / 10;
+      const averageAccuracy = Math.round((totalAcc / (testsAppeared || 1)) * 10) / 10;
+      return {
+        subjectName,
+        testsAppeared,
+        averagePercentage,
+        averageAccuracy,
+      };
+    });
+
     res.json({
       student: studentInfo,
       careerStats: {
         totalExamsTaken: exams.length,
-        careerAveragePercentage,
-        careerAverageAccuracy,
-        bestRank,
-        latestRank: timeline[timeline.length - 1].rank,
-        latestPercentage: timeline[timeline.length - 1].percentage,
-        latestDelta: timeline[timeline.length - 1].percentagePointsDelta,
+        careerAveragePercentage: careerAveragePercentage || 0,
+        careerAverageAccuracy: careerAverageAccuracy || 0,
+        bestRank: isFinite(bestRank) ? bestRank : (timeline[0]?.rank || 1),
+        latestRank: timeline[timeline.length - 1]?.rank || 1,
+        latestPercentage: timeline[timeline.length - 1]?.percentage || 0,
+        latestDelta: timeline[timeline.length - 1]?.percentagePointsDelta || 0,
       },
-      timeline,
-      subjectProgression: subjectMap,
-      chronicWeakChapters,
+      timeline: timeline || [],
+      subjectPerformance: subjectPerformance || [],
+      subjectProgression: subjectMap || {},
+      chronicWeakChapters: chronicWeakChapters || [],
     });
   } catch (err) {
     console.error('Failed to get student analytics:', err);

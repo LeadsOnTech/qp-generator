@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import LandingPage from './pages/LandingPage';
 import FeaturesPage from './pages/FeaturesPage';
@@ -51,7 +52,8 @@ export default function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/features" element={<FeaturesPage />} />
@@ -117,9 +119,10 @@ export default function App() {
             </Route>
           </Route>
         </Routes>
-      </AuthProvider>
-    </HashRouter>
-  );
+      </ErrorBoundary>
+    </AuthProvider>
+  </HashRouter>
+);
 }
 
 

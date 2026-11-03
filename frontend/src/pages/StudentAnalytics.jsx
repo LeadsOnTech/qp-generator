@@ -287,11 +287,11 @@ export default function StudentAnalytics() {
     setSearchParams({ roll });
   }
 
-  const filteredStudents = studentsList.filter(
+  const filteredStudents = (studentsList || []).filter(
     (s) =>
-      s.studentName.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      s.rollNumber.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      s.batchName.toLowerCase().includes(searchFilter.toLowerCase())
+      (s.studentName || '').toLowerCase().includes((searchFilter || '').toLowerCase()) ||
+      (s.rollNumber || '').toLowerCase().includes((searchFilter || '').toLowerCase()) ||
+      (s.batchName || '').toLowerCase().includes((searchFilter || '').toLowerCase())
   );
 
   return (
@@ -342,13 +342,13 @@ export default function StudentAnalytics() {
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: 13.5, color: isSelected ? '#1d4ed8' : '#0f172a' }}>
-                      {s.studentName}
+                      {s.studentName || s.rollNumber}
                     </div>
                     <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
-                      Roll: <span style={{ fontWeight: 600 }}>{s.rollNumber}</span> • {s.batchName}
+                      Roll: <span style={{ fontWeight: 600 }}>{s.rollNumber}</span> • {s.batchName || 'General'}
                     </div>
                     <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 600, marginTop: 4 }}>
-                      {s.totalExams} {s.totalExams === 1 ? 'Exam' : 'Exams'} • Avg: {s.averagePercentage}%
+                      {s.totalExams} {s.totalExams === 1 ? 'Exam' : 'Exams'} • Avg: {s.averagePercentage || 0}%
                     </div>
                   </div>
                 );
@@ -469,17 +469,17 @@ export default function StudentAnalytics() {
                           🎓 {analyticsData.student.classYear}
                         </span>
                       )}
-                      {analyticsData.student.hostelStatus && (
+                      {analyticsData.student?.hostelStatus && (
                         <span style={{
-                          background: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#faf5ff' : '#f0fdf4',
-                          color: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#7e22ce' : '#15803d',
-                          border: `1px solid ${analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#e9d5ff' : '#bbf7d0'}`,
+                          background: String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? '#faf5ff' : '#f0fdf4',
+                          color: String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? '#7e22ce' : '#15803d',
+                          border: `1px solid ${String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? '#e9d5ff' : '#bbf7d0'}`,
                           padding: '2px 8px',
                           borderRadius: 6,
                           fontSize: 11,
                           fontWeight: 600,
                         }}>
-                          {analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '🛏️ Hosteler' : '🏠 Day Scholar'}
+                          {String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? '🛏️ Hosteler' : '🏠 Day Scholar'}
                         </span>
                       )}
                     </div>
@@ -561,7 +561,7 @@ export default function StudentAnalytics() {
 
                   <div style={styles.examCountBadge}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#1e3a8a' }}>
-                      {analyticsData.careerStats.totalExamsTaken}
+                      {analyticsData.careerStats?.totalExamsTaken || 0}
                     </div>
                     <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>Exams Completed</div>
                   </div>
@@ -573,31 +573,31 @@ export default function StudentAnalytics() {
                 <div style={styles.kpiCard}>
                   <div style={styles.kpiLabel}>CAREER AVERAGE %</div>
                   <div style={{ ...styles.kpiValue, color: '#2563eb' }}>
-                    {analyticsData.careerStats.careerAveragePercentage}%
+                    {analyticsData.careerStats?.careerAveragePercentage ?? 0}%
                   </div>
                 </div>
 
                 <div style={styles.kpiCard}>
                   <div style={styles.kpiLabel}>OVERALL ACCURACY</div>
                   <div style={{ ...styles.kpiValue, color: '#059669' }}>
-                    {analyticsData.careerStats.careerAverageAccuracy}%
+                    {analyticsData.careerStats?.careerAverageAccuracy ?? 0}%
                   </div>
                 </div>
 
                 <div style={styles.kpiCard}>
                   <div style={styles.kpiLabel}>BEST COLLEGE RANK</div>
                   <div style={{ ...styles.kpiValue, color: '#d97706' }}>
-                    #{analyticsData.careerStats.bestRank}
+                    #{analyticsData.careerStats?.bestRank || '—'}
                   </div>
                 </div>
 
                 <div style={styles.kpiCard}>
                   <div style={styles.kpiLabel}>LATEST TEST GAIN</div>
                   <div style={styles.kpiValue}>
-                    {analyticsData.careerStats.latestDelta >= 0 ? (
-                      <span style={{ color: '#16a34a' }}>+{analyticsData.careerStats.latestDelta} pts ▲</span>
+                    {(analyticsData.careerStats?.latestDelta ?? 0) >= 0 ? (
+                      <span style={{ color: '#16a34a' }}>+{(analyticsData.careerStats?.latestDelta ?? 0)} pts ▲</span>
                     ) : (
-                      <span style={{ color: '#dc2626' }}>{analyticsData.careerStats.latestDelta} pts ▼</span>
+                      <span style={{ color: '#dc2626' }}>{analyticsData.careerStats?.latestDelta} pts ▼</span>
                     )}
                   </div>
                 </div>
@@ -611,13 +611,13 @@ export default function StudentAnalytics() {
                 </p>
 
                 <div style={styles.chartContainer}>
-                  {analyticsData.timeline.map((item, idx) => (
+                  {(analyticsData.timeline || []).map((item, idx) => (
                     <div key={item.resultId} style={styles.chartBarCol}>
                       <div style={styles.chartBarWrapper}>
                         <div
                           style={{
                             ...styles.chartBarScore,
-                            height: `${Math.max(item.percentage, 8)}%`,
+                            height: `${Math.max(item.percentage || 0, 8)}%`,
                           }}
                           title={`Score: ${item.percentage}% (${item.marksObtained}/${item.maxMarks})`}
                         >
@@ -650,7 +650,7 @@ export default function StudentAnalytics() {
                       </tr>
                     </thead>
                     <tbody>
-                      {analyticsData.timeline.map((item, idx) => (
+                      {(analyticsData.timeline || []).map((item, idx) => (
                         <tr key={item.resultId} style={styles.tr}>
                           <td style={{ ...styles.td, fontWeight: 700, color: '#475569' }}>T{idx + 1}</td>
                           <td style={{ ...styles.td, fontWeight: 700, color: '#0f172a' }}>{item.examName}</td>
@@ -721,7 +721,7 @@ export default function StudentAnalytics() {
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionHeading}>Subject Mastery & Historical Consistency</h3>
                 <div style={styles.subjectGrid}>
-                  {analyticsData.subjectPerformance.map((subj) => (
+                  {(analyticsData.subjectPerformance || []).map((subj) => (
                     <div key={subj.subjectName} style={styles.subjectCard}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>{subj.subjectName}</div>
@@ -741,6 +741,11 @@ export default function StudentAnalytics() {
                       </div>
                     </div>
                   ))}
+                  {(!analyticsData.subjectPerformance || analyticsData.subjectPerformance.length === 0) && (
+                    <div style={{ padding: '20px', color: '#64748b', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
+                      No subject-wise breakdown recorded for this examination yet.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -765,13 +770,13 @@ export default function StudentAnalytics() {
                   )}
                 </div>
 
-                {analyticsData.chronicWeakChapters?.length === 0 ? (
+                {(!analyticsData.chronicWeakChapters || analyticsData.chronicWeakChapters.length === 0) ? (
                   <div style={{ padding: 24, textAlign: 'center', color: '#059669', background: '#ecfdf5', borderRadius: 8 }}>
                     ✅ <b>Outstanding Mastery!</b> No chronic weak chapters detected below 60% accuracy threshold.
                   </div>
                 ) : (
                   <div style={styles.weakChapterGrid}>
-                    {analyticsData.chronicWeakChapters.map((w) => (
+                    {(analyticsData.chronicWeakChapters || []).map((w) => (
                       <div key={w.chapterName} style={styles.weakChapterCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', flex: 1, paddingRight: 8 }}>
@@ -804,10 +809,10 @@ export default function StudentAnalytics() {
                     <div style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>🎯 Diagnostic Assessment</div>
                       <p style={{ margin: 0, fontSize: 12.5, color: '#475569' }}>
-                        {analyticsData.careerStats.careerAveragePercentage >= 75
-                          ? `High-caliber student with strong conceptual retention (${analyticsData.careerStats.careerAveragePercentage}% avg). Focus on speed and negative-marking discipline to reach top-tier percentiles.`
-                          : analyticsData.careerStats.careerAveragePercentage >= 50
-                          ? `Consistent performer (${analyticsData.careerStats.careerAveragePercentage}% avg). Needs targeted question drilling in weak chapters to eliminate negative deductions.`
+                        {(analyticsData.careerStats?.careerAveragePercentage ?? 0) >= 75
+                          ? `High-caliber student with strong conceptual retention (${analyticsData.careerStats?.careerAveragePercentage ?? 0}% avg). Focus on speed and negative-marking discipline to reach top-tier percentiles.`
+                          : (analyticsData.careerStats?.careerAveragePercentage ?? 0) >= 50
+                          ? `Consistent performer (${analyticsData.careerStats?.careerAveragePercentage ?? 0}% avg). Needs targeted question drilling in weak chapters to eliminate negative deductions.`
                           : `Requires academic support in core foundation chapters. Recommend structured daily practice problems (DPPs) before full syllabus mock examinations.`}
                       </p>
                     </div>
