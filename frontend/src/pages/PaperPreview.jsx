@@ -600,6 +600,26 @@ export default function PaperPreview() {
           🚀 Host Online CBT (WhatsApp Test)
         </button>
 
+        {/* Smart Exam Results & WhatsApp Reports */}
+        <Link
+          to={`/papers/${id}/results`}
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #059669, #047857)',
+            color: '#fff',
+            border: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 700,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+          title="View student results, download A4 scorecards & dispatch WhatsApp alerts to parents"
+        >
+          📊 Exam Results & WhatsApp
+        </Link>
+
         {/* Option Style Selector */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, background: 'var(--paper-dim)', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--line)' }}>
           <span style={{ color: 'var(--ink-soft)' }}>Option Style:</span>

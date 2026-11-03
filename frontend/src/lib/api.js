@@ -285,4 +285,19 @@ export const api = {
   disableTwoFactor: (code) => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
   forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (token, newPassword) => request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+
+  // ---- Phase 12: Smart Exam Results & WhatsApp Parent Communication ----
+  generateResultsFromCbt: (cbtTestId) => request(`/results/generate-from-cbt/${cbtTestId}`, { method: 'POST' }),
+  uploadOfflineResults: (data) => request('/results/offline-upload', { method: 'POST', body: JSON.stringify(data) }),
+  getPaperResults: (paperId, filters = {}) => {
+    const params = new URLSearchParams(filters).toString();
+    return request(`/results/paper/${paperId}${params ? `?${params}` : ''}`);
+  },
+  getStudentResult: (resultId) => request(`/results/student/${resultId}`),
+  previewResultWhatsApp: (resultId) => request(`/results/${resultId}/whatsapp-preview`),
+  sendResultWhatsApp: (resultId, forceRetry = false) => request(`/results/${resultId}/whatsapp-send`, { method: 'POST', body: JSON.stringify({ forceRetry }) }),
+  batchSendWhatsApp: (paperId, options = {}) => request(`/results/paper/${paperId}/batch-whatsapp-send`, { method: 'POST', body: JSON.stringify(options) }),
+  getWhatsAppLedger: () => request('/results/whatsapp/ledger'),
+  rechargeWhatsAppWallet: (amountRupees) => request('/results/whatsapp/wallet-recharge', { method: 'POST', body: JSON.stringify({ amountRupees }) }),
+  getPublicResult: (token) => request(`/public/results/${token}`),
 };

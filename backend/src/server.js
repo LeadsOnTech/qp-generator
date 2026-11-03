@@ -32,6 +32,8 @@ const instituteRoutes = require('./routes/institutes');
 const rechargeRoutes = require('./routes/recharge');
 const authRoutes = require('./routes/auth');
 const cbtRoutes = require('./routes/cbt');
+const resultRoutes = require('./routes/results');
+const publicResultRoutes = require('./routes/publicResults');
 const { requireAuth, requireAdmin } = require('./lib/auth');
 
 const app = express();
@@ -51,6 +53,7 @@ app.get('/api/health', (req, res) => res.json({
 // Public / Hybrid routes — student exam portal & public auth
 app.use('/api/auth', authRoutes);
 app.use('/api/cbt', cbtRoutes);
+app.use('/api/public/results', publicResultRoutes);
 
 // Everything below this line requires a logged-in user (Admin or Institute)
 app.use('/api', requireAuth);
@@ -69,6 +72,7 @@ app.use('/api/images', imageRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/institutes', instituteRoutes);
 app.use('/api/recharge', rechargeRoutes);
+app.use('/api/results', resultRoutes);
 
 // Serve compiled frontend in production
 const candidatePaths = [

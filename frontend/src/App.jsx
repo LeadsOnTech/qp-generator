@@ -41,6 +41,8 @@ import Institutes from './pages/Institutes';
 import TrialAccounts from './pages/TrialAccounts';
 import CbtExam from './pages/CbtExam';
 import CbtLeaderboard from './pages/CbtLeaderboard';
+import PublicScorecard from './pages/PublicScorecard';
+import ExamResultsDashboard from './pages/ExamResultsDashboard';
 
 export default function App() {
   return (
@@ -66,6 +68,10 @@ export default function App() {
           <Route path="/cbt/:code/dashboard" element={<CbtLeaderboard />} />
           <Route path="/cbt/:code/leaderboard" element={<CbtLeaderboard />} />
 
+          {/* Public Parent & Student Scorecard Viewer (Token-Authenticated) */}
+          <Route path="/r/:token" element={<PublicScorecard />} />
+          <Route path="/report/:token" element={<PublicScorecard />} />
+
           {/* Requires login (Admin or Institute) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
@@ -73,6 +79,8 @@ export default function App() {
               <Route path="/generate" element={<GeneratePaper />} />
               <Route path="/papers" element={<PapersList />} />
               <Route path="/papers/:id" element={<PaperPreview />} />
+              <Route path="/papers/:id/results" element={<ExamResultsDashboard />} />
+              <Route path="/results/:id" element={<ExamResultsDashboard />} />
               <Route path="/questions" element={<QuestionBank />} />
               <Route path="/images" element={<ImageLibrary />} />
 

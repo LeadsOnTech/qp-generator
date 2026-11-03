@@ -1,0 +1,1002 @@
+// backend/src/routes/results.js
+// Authenticated routes for Exam Results, Scorecards, PDF Downloads, and WhatsApp Parent Notifications.
+
+const express = require('express');
+const router = express.Router();
+const prisma = require('../db');
+const {
+  evaluateStudentResult,
+  assignCohortRanks,
+  generateResultToken,
+} = require('../lib/resultEngine');
+const { buildStudentPerformancePdf } = require('../lib/studentReportPdf');
+const {
+  sendResultWhatsAppNotification,
+  compileWhatsAppMessage,
+  maskPhoneNumber,
+  DEFAULT_COST_PER_MESSAGE_INR,
+} = require('../lib/whatsappResultService');
+
+/**
+ * Helper to fetch ordered questions for a paper with Subject and Chapter metadata.
+ */
+async function getPaperOrderedQuestions(paperId) {
+  const paper = await prisma.paper.findUnique({
+    where: { id: paperId },
+    include: {
+      questions: {
+        orderBy: { order: 'asc' },
+        include: {
+          question: {
+            include: {
+              chapter: {
+                include: {
+                  subject: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!paper) return null;
+
+  return paper.questions.map((pq, idx) => ({
+    ...pq.question,
+    order: pq.order || idx + 1,
+    subjectName: pq.question.chapter?.subject?.name || null,
+    chapterName: pq.question.chapter?.name || null,
+  }));
+}
+
+/**
+ * POST /api/results/generate-from-cbt/:cbtTestId
+ * Approves and generates official ExamResult records from all submissions of a CBT test.
+ */
+router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
+  try {
+    const { cbtTestId } = req.params;
+    const instituteId = req.user.role === 'ADMIN' ? req.body.instituteId : req.user.instituteId;
+
+    const test = await prisma.cbtTest.findUnique({
+      where: { id: cbtTestId },
+      include: {
+        paper: {
+          include: { institute: true },
+        },
+        submissions: {
+          where: { isVerifiedStudent: true }, // Only verified students
+        },
+      },
+    });
+
+    if (!test) {
+      return res.status(404).json({ error: 'CBT Test not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && test.instituteId && test.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized: Test belongs to another institute' });
+    }
+
+    const targetInstituteId = test.instituteId || instituteId || test.paper?.instituteId;
+    if (!targetInstituteId) {
+      return res.status(400).json({ error: 'No associated institute found for this test' });
+    }
+
+    const questions = await getPaperOrderedQuestions(test.paperId);
+    if (!questions || questions.length === 0) {
+      return res.status(400).json({ error: 'Paper has no questions to evaluate' });
+    }
+
+    const submissions = test.submissions;
+    if (submissions.length === 0) {
+      return res.status(400).json({ error: 'No student submissions found to generate results' });
+    }
+
+    // 1. Evaluate individual submissions
+    const evaluatedList = submissions.map((sub) => {
+      let answers = {};
+      try {
+        answers = sub.answersJson ? JSON.parse(sub.answersJson) : {};
+      } catch {
+        answers = {};
+      }
+
+      const evalData = evaluateStudentResult(questions, answers, {
+        positiveMarks: test.positiveMarks,
+        negativeMarks: test.negativeMarks,
+      });
+
+      return {
+        submissionId: sub.id,
+        studentName: sub.studentName,
+        rollNumber: sub.rollNumber,
+        batchName: sub.section || 'General',
+        section: sub.section,
+        parentPhone: sub.studentPhone,
+        evalData,
+        marksObtained: evalData.marksObtained,
+        accuracyPercentage: evalData.accuracyPercentage,
+        negativeMarksDeducted: evalData.negativeMarksDeducted,
+      };
+    });
+
+    // 2. Assign cohort ranks with tie-breaking rules
+    const rankedCohort = assignCohortRanks(evaluatedList, test.examName);
+
+    // 3. Persist ExamResult and breakdown records
+    const createdResultIds = [];
+
+    for (const item of rankedCohort) {
+      const { evalData } = item;
+
+      // Check if result already exists for this test and roll number
+      const existing = await prisma.examResult.findFirst({
+        where: {
+          instituteId: targetInstituteId,
+          paperId: test.paperId,
+          rollNumber: item.rollNumber,
+        },
+      });
+
+      let resultRecord;
+      if (existing) {
+        // Update existing result
+        resultRecord = await prisma.examResult.update({
+          where: { id: existing.id },
+          data: {
+            cbtTestId: test.id,
+            studentName: item.studentName,
+            batchName: item.batchName,
+            section: item.section,
+            parentPhone: item.parentPhone,
+            totalQuestions: evalData.totalQuestions,
+            attemptedQuestions: evalData.attemptedQuestions,
+            correctAnswers: evalData.correctAnswers,
+            incorrectAnswers: evalData.incorrectAnswers,
+            unattemptedQuestions: evalData.unattemptedQuestions,
+            maxMarks: evalData.maxMarks,
+            marksObtained: evalData.marksObtained,
+            negativeMarksDeducted: evalData.negativeMarksDeducted,
+            percentage: evalData.percentage,
+            accuracyPercentage: evalData.accuracyPercentage,
+            rank: item.rank,
+            totalStudents: item.totalStudents,
+            academicInsight: evalData.academicInsight,
+            status: 'PUBLISHED',
+          },
+        });
+
+        // Clean old breakups to refresh
+        await prisma.examSubjectResult.deleteMany({ where: { resultId: resultRecord.id } });
+        await prisma.examChapterResult.deleteMany({ where: { resultId: resultRecord.id } });
+      } else {
+        // Create new result
+        resultRecord = await prisma.examResult.create({
+          data: {
+            instituteId: targetInstituteId,
+            paperId: test.paperId,
+            cbtTestId: test.id,
+            studentName: item.studentName,
+            rollNumber: item.rollNumber,
+            batchName: item.batchName,
+            section: item.section,
+            parentPhone: item.parentPhone,
+            examName: test.title || test.examName,
+            examType: 'CBT',
+            totalQuestions: evalData.totalQuestions,
+            attemptedQuestions: evalData.attemptedQuestions,
+            correctAnswers: evalData.correctAnswers,
+            incorrectAnswers: evalData.incorrectAnswers,
+            unattemptedQuestions: evalData.unattemptedQuestions,
+            maxMarks: evalData.maxMarks,
+            marksObtained: evalData.marksObtained,
+            negativeMarksDeducted: evalData.negativeMarksDeducted,
+            percentage: evalData.percentage,
+            accuracyPercentage: evalData.accuracyPercentage,
+            rank: item.rank,
+            totalStudents: item.totalStudents,
+            academicInsight: evalData.academicInsight,
+            status: 'PUBLISHED',
+          },
+        });
+      }
+
+      // Ensure access token exists
+      const existingToken = await prisma.resultAccessToken.findFirst({
+        where: { resultId: resultRecord.id, isRevoked: false },
+      });
+      if (!existingToken) {
+        await prisma.resultAccessToken.create({
+          data: {
+            resultId: resultRecord.id,
+            token: generateResultToken(),
+          },
+        });
+      }
+
+      // Insert subject breakups
+      if (evalData.subjectResults?.length > 0) {
+        await prisma.examSubjectResult.createMany({
+          data: evalData.subjectResults.map((s) => ({
+            resultId: resultRecord.id,
+            subjectName: s.subjectName,
+            totalQuestions: s.totalQuestions,
+            attemptedQuestions: s.attemptedQuestions,
+            correctCount: s.correctCount,
+            incorrectCount: s.incorrectCount,
+            unattemptedCount: s.unattemptedCount,
+            maxMarks: s.maxMarks,
+            marksObtained: s.marksObtained,
+            accuracyPercentage: s.accuracyPercentage,
+            percentage: s.percentage,
+          })),
+        });
+      }
+
+      // Insert chapter breakups
+      if (evalData.chapterResults?.length > 0) {
+        await prisma.examChapterResult.createMany({
+          data: evalData.chapterResults.map((c) => ({
+            resultId: resultRecord.id,
+            chapterName: c.chapterName,
+            totalQuestions: c.totalQuestions,
+            attemptedQuestions: c.attemptedQuestions,
+            correctCount: c.correctCount,
+            incorrectCount: c.incorrectCount,
+            accuracyPercentage: c.accuracyPercentage,
+            status: c.status,
+          })),
+        });
+      }
+
+      createdResultIds.push(resultRecord.id);
+    }
+
+    res.json({
+      ok: true,
+      message: `Successfully evaluated and generated ${rankedCohort.length} student results`,
+      totalStudents: rankedCohort.length,
+      topScore: rankedCohort[0]?.marksObtained || 0,
+      paperId: test.paperId,
+      cbtTestId: test.id,
+    });
+  } catch (err) {
+    console.error('Failed to generate results from CBT:', err);
+    res.status(500).json({ error: 'Failed to generate results: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/offline-upload
+ * Creates ExamResult records from an offline OMR / Excel / CSV marksheet.
+ */
+router.post('/offline-upload', async (req, res) => {
+  try {
+    const { paperId, examName, examDate, records = [], positiveMarks = 4.0, negativeMarks = 1.0 } = req.body;
+    const instituteId = req.user.role === 'ADMIN' ? req.body.instituteId : req.user.instituteId;
+
+    if (!paperId) {
+      return res.status(400).json({ error: 'paperId is required' });
+    }
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+      include: { institute: true },
+    });
+
+    if (!paper) {
+      return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    const targetInstituteId = paper.instituteId || instituteId;
+
+    if (!records || records.length === 0) {
+      return res.status(400).json({ error: 'No student records provided' });
+    }
+
+    const questions = await getPaperOrderedQuestions(paperId);
+    const posMark = Number(positiveMarks) || 4.0;
+    const negMark = Number(negativeMarks) || 1.0;
+    const totalQCount = questions?.length || 0;
+    const computedMaxMarks = totalQCount * posMark;
+
+    // Process each student record
+    const processedList = records.map((r) => {
+      const rollNumber = String(r.rollNumber || r.roll || '').trim().toUpperCase();
+      const studentName = String(r.studentName || r.name || 'Student').trim();
+      const batchName = String(r.batchName || r.batch || r.section || 'General').trim();
+      const parentPhone = r.parentPhone || r.phone || null;
+
+      // Case A: Full responses provided as { [qId or qOrder]: answer }
+      if (r.answers && questions && questions.length > 0) {
+        const evalData = evaluateStudentResult(questions, r.answers, {
+          positiveMarks: posMark,
+          negativeMarks: negMark,
+        });
+
+        return {
+          studentName,
+          rollNumber,
+          batchName,
+          parentPhone,
+          evalData,
+          marksObtained: evalData.marksObtained,
+          accuracyPercentage: evalData.accuracyPercentage,
+          negativeMarksDeducted: evalData.negativeMarksDeducted,
+        };
+      }
+
+      // Case B: Direct score and breakdown numbers provided in Excel
+      const marksObtained = parseFloat(r.marksObtained != null ? r.marksObtained : r.score) || 0.0;
+      const maxMarks = parseFloat(r.maxMarks) || computedMaxMarks || 100.0;
+      const correctAnswers = parseInt(r.correctAnswers || r.correct, 10) || 0;
+      const incorrectAnswers = parseInt(r.incorrectAnswers || r.wrong, 10) || 0;
+      const unattemptedQuestions = parseInt(r.unattemptedQuestions || r.unattempted, 10) || 0;
+      const attemptedQuestions = correctAnswers + incorrectAnswers;
+
+      const accuracyPercentage = attemptedQuestions > 0
+        ? Math.round((correctAnswers / attemptedQuestions) * 1000) / 10
+        : (parseFloat(r.accuracyPercentage) || 0.0);
+
+      const percentage = maxMarks > 0
+        ? Math.round((marksObtained / maxMarks) * 1000) / 10
+        : 0.0;
+
+      const negativeMarksDeducted = Math.round(incorrectAnswers * negMark * 100) / 100;
+
+      const academicInsight = r.academicInsight || (
+        percentage >= 75
+          ? `Excellent performance (${percentage}%). Maintain consistency.`
+          : percentage >= 50
+          ? `Solid progress (${percentage}%). Focus on eliminating negative marks to reach 75%.`
+          : `Foundational revision needed. Score is ${percentage}%. Practice Level-1 DPPs.`
+      );
+
+      return {
+        studentName,
+        rollNumber,
+        batchName,
+        parentPhone,
+        evalData: {
+          totalQuestions: totalQCount || (attemptedQuestions + unattemptedQuestions),
+          attemptedQuestions,
+          correctAnswers,
+          incorrectAnswers,
+          unattemptedQuestions,
+          maxMarks,
+          marksObtained,
+          negativeMarksDeducted,
+          percentage,
+          accuracyPercentage,
+          academicInsight,
+          subjectResults: r.subjectResults || [],
+          chapterResults: r.chapterResults || [],
+        },
+        marksObtained,
+        accuracyPercentage,
+        negativeMarksDeducted,
+      };
+    });
+
+    // Rank cohort
+    const rankedCohort = assignCohortRanks(processedList, examName || paper.examName);
+
+    // Save records
+    for (const item of rankedCohort) {
+      const { evalData } = item;
+
+      const existing = await prisma.examResult.findFirst({
+        where: {
+          instituteId: targetInstituteId,
+          paperId,
+          rollNumber: item.rollNumber,
+        },
+      });
+
+      let resultRecord;
+      if (existing) {
+        resultRecord = await prisma.examResult.update({
+          where: { id: existing.id },
+          data: {
+            studentName: item.studentName,
+            batchName: item.batchName,
+            parentPhone: item.parentPhone,
+            examName: examName || paper.title,
+            examType: 'OFFLINE_OMR',
+            totalQuestions: evalData.totalQuestions,
+            attemptedQuestions: evalData.attemptedQuestions,
+            correctAnswers: evalData.correctAnswers,
+            incorrectAnswers: evalData.incorrectAnswers,
+            unattemptedQuestions: evalData.unattemptedQuestions,
+            maxMarks: evalData.maxMarks,
+            marksObtained: evalData.marksObtained,
+            negativeMarksDeducted: evalData.negativeMarksDeducted,
+            percentage: evalData.percentage,
+            accuracyPercentage: evalData.accuracyPercentage,
+            rank: item.rank,
+            totalStudents: item.totalStudents,
+            academicInsight: evalData.academicInsight,
+            status: 'PUBLISHED',
+          },
+        });
+
+        await prisma.examSubjectResult.deleteMany({ where: { resultId: resultRecord.id } });
+        await prisma.examChapterResult.deleteMany({ where: { resultId: resultRecord.id } });
+      } else {
+        resultRecord = await prisma.examResult.create({
+          data: {
+            instituteId: targetInstituteId,
+            paperId,
+            studentName: item.studentName,
+            rollNumber: item.rollNumber,
+            batchName: item.batchName,
+            parentPhone: item.parentPhone,
+            examName: examName || paper.title,
+            examType: 'OFFLINE_OMR',
+            examDate: examDate ? new Date(examDate) : new Date(),
+            totalQuestions: evalData.totalQuestions,
+            attemptedQuestions: evalData.attemptedQuestions,
+            correctAnswers: evalData.correctAnswers,
+            incorrectAnswers: evalData.incorrectAnswers,
+            unattemptedQuestions: evalData.unattemptedQuestions,
+            maxMarks: evalData.maxMarks,
+            marksObtained: evalData.marksObtained,
+            negativeMarksDeducted: evalData.negativeMarksDeducted,
+            percentage: evalData.percentage,
+            accuracyPercentage: evalData.accuracyPercentage,
+            rank: item.rank,
+            totalStudents: item.totalStudents,
+            academicInsight: evalData.academicInsight,
+            status: 'PUBLISHED',
+          },
+        });
+      }
+
+      // Ensure access token
+      const existingToken = await prisma.resultAccessToken.findFirst({
+        where: { resultId: resultRecord.id, isRevoked: false },
+      });
+      if (!existingToken) {
+        await prisma.resultAccessToken.create({
+          data: {
+            resultId: resultRecord.id,
+            token: generateResultToken(),
+          },
+        });
+      }
+
+      // Save subject breakups if available
+      if (evalData.subjectResults?.length > 0) {
+        await prisma.examSubjectResult.createMany({
+          data: evalData.subjectResults.map((s) => ({
+            resultId: resultRecord.id,
+            subjectName: s.subjectName || 'General',
+            totalQuestions: s.totalQuestions || 0,
+            attemptedQuestions: s.attemptedQuestions || 0,
+            correctCount: s.correctCount || 0,
+            incorrectCount: s.incorrectCount || 0,
+            unattemptedCount: s.unattemptedCount || 0,
+            maxMarks: s.maxMarks || 0,
+            marksObtained: s.marksObtained || 0,
+            accuracyPercentage: s.accuracyPercentage || 0,
+            percentage: s.percentage || 0,
+          })),
+        });
+      }
+
+      // Save chapter breakups if available
+      if (evalData.chapterResults?.length > 0) {
+        await prisma.examChapterResult.createMany({
+          data: evalData.chapterResults.map((c) => ({
+            resultId: resultRecord.id,
+            chapterName: c.chapterName,
+            totalQuestions: c.totalQuestions,
+            attemptedQuestions: c.attemptedQuestions,
+            correctCount: c.correctCount,
+            incorrectCount: c.incorrectCount,
+            accuracyPercentage: c.accuracyPercentage,
+            status: c.status || 'AVERAGE',
+          })),
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      message: `Successfully processed and published ${rankedCohort.length} offline student results`,
+      totalStudents: rankedCohort.length,
+      topScore: rankedCohort[0]?.marksObtained || 0,
+      paperId,
+    });
+  } catch (err) {
+    console.error('Failed to upload offline results:', err);
+    res.status(500).json({ error: 'Failed to process offline results: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/paper/:paperId
+ * Lists all generated student results for an examination paper.
+ */
+router.get('/paper/:paperId', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+    const { batch, search } = req.query;
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+      include: { institute: true },
+    });
+
+    if (!paper) {
+      return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && paper.instituteId && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized: Paper belongs to another institute' });
+    }
+
+    const where = { paperId };
+    if (batch) where.batchName = String(batch);
+    if (search) {
+      where.OR = [
+        { studentName: { contains: String(search) } },
+        { rollNumber: { contains: String(search) } },
+      ];
+    }
+
+    const results = await prisma.examResult.findMany({
+      where,
+      orderBy: [{ rank: 'asc' }, { studentName: 'asc' }],
+      include: {
+        accessTokens: { where: { isRevoked: false }, take: 1 },
+        whatsappLogs: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    // Class / Batch aggregates
+    const totalStudents = results.length;
+    const totalScore = results.reduce((acc, r) => acc + r.marksObtained, 0);
+    const averageScore = totalStudents > 0 ? Math.round((totalScore / totalStudents) * 10) / 10 : 0;
+    const topScore = totalStudents > 0 ? results[0].marksObtained : 0;
+    const passThreshold = paper.questions?.length ? (paper.questions.length * 4.0 * 0.4) : 40.0;
+    const passedCount = results.filter((r) => r.marksObtained >= passThreshold).length;
+    const passPercentage = totalStudents > 0 ? Math.round((passedCount / totalStudents) * 1000) / 10 : 0;
+
+    // Mask phone numbers in response for privacy
+    const sanitizedResults = results.map((r) => ({
+      ...r,
+      parentPhoneMasked: maskPhoneNumber(r.parentPhone),
+      publicToken: r.accessTokens[0]?.token || null,
+      latestWhatsAppStatus: r.whatsappLogs[0]?.status || 'NOT_SENT',
+    }));
+
+    res.json({
+      paper: {
+        id: paper.id,
+        title: paper.title,
+        examName: paper.examName,
+        instituteName: paper.instituteName || paper.institute?.name,
+      },
+      stats: {
+        totalStudents,
+        averageScore,
+        topScore,
+        passPercentage,
+      },
+      results: sanitizedResults,
+    });
+  } catch (err) {
+    console.error('Failed to list paper results:', err);
+    res.status(500).json({ error: 'Failed to list results: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/student/:resultId
+ * Returns full details of a student's result including subject and chapter breakdowns.
+ */
+router.get('/student/:resultId', async (req, res) => {
+  try {
+    const { resultId } = req.params;
+
+    const result = await prisma.examResult.findUnique({
+      where: { id: resultId },
+      include: {
+        institute: true,
+        subjectResults: true,
+        chapterResults: true,
+        accessTokens: { where: { isRevoked: false }, take: 1 },
+        whatsappLogs: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && result.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    res.json({
+      ...result,
+      parentPhoneMasked: maskPhoneNumber(result.parentPhone),
+      publicToken: result.accessTokens[0]?.token || null,
+    });
+  } catch (err) {
+    console.error('Failed to fetch student result:', err);
+    res.status(500).json({ error: 'Failed to fetch result: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/:resultId/pdf
+ * Generates and streams the publication-grade A4 Performance Report PDF.
+ */
+router.get('/:resultId/pdf', async (req, res) => {
+  try {
+    const { resultId } = req.params;
+
+    const result = await prisma.examResult.findUnique({
+      where: { id: resultId },
+      include: {
+        institute: true,
+        subjectResults: true,
+        chapterResults: true,
+        accessTokens: { where: { isRevoked: false }, take: 1 },
+      },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && result.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Ensure access token exists for the verification QR code
+    let token = result.accessTokens[0]?.token;
+    if (!token) {
+      const newToken = generateResultToken();
+      const tokenRec = await prisma.resultAccessToken.create({
+        data: { resultId: result.id, token: newToken },
+      });
+      token = tokenRec.token;
+    }
+
+    const host = req.get('host') || 'localhost:5173';
+    const protocol = req.protocol || 'http';
+    const publicUrl = `${protocol}://${host}/r/${token}`;
+
+    const pdfBuffer = await buildStudentPerformancePdf({
+      result,
+      institute: result.institute || {},
+      publicReportUrl: publicUrl,
+    });
+
+    const safeFilename = `${result.rollNumber}_${result.studentName.replace(/[^a-zA-Z0-9]/g, '_')}_Report.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error('Failed to render PDF report:', err);
+    res.status(500).json({ error: 'Failed to render PDF: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/:resultId/whatsapp-preview
+ * Previews the compiled WhatsApp notification message and estimated cost.
+ */
+router.get('/:resultId/whatsapp-preview', async (req, res) => {
+  try {
+    const { resultId } = req.params;
+
+    const result = await prisma.examResult.findUnique({
+      where: { id: resultId },
+      include: {
+        institute: true,
+        accessTokens: { where: { isRevoked: false }, take: 1 },
+      },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && result.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const host = req.get('host') || 'localhost:5173';
+    const protocol = req.protocol || 'http';
+    const token = result.accessTokens[0]?.token || 'SAMPLE_TOKEN';
+    const reportUrl = `${protocol}://${host}/r/${token}`;
+
+    const previewMessage = compileWhatsAppMessage({
+      collegeName: result.institute?.name || 'Academic Institute',
+      student: {
+        studentName: result.studentName,
+        rollNumber: result.rollNumber,
+        batchName: result.batchName,
+        section: result.section,
+      },
+      exam: {
+        examName: result.examName,
+        examDate: result.examDate,
+        marksObtained: result.marksObtained,
+        maxMarks: result.maxMarks,
+        percentage: result.percentage,
+        accuracyPercentage: result.accuracyPercentage,
+        rank: result.rank,
+        totalStudents: result.totalStudents,
+        correctAnswers: result.correctAnswers,
+        incorrectAnswers: result.incorrectAnswers,
+        unattemptedQuestions: result.unattemptedQuestions,
+        academicInsight: result.academicInsight,
+      },
+      reportUrl,
+    });
+
+    res.json({
+      recipientPhone: result.parentPhone,
+      recipientPhoneMasked: maskPhoneNumber(result.parentPhone),
+      previewMessage,
+      estimatedCostRupees: DEFAULT_COST_PER_MESSAGE_INR,
+      reportUrl,
+    });
+  } catch (err) {
+    console.error('Failed to preview WhatsApp message:', err);
+    res.status(500).json({ error: 'Failed to preview message: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/:resultId/whatsapp-send
+ * Dispatches WhatsApp notification for an individual student.
+ */
+router.post('/:resultId/whatsapp-send', async (req, res) => {
+  try {
+    const { resultId } = req.params;
+    const { forceRetry = false } = req.body;
+
+    const result = await prisma.examResult.findUnique({
+      where: { id: resultId },
+    });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && result.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    if (!result.parentPhone) {
+      return res.status(400).json({ error: 'No parent phone number registered for this student' });
+    }
+
+    const host = req.get('host') || 'localhost:5173';
+    const protocol = req.protocol || 'http';
+    const baseUrl = `${protocol}://${host}`;
+
+    const dispatch = await sendResultWhatsAppNotification({
+      instituteId: result.instituteId,
+      resultId: result.id,
+      recipientPhone: result.parentPhone,
+      forceRetry: Boolean(forceRetry),
+      baseUrl,
+    });
+
+    res.json(dispatch);
+  } catch (err) {
+    console.error('Failed to send WhatsApp notification:', err);
+    res.status(500).json({ error: 'WhatsApp dispatch failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/paper/:paperId/batch-whatsapp-send
+ * Dispatches WhatsApp notifications in bulk to all approved students in an examination.
+ */
+router.post('/paper/:paperId/batch-whatsapp-send', async (req, res) => {
+  try {
+    const { paperId } = req.params;
+    const { batchName, forceRetry = false } = req.body;
+
+    const paper = await prisma.paper.findUnique({
+      where: { id: paperId },
+    });
+
+    if (!paper) {
+      return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    if (req.user.role !== 'ADMIN' && paper.instituteId && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const where = { paperId };
+    if (batchName) where.batchName = String(batchName);
+
+    const results = await prisma.examResult.findMany({
+      where,
+    });
+
+    if (results.length === 0) {
+      return res.status(400).json({ error: 'No results found to notify' });
+    }
+
+    const host = req.get('host') || 'localhost:5173';
+    const protocol = req.protocol || 'http';
+    const baseUrl = `${protocol}://${host}`;
+
+    let sentCount = 0;
+    let skippedAlreadySent = 0;
+    let skippedNoPhone = 0;
+    let failedCount = 0;
+
+    for (const r of results) {
+      if (!r.parentPhone) {
+        skippedNoPhone++;
+        continue;
+      }
+
+      try {
+        const dispatch = await sendResultWhatsAppNotification({
+          instituteId: r.instituteId,
+          resultId: r.id,
+          recipientPhone: r.parentPhone,
+          forceRetry: Boolean(forceRetry),
+          baseUrl,
+        });
+
+        if (dispatch.alreadySent) {
+          skippedAlreadySent++;
+        } else if (dispatch.ok) {
+          sentCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (err) {
+        console.error(`Error notifying student ${r.rollNumber}:`, err.message);
+        failedCount++;
+      }
+    }
+
+    const totalCost = Math.round(sentCount * DEFAULT_COST_PER_MESSAGE_INR * 100) / 100;
+
+    res.json({
+      ok: true,
+      totalCandidates: results.length,
+      sentCount,
+      skippedAlreadySent,
+      skippedNoPhone,
+      failedCount,
+      totalCostRupees: totalCost,
+    });
+  } catch (err) {
+    console.error('Failed to batch send WhatsApp notifications:', err);
+    res.status(500).json({ error: 'Batch dispatch failed: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/results/whatsapp-ledger
+ * Returns the institute's WhatsApp usage history, wallet balance, and message logs.
+ */
+router.get('/whatsapp/ledger', async (req, res) => {
+  try {
+    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
+
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Institute ID required' });
+    }
+
+    const institute = await prisma.institute.findUnique({
+      where: { id: instituteId },
+      select: {
+        id: true,
+        name: true,
+        whatsAppWalletBalance: true,
+      },
+    });
+
+    if (!institute) {
+      return res.status(404).json({ error: 'Institute not found' });
+    }
+
+    const ledger = await prisma.whatsAppUsageLedger.findMany({
+      where: { instituteId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const recentLogs = await prisma.whatsAppMessageLog.findMany({
+      where: { instituteId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        result: {
+          select: { studentName: true, rollNumber: true, examName: true },
+        },
+      },
+    });
+
+    const sanitizedLogs = recentLogs.map((l) => ({
+      ...l,
+      recipientPhoneMasked: maskPhoneNumber(l.recipientPhone),
+    }));
+
+    res.json({
+      institute,
+      walletBalance: institute.whatsAppWalletBalance,
+      ledger,
+      recentLogs: sanitizedLogs,
+    });
+  } catch (err) {
+    console.error('Failed to fetch WhatsApp ledger:', err);
+    res.status(500).json({ error: 'Failed to fetch ledger: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/results/whatsapp/wallet-recharge
+ * Adds credits/rupees to the institute's WhatsApp messaging balance.
+ */
+router.post('/whatsapp/wallet-recharge', async (req, res) => {
+  try {
+    const { amountRupees } = req.body;
+    const instituteId = req.user.role === 'ADMIN' ? req.body.instituteId : req.user.instituteId;
+
+    const amount = parseFloat(amountRupees);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid positive amount in rupees is required' });
+    }
+
+    const institute = await prisma.institute.findUnique({
+      where: { id: instituteId },
+    });
+
+    if (!institute) {
+      return res.status(404).json({ error: 'Institute not found' });
+    }
+
+    const currentBal = institute.whatsAppWalletBalance || 0.0;
+    const newBal = Math.round((currentBal + amount) * 100) / 100;
+
+    await prisma.$transaction([
+      prisma.whatsAppUsageLedger.create({
+        data: {
+          instituteId,
+          amountRupees: amount,
+          balanceAfter: newBal,
+          messageCount: 0,
+          description: `WhatsApp Wallet Recharge (+₹${amount})`,
+        },
+      }),
+      prisma.institute.update({
+        where: { id: instituteId },
+        data: { whatsAppWalletBalance: newBal },
+      }),
+    ]);
+
+    res.json({
+      ok: true,
+      amountAdded: amount,
+      newBalance: newBal,
+    });
+  } catch (err) {
+    console.error('Failed to recharge WhatsApp wallet:', err);
+    res.status(500).json({ error: 'Recharge failed: ' + err.message });
+  }
+});
+
+module.exports = router;

@@ -94,6 +94,13 @@ model Institute {
   isTrial          Boolean @default(false)
   trialPhoneNumber String?
   trialPassword    String? // Saves the plaintext password so admin can view it later
+
+  // Smart Exam Results & Parent Communication
+  studentProfiles      StudentProfile[]
+  examResults          ExamResult[]
+  whatsAppMessageLogs  WhatsAppMessageLog[]
+  whatsAppUsageLedgers WhatsAppUsageLedger[]
+  whatsAppWalletBalance Float @default(0.0)
 }
 
 // ---------- Credit ledger ----------
@@ -308,6 +315,7 @@ model Paper {
   finalizedAt   DateTime?
   questions     PaperQuestion[]
   cbtTests      CbtTest[]
+  examResults   ExamResult[]
 }
 
 model PaperQuestion {
@@ -354,6 +362,7 @@ model CbtTest {
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
   submissions            CbtSubmission[]
+  examResults            ExamResult[]
 
   @@index([paperId])
   @@index([code])
@@ -433,3 +442,178 @@ model QuestionExamMapping {
   @@index([examId])
   @@index([questionId])
 }
+
+// ============================================================================
+// Phase 12 — Smart Exam Results, Performance Analytics & WhatsApp Parent Communication
+// ============================================================================
+
+model StudentProfile {
+  id              String         @id @default(cuid())
+  instituteId     String
+  institute       Institute      @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  rollNumber      String
+  fullName        String
+  batchName       String         // e.g. "NEET-2026-Batch-A", "Class-12-MPC"
+  section         String?        // e.g. "Section A"
+
+  parentName      String?
+  parentPhone     String         // Normalized E.164 (e.g. "+919876543210")
+  parentEmail     String?
+
+  results         ExamResult[]
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([instituteId, rollNumber])
+  @@index([instituteId, batchName])
+  @@index([parentPhone])
+}
+
+model ExamResult {
+  id                    String             @id @default(cuid())
+  instituteId           String
+  institute             Institute          @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  paperId               String
+  paper                 Paper              @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  cbtTestId             String?
+  cbtTest               CbtTest?           @relation(fields: [cbtTestId], references: [id], onDelete: SetNull)
+  studentProfileId      String?
+  studentProfile        StudentProfile?    @relation(fields: [studentProfileId], references: [id], onDelete: SetNull)
+
+  // Student Snapshot (preserved even if student profile is edited)
+  studentName           String
+  rollNumber            String
+  batchName             String             @default("General")
+  section               String?
+  parentPhone           String?
+
+  // Exam Snapshot
+  examName              String             // e.g. "NEET Grand Test - 04"
+  examType              String             @default("CBT") // CBT | OFFLINE_OMR | MANUAL_ENTRY
+  examDate              DateTime           @default(now())
+
+  // Precision Marks & Metrics
+  totalQuestions        Int
+  attemptedQuestions    Int
+  correctAnswers        Int
+  incorrectAnswers      Int
+  unattemptedQuestions  Int
+
+  maxMarks              Float
+  marksObtained         Float
+  negativeMarksDeducted Float              @default(0.0)
+
+  percentage            Float              // (marksObtained / maxMarks) * 100
+  accuracyPercentage    Float              // (correctAnswers / attemptedQuestions) * 100
+
+  rank                  Int                @default(1)
+  totalStudents         Int                @default(1)
+
+  academicInsight       String?            // Short, constructive insight
+  status                String             @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+
+  // Granular breakups
+  subjectResults        ExamSubjectResult[]
+  chapterResults        ExamChapterResult[]
+  accessTokens          ResultAccessToken[]
+  whatsappLogs          WhatsAppMessageLog[]
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([instituteId, rollNumber])
+  @@index([paperId])
+  @@index([batchName])
+}
+
+model ExamSubjectResult {
+  id                 String     @id @default(cuid())
+  resultId           String
+  result             ExamResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  subjectName        String     // e.g. "Physics", "Chemistry", "Mathematics", "Biology"
+  totalQuestions     Int
+  attemptedQuestions Int
+  correctCount       Int
+  incorrectCount     Int
+  unattemptedCount   Int
+
+  maxMarks           Float
+  marksObtained      Float
+  accuracyPercentage Float
+  percentage         Float
+
+  @@index([resultId])
+}
+
+model ExamChapterResult {
+  id                 String     @id @default(cuid())
+  resultId           String
+  result             ExamResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  chapterName        String
+  totalQuestions     Int
+  attemptedQuestions Int
+  correctCount       Int
+  incorrectCount     Int
+  accuracyPercentage Float
+  status             String     @default("AVERAGE") // STRONG (>=75%) | AVERAGE (50-74%) | WEAK (<50%)
+
+  @@index([resultId])
+}
+
+model ResultAccessToken {
+  id            String     @id @default(cuid())
+  resultId      String
+  result        ExamResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  token         String     @unique // 32-char unguessable cryptographic token
+  viewsCount    Int        @default(0)
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  expiresAt     DateTime?
+  isRevoked     Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+
+  @@index([token])
+}
+
+model WhatsAppMessageLog {
+  id             String      @id @default(cuid())
+  instituteId    String
+  institute      Institute   @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  resultId       String?
+  result         ExamResult? @relation(fields: [resultId], references: [id], onDelete: SetNull)
+
+  recipientPhone String
+  templateName   String      @default("student_exam_report_v1")
+  messagePayload String      // JSON string of parameters
+  status         String      @default("QUEUED") // QUEUED | SENT | DELIVERED | READ | FAILED
+  providerMsgId  String?
+  errorMessage   String?
+  retryCount     Int         @default(0)
+  costInRupees   Float       @default(0.75)
+
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime    @default(now())
+
+  @@index([instituteId, status])
+  @@index([resultId])
+}
+
+model WhatsAppUsageLedger {
+  id           String    @id @default(cuid())
+  instituteId  String
+  institute    Institute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  amountRupees Float     // positive = wallet recharge, negative = message debit
+  balanceAfter Float
+  messageCount Int       // count of messages in this event
+  description  String
+  createdAt    DateTime  @default(now())
+
+  @@index([instituteId])
+}
+
