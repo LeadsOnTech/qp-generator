@@ -3,7 +3,37 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const prisma = require('../db');
+
+// Setup upload folder for student passport photos
+const STUDENT_UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'students');
+fs.mkdirSync(STUDENT_UPLOAD_DIR, { recursive: true });
+
+const studentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, STUDENT_UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    const cleanExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `student-${uniqueSuffix}${cleanExt}`);
+  },
+});
+
+const studentPhotoUpload = multer({
+  storage: studentStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files (JPG, PNG, WebP) are allowed.'));
+    }
+    cb(null, true);
+  },
+});
 const {
   evaluateStudentResult,
   assignCohortRanks,
@@ -1240,6 +1270,7 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
       parentPhoneMasked: maskPhoneNumber(profile?.parentPhone || exams[exams.length - 1].parentPhone),
       studentPhone: profile?.studentPhone || null,
       address: profile?.address || null,
+      photoUrl: profile?.photoUrl || null,
       totalExamsTaken: exams.length,
     };
 
@@ -1695,6 +1726,23 @@ router.get('/students/roster', async (req, res) => {
 });
 
 /**
+ * POST /api/results/students/upload-photo
+ * Uploads a student passport photograph.
+ */
+router.post('/students/upload-photo', (req, res) => {
+  studentPhotoUpload.single('photo')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded. Attach image under field "photo".' });
+    }
+    const photoUrl = `/uploads/students/${req.file.filename}`;
+    res.json({ ok: true, photoUrl, filename: req.file.filename });
+  });
+});
+
+/**
  * POST /api/results/students/roster
  * Adds or updates a single student profile in the college roster.
  */
@@ -1708,6 +1756,7 @@ router.post('/students/roster', async (req, res) => {
     const {
       rollNumber,
       fullName,
+      photoUrl,
       batchName,
       section,
       classYear,
@@ -1740,6 +1789,7 @@ router.post('/students/roster', async (req, res) => {
 
     const studentData = {
       fullName: String(fullName).trim(),
+      photoUrl: photoUrl ? String(photoUrl).trim() : null,
       batchName: batchName ? String(batchName).trim() : 'General',
       section: section ? String(section).trim() : null,
       classYear: classYear ? String(classYear).trim() : null,
@@ -1847,12 +1897,14 @@ router.post('/students/roster/bulk', async (req, res) => {
           },
           update: {
             fullName: String(s.fullName).trim(),
+            photoUrl: s.photoUrl ? String(s.photoUrl).trim() : existing?.photoUrl,
             batchName: s.batchName ? String(s.batchName).trim() : (existing?.batchName || 'General'),
             section: s.section ? String(s.section).trim() : existing?.section,
             classYear: s.classYear ? String(s.classYear).trim() : existing?.classYear,
             courseTarget: s.courseTarget ? String(s.courseTarget).trim() : existing?.courseTarget,
             nativePlace: s.nativePlace ? String(s.nativePlace).trim() : existing?.nativePlace,
             district: s.district ? String(s.district).trim() : existing?.district,
+            state: s.state ? String(s.state).trim() : existing?.state,
             hostelStatus: s.hostelStatus ? String(s.hostelStatus).trim() : existing?.hostelStatus,
             gender: s.gender ? String(s.gender).trim() : existing?.gender,
             parentName: s.parentName ? String(s.parentName).trim() : existing?.parentName,
@@ -1861,22 +1913,32 @@ router.post('/students/roster/bulk', async (req, res) => {
             parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : existing?.parentOccupation,
             parentEmail: s.parentEmail ? String(s.parentEmail).trim() : existing?.parentEmail,
             studentPhone: s.studentPhone ? String(s.studentPhone).trim() : existing?.studentPhone,
+            address: s.address ? String(s.address).trim() : existing?.address,
             isActive: true,
           },
           create: {
             instituteId,
             rollNumber: normRoll,
             fullName: String(s.fullName).trim(),
+            photoUrl: s.photoUrl ? String(s.photoUrl).trim() : null,
             batchName: s.batchName ? String(s.batchName).trim() : 'General',
             section: s.section ? String(s.section).trim() : null,
             classYear: s.classYear ? String(s.classYear).trim() : null,
             courseTarget: s.courseTarget ? String(s.courseTarget).trim() : null,
             nativePlace: s.nativePlace ? String(s.nativePlace).trim() : null,
             district: s.district ? String(s.district).trim() : null,
+            state: s.state ? String(s.state).trim() : null,
             hostelStatus: s.hostelStatus ? String(s.hostelStatus).trim() : null,
             gender: s.gender ? String(s.gender).trim() : null,
             parentName: s.parentName ? String(s.parentName).trim() : null,
             parentPhone: normPhone || '',
+            parentRelation: s.parentRelation ? String(s.parentRelation).trim() : null,
+            parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : null,
+            parentEmail: s.parentEmail ? String(s.parentEmail).trim() : null,
+            studentPhone: s.studentPhone ? String(s.studentPhone).trim() : null,
+            address: s.address ? String(s.address).trim() : null,
+          },
+        });
             parentRelation: s.parentRelation ? String(s.parentRelation).trim() : null,
             parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : null,
             parentEmail: s.parentEmail ? String(s.parentEmail).trim() : null,

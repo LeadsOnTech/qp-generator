@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
@@ -46,9 +46,50 @@ const PARENT_OCCUPATION_OPTIONS = [
   'Other',
 ];
 
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Telangana',
+  'Karnataka',
+  'Tamil Nadu',
+  'Kerala',
+  'Maharashtra',
+  'Odisha',
+  'Chhattisgarh',
+  'Gujarat',
+  'Rajasthan',
+  'Uttar Pradesh',
+  'Bihar',
+  'Madhya Pradesh',
+  'West Bengal',
+  'Delhi (NCT)',
+  'Punjab',
+  'Haryana',
+  'Assam',
+  'Jharkhand',
+  'Uttarakhand',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Goa',
+  'Tripura',
+  'Meghalaya',
+  'Manipur',
+  'Nagaland',
+  'Arunachal Pradesh',
+  'Mizoram',
+  'Sikkim',
+  'Puducherry',
+  'Chandigarh',
+  'Ladakh',
+  'Andaman and Nicobar Islands',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Lakshadweep',
+  'Other / International',
+];
+
 const DEFAULT_FORM = {
   rollNumber: '',
   fullName: '',
+  photoUrl: '',
   admissionNumber: '',
   classYear: 'Inter 2nd Year (12th)',
   courseTarget: 'NEET (Medical)',
@@ -79,6 +120,7 @@ export default function StudentsRoster() {
   const [courseFilter, setCourseFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [hostelFilter, setHostelFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('');
 
   // Modals
   const [addModal, setAddModal] = useState(false);
@@ -86,9 +128,11 @@ export default function StudentsRoster() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [saving, setSaving] = useState(false);
   const [exportingRoster, setExportingRoster] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Form State
   const [form, setForm] = useState(DEFAULT_FORM);
+  const fileInputRef = useRef(null);
 
   // Bulk Import State
   const [bulkCsv, setBulkCsv] = useState('');
@@ -124,20 +168,19 @@ export default function StudentsRoster() {
       (s.batchName && s.batchName.toLowerCase().includes(q)) ||
       (s.nativePlace && s.nativePlace.toLowerCase().includes(q)) ||
       (s.district && s.district.toLowerCase().includes(q)) ||
+      (s.state && s.state.toLowerCase().includes(q)) ||
       (s.parentName && s.parentName.toLowerCase().includes(q));
 
     const matchesBatch = !batchFilter || s.batchName === batchFilter;
     const matchesCourse = !courseFilter || s.courseTarget === courseFilter;
     const matchesClass = !classFilter || s.classYear === classFilter;
     const matchesHostel = !hostelFilter || s.hostelStatus === hostelFilter;
+    const matchesState = !stateFilter || s.state === stateFilter;
 
-    return matchesSearch && matchesBatch && matchesCourse && matchesClass && matchesHostel;
+    return matchesSearch && matchesBatch && matchesCourse && matchesClass && matchesHostel && matchesState;
   });
 
   const batches = Array.from(new Set(students.map((s) => s.batchName).filter(Boolean)));
-  const courses = Array.from(new Set(students.map((s) => s.courseTarget).filter(Boolean)));
-  const classYears = Array.from(new Set(students.map((s) => s.classYear).filter(Boolean)));
-
   const totalStudents = students.length;
   const withPhoneCount = students.filter((s) => s.parentPhone && s.parentPhone.length >= 10).length;
   const coveragePercent = totalStudents > 0 ? Math.round((withPhoneCount / totalStudents) * 100) : 0;
@@ -148,6 +191,7 @@ export default function StudentsRoster() {
     setForm({
       ...DEFAULT_FORM,
       batchName: batches[0] || 'MPC Section-A',
+      photoUrl: '',
     });
     setEditingStudent(null);
     setAddModal(true);
@@ -157,6 +201,7 @@ export default function StudentsRoster() {
     setForm({
       rollNumber: st.rollNumber || '',
       fullName: st.fullName || '',
+      photoUrl: st.photoUrl || '',
       admissionNumber: st.admissionNumber || '',
       classYear: st.classYear || 'Inter 2nd Year (12th)',
       courseTarget: st.courseTarget || 'NEET (Medical)',
@@ -177,6 +222,34 @@ export default function StudentsRoster() {
     });
     setEditingStudent(st);
     setAddModal(true);
+  }
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Photo file size exceeds 5MB limit. Please select a smaller photo.');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      const res = await api.uploadStudentPhoto(file);
+      if (res.photoUrl) {
+        setForm((f) => ({ ...f, photoUrl: res.photoUrl }));
+      }
+    } catch (err) {
+      // Fallback: convert to base64 Data URL so photo upload always works
+      const reader = new FileReader();
+      reader.onload = () => {
+        setForm((f) => ({ ...f, photoUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   }
 
   async function handleSaveStudent(e) {
@@ -243,7 +316,6 @@ export default function StudentsRoster() {
     const lines = bulkCsv.trim().split(/\r?\n/);
     const parsedStudents = [];
 
-    // Header detection
     let headerIdx = -1;
     let colMap = null;
 
@@ -253,7 +325,6 @@ export default function StudentsRoster() {
 
       const rawParts = line.split(/[,\t]/).map((p) => p.trim().replace(/^["']|["']$/g, ''));
 
-      // Detect header row
       if (headerIdx === -1 && rawParts.some((p) => /roll|hall\s*ticket/i.test(p))) {
         headerIdx = i;
         colMap = {};
@@ -307,8 +378,6 @@ export default function StudentsRoster() {
           });
         }
       } else {
-        // Fallback default positional order:
-        // 0: Roll, 1: Name, 2: Batch, 3: ParentPhone, 4: ParentName, 5: Course, 6: NativePlace, 7: District
         if (rawParts.length >= 2 && rawParts[0] && rawParts[1]) {
           parsedStudents.push({
             rollNumber: rawParts[0],
@@ -359,7 +428,7 @@ export default function StudentsRoster() {
           <p style={styles.eyebrow}>ACADEMIC ROSTER & DEMOGRAPHIC DIRECTORY</p>
           <h1 style={styles.title}>👨‍🎓 Student Directory & Profiles</h1>
           <p style={styles.subtitle}>
-            Manage student academic profiles, target courses (NEET/JEE/EAPCET), native village/town, hostel status, and parent WhatsApp numbers.
+            Manage student academic profiles, passport photographs, target courses (NEET/JEE/EAPCET), native village/town, hostel status, and parent WhatsApp numbers.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -455,6 +524,16 @@ export default function StudentsRoster() {
               <option key={h} value={h}>{h}</option>
             ))}
           </select>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            style={styles.selectFilter}
+          >
+            <option value="">All States ({INDIAN_STATES.length})</option>
+            {INDIAN_STATES.map((st) => (
+              <option key={st} value={st}>{st}</option>
+            ))}
+          </select>
           {batches.length > 0 && (
             <select
               value={batchFilter}
@@ -478,7 +557,7 @@ export default function StudentsRoster() {
           <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍🎓</div>
           <h3 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>No Students Found</h3>
           <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 16px 0', maxWidth: 460 }}>
-            {search || batchFilter || courseFilter || classFilter || hostelFilter
+            {search || batchFilter || courseFilter || classFilter || hostelFilter || stateFilter
               ? 'No enrolled students match your active search filters.'
               : 'Add your first student or bulk import your student roster from Excel/CSV to register academic courses, native places, and parent WhatsApp numbers.'}
           </p>
@@ -526,20 +605,57 @@ export default function StudentsRoster() {
                       )}
                     </td>
                     <td style={styles.td}>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
-                        {st.fullName}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}>
-                        {st.gender && (
-                          <span style={styles.genderTag}>
-                            {st.gender === 'Female' ? '♀ Female' : st.gender === 'Male' ? '♂ Male' : st.gender}
-                          </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {st.photoUrl ? (
+                          <img
+                            src={st.photoUrl}
+                            alt={st.fullName}
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              border: '2px solid #cbd5e1',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                              flexShrink: 0,
+                            }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: '50%',
+                            background: st.gender === 'Female' ? '#fdf2f8' : '#eff6ff',
+                            color: st.gender === 'Female' ? '#db2777' : '#2563eb',
+                            border: `1px solid ${st.gender === 'Female' ? '#fbcfe8' : '#bfdbfe'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: 14,
+                            flexShrink: 0,
+                          }}>
+                            {st.fullName ? st.fullName.charAt(0).toUpperCase() : '👤'}
+                          </div>
                         )}
-                        {st.studentPhone && (
-                          <span style={{ fontSize: 11, color: '#64748b' }}>
-                            📱 {st.studentPhone}
-                          </span>
-                        )}
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 13.5 }}>
+                            {st.fullName}
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}>
+                            {st.gender && (
+                              <span style={styles.genderTag}>
+                                {st.gender === 'Female' ? '♀ Female' : st.gender === 'Male' ? '♂ Male' : st.gender}
+                              </span>
+                            )}
+                            {st.studentPhone && (
+                              <span style={{ fontSize: 11, color: '#64748b' }}>
+                                📱 {st.studentPhone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td style={styles.td}>
@@ -572,11 +688,16 @@ export default function StudentsRoster() {
                       ) : (
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>Native: Not specified</div>
                       )}
-                      <div style={{ marginTop: 4 }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
                         {isHosteler ? (
                           <span style={styles.hostelBadgeHostel}>🛏️ Hosteler</span>
                         ) : (
                           <span style={styles.hostelBadgeDay}>🏠 Day Scholar</span>
+                        )}
+                        {st.state && st.state !== 'Andhra Pradesh' && (
+                          <span style={{ fontSize: 10.5, color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: 4 }}>
+                            {st.state}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -660,7 +781,7 @@ export default function StudentsRoster() {
                   {editingStudent ? '✏️ Edit Student Profile' : '➕ Add Student to Roster'}
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                  Register academic course, native village, hostel status, and parent WhatsApp number.
+                  Register student photo, course, native village, hostel status, and parent WhatsApp number.
                 </p>
               </div>
               <button onClick={() => setAddModal(false)} style={styles.modalCloseBtn}>✕</button>
@@ -668,6 +789,98 @@ export default function StudentsRoster() {
             <form onSubmit={handleSaveStudent}>
               <div style={{ padding: '16px 20px', maxHeight: '76vh', overflowY: 'auto' }}>
                 
+                {/* STUDENT PHOTOGRAPH UPLOAD WIDGET */}
+                <div style={styles.photoUploadCard}>
+                  <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                    {form.photoUrl ? (
+                      <img
+                        src={form.photoUrl}
+                        alt="Student"
+                        style={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '3px solid #2563eb',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: '50%',
+                        background: '#e2e8f0',
+                        color: '#64748b',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px dashed #94a3b8',
+                        fontSize: 24,
+                      }}>
+                        📷
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 2 }}>
+                      Student Photograph (Passport Photo)
+                    </div>
+                    <p style={{ margin: '0 0 8px 0', fontSize: 11.5, color: '#64748b' }}>
+                      Upload passport photo for ID records and official scorecards (JPG, PNG, WebP up to 5MB).
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={handlePhotoUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                        style={{
+                          background: '#fff',
+                          color: '#2563eb',
+                          border: '1px solid #93c5fd',
+                          borderRadius: 6,
+                          padding: '6px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        {uploadingPhoto ? '⏳ Uploading…' : form.photoUrl ? '🔄 Change Photo' : '📷 Upload Photo'}
+                      </button>
+                      {form.photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, photoUrl: '' }))}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: 6,
+                            padding: '6px 10px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* SECTION 1: Academic & Course Details */}
                 <div style={styles.sectionHeader}>
                   <span style={styles.sectionIcon}>🎓</span>
@@ -814,14 +1027,16 @@ export default function StudentsRoster() {
                     </select>
                   </div>
                   <div className="field">
-                    <label style={styles.label}>State</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Andhra Pradesh"
+                    <label style={styles.label}>State *</label>
+                    <select
                       value={form.state}
                       onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                      style={styles.input}
-                    />
+                      style={{ ...styles.select, fontWeight: 600 }}
+                    >
+                      {INDIAN_STATES.map((st) => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -912,7 +1127,7 @@ export default function StudentsRoster() {
                 <button type="button" onClick={() => setAddModal(false)} style={styles.cancelBtn}>
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} style={styles.primaryBtn}>
+                <button type="submit" disabled={saving || uploadingPhoto} style={styles.primaryBtn}>
                   {saving ? 'Saving…' : editingStudent ? 'Update Profile' : 'Save Student'}
                 </button>
               </div>
@@ -1125,7 +1340,7 @@ const styles = {
   },
   searchInput: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 240,
     padding: '9px 13px',
     borderRadius: 7,
     border: '1px solid #cbd5e1',
@@ -1315,6 +1530,16 @@ const styles = {
     fontSize: 13,
     cursor: 'pointer',
     fontWeight: 600,
+  },
+  photoUploadCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    padding: '12px 16px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 10,
+    marginBottom: 16,
   },
   sectionHeader: {
     display: 'flex',

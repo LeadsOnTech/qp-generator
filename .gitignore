@@ -37,3 +37,7 @@ Thumbs.db
 test_*.pdf
 test_*.js
 scratch/
+
+# Uploads
+backend/uploads/
+uploads/

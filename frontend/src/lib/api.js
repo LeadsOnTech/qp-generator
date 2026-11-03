@@ -307,6 +307,11 @@ export const api = {
   // Student Roster & Directory Management
   getStudentsRoster: (instituteId) => request(`/results/students/roster${instituteId ? `?instituteId=${instituteId}` : ''}`),
   saveStudentProfile: (data) => request('/results/students/roster', { method: 'POST', body: JSON.stringify(data) }),
+  uploadStudentPhoto: (file) => {
+    const form = new FormData();
+    form.append('photo', file);
+    return request('/results/students/upload-photo', { method: 'POST', body: form });
+  },
   bulkImportStudents: (students, instituteId) => request('/results/students/roster/bulk', { method: 'POST', body: JSON.stringify({ students, instituteId }) }),
   deleteStudentProfile: (id) => request(`/results/students/roster/${id}`, { method: 'DELETE' }),
 

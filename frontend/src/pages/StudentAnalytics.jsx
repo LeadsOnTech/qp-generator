@@ -189,79 +189,115 @@ export default function StudentAnalytics() {
             <div>
               {/* Student Profile Bar */}
               <div style={styles.profileBanner}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', letterSpacing: '0.04em' }}>STUDENT PROFILE</span>
-                    {analyticsData.student.courseTarget && (
-                      <span style={{
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}>
-                        🎯 {analyticsData.student.courseTarget}
-                      </span>
-                    )}
-                    {analyticsData.student.classYear && (
-                      <span style={{
-                        background: '#f8fafc',
-                        color: '#334155',
-                        border: '1px solid #cbd5e1',
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}>
-                        🎓 {analyticsData.student.classYear}
-                      </span>
-                    )}
-                    {analyticsData.student.hostelStatus && (
-                      <span style={{
-                        background: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#faf5ff' : '#f0fdf4',
-                        color: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#7e22ce' : '#15803d',
-                        border: `1px solid ${analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#e9d5ff' : '#bbf7d0'}`,
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        fontWeight: 600,
-                      }}>
-                        {analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '🛏️ Hosteler' : '🏠 Day Scholar'}
-                      </span>
-                    )}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
+                  {analyticsData.student.photoUrl ? (
+                    <img
+                      src={analyticsData.student.photoUrl}
+                      alt={analyticsData.student.studentName}
+                      style={{
+                        width: 68,
+                        height: 68,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid #2563eb',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                        flexShrink: 0,
+                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 68,
+                      height: 68,
+                      borderRadius: '50%',
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '2px solid #bfdbfe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 26,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                    }}>
+                      {analyticsData.student.studentName?.charAt(0).toUpperCase() || '👤'}
+                    </div>
+                  )}
 
-                  <h2 style={{ margin: '4px 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
-                    {analyticsData.student.studentName}
-                  </h2>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', letterSpacing: '0.04em' }}>STUDENT PROFILE</span>
+                      {analyticsData.student.courseTarget && (
+                        <span style={{
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}>
+                          🎯 {analyticsData.student.courseTarget}
+                        </span>
+                      )}
+                      {analyticsData.student.classYear && (
+                        <span style={{
+                          background: '#f8fafc',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}>
+                          🎓 {analyticsData.student.classYear}
+                        </span>
+                      )}
+                      {analyticsData.student.hostelStatus && (
+                        <span style={{
+                          background: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#faf5ff' : '#f0fdf4',
+                          color: analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#7e22ce' : '#15803d',
+                          border: `1px solid ${analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '#e9d5ff' : '#bbf7d0'}`,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}>
+                          {analyticsData.student.hostelStatus.toLowerCase().includes('hostel') ? '🛏️ Hosteler' : '🏠 Day Scholar'}
+                        </span>
+                      )}
+                    </div>
 
-                  <div style={{ fontSize: 13, color: '#475569', marginTop: 4, lineHeight: 1.5 }}>
-                    Roll: <b style={{ color: '#0f172a' }}>{analyticsData.student.rollNumber}</b>
-                    {analyticsData.student.admissionNumber && ` (Adm: ${analyticsData.student.admissionNumber})`}
-                    {' '}• Batch: <b>{analyticsData.student.batchName}</b> {analyticsData.student.section ? `(${analyticsData.student.section})` : ''}
-                    {(analyticsData.student.nativePlace || analyticsData.student.district) && (
-                      <span>
-                        {' '}• 📍 <b>{analyticsData.student.nativePlace || ''}{analyticsData.student.nativePlace && analyticsData.student.district ? ', ' : ''}{analyticsData.student.district ? `${analyticsData.student.district} Dt` : ''}</b>
+                    <h2 style={{ margin: '4px 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
+                      {analyticsData.student.studentName}
+                    </h2>
+
+                    <div style={{ fontSize: 13, color: '#475569', marginTop: 4, lineHeight: 1.5 }}>
+                      Roll: <b style={{ color: '#0f172a' }}>{analyticsData.student.rollNumber}</b>
+                      {analyticsData.student.admissionNumber && ` (Adm: ${analyticsData.student.admissionNumber})`}
+                      {' '}• Batch: <b>{analyticsData.student.batchName}</b> {analyticsData.student.section ? `(${analyticsData.student.section})` : ''}
+                      {(analyticsData.student.nativePlace || analyticsData.student.district) && (
+                        <span>
+                          {' '}• 📍 <b>{analyticsData.student.nativePlace || ''}{analyticsData.student.nativePlace && analyticsData.student.district ? ', ' : ''}{analyticsData.student.district ? `${analyticsData.student.district} Dt` : ''}</b>
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 12.5, color: '#334155', marginTop: 4 }}>
+                      👨‍👩‍👦 Parent:{' '}
+                      <b>
+                        {analyticsData.student.parentName || 'Parent'}
+                        {analyticsData.student.parentRelation ? ` (${analyticsData.student.parentRelation})` : ''}
+                        {analyticsData.student.parentOccupation ? ` • ${analyticsData.student.parentOccupation}` : ''}
+                      </b>
+                      {' '}• WhatsApp:{' '}
+                      <span style={{ fontWeight: 700, color: '#059669' }}>
+                        {analyticsData.student.parentPhoneMasked || 'Not registered'}
                       </span>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: 12.5, color: '#334155', marginTop: 4 }}>
-                    👨‍👩‍👦 Parent:{' '}
-                    <b>
-                      {analyticsData.student.parentName || 'Parent'}
-                      {analyticsData.student.parentRelation ? ` (${analyticsData.student.parentRelation})` : ''}
-                      {analyticsData.student.parentOccupation ? ` • ${analyticsData.student.parentOccupation}` : ''}
-                    </b>
-                    {' '}• WhatsApp:{' '}
-                    <span style={{ fontWeight: 700, color: '#059669' }}>
-                      {analyticsData.student.parentPhoneMasked || 'Not registered'}
-                    </span>
-                    {analyticsData.student.studentPhone && (
-                      <span> • Student Mobile: <b>{analyticsData.student.studentPhone}</b></span>
-                    )}
+                      {analyticsData.student.studentPhone && (
+                        <span> • Student Mobile: <b>{analyticsData.student.studentPhone}</b></span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

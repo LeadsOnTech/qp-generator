@@ -464,6 +464,7 @@ model StudentProfile {
 
   // Personal & Native Demographics
   gender          String?        // "Male" | "Female" | "Other"
+  photoUrl        String?        // Student profile image URL or base64 data URI
   nativePlace     String?        // Native Village / Town / City (e.g. "Tenali", "Nuzvid", "Vijayawada")
   district        String?        // District (e.g. "Krishna", "Guntur", "NTR", "Visakhapatnam")
   state           String?        // State (e.g. "Andhra Pradesh", "Telangana")
