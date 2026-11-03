@@ -21,6 +21,7 @@ export default function StudentAnalytics() {
   // Remedial DPP Modal State
   const [remedialModal, setRemedialModal] = useState(null);
   const [generatingRemedial, setGeneratingRemedial] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   // Load students roster on mount
   useEffect(() => {
@@ -80,6 +81,18 @@ export default function StudentAnalytics() {
       alert('Failed to generate remedial paper: ' + err.message);
     } finally {
       setGeneratingRemedial(false);
+    }
+  }
+
+  async function handleExportCsv() {
+    if (!analyticsData?.student?.rollNumber) return;
+    try {
+      setExportingCsv(true);
+      await api.downloadStudentAnalyticsCsv(analyticsData.student.rollNumber);
+    } catch (err) {
+      alert('Failed to export CSV: ' + err.message);
+    } finally {
+      setExportingCsv(false);
     }
   }
 
@@ -188,10 +201,9 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <a
-                    href={`${API_BASE}/results/analytics/student/${encodeURIComponent(analyticsData.student.rollNumber)}/csv`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={handleExportCsv}
+                    disabled={exportingCsv}
                     style={{
                       background: '#fff',
                       color: '#0f172a',
@@ -200,15 +212,15 @@ export default function StudentAnalytics() {
                       padding: '8px 14px',
                       fontSize: 12.5,
                       fontWeight: 700,
-                      textDecoration: 'none',
+                      cursor: exportingCsv ? 'not-allowed' : 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 6,
                     }}
                     title="Export complete examination history as CSV spreadsheet"
                   >
-                    📥 Export CSV
-                  </a>
+                    {exportingCsv ? 'Exporting…' : '📥 Export CSV'}
+                  </button>
                   <div style={styles.examCountBadge}>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#1e3a8a' }}>
                       {analyticsData.careerStats.totalExamsTaken}
@@ -374,7 +386,7 @@ export default function StudentAnalytics() {
                             </td>
                             <td style={{ ...styles.td, textAlign: 'right' }}>
                               <a
-                                href={`${API_BASE}/results/${item.resultId}/pdf`}
+                                href={`${API_BASE}/results/${item.resultId}/pdf?token=${encodeURIComponent(localStorage.getItem('qpgen_token') || '')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={styles.pdfBtn}

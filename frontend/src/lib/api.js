@@ -320,4 +320,65 @@ export const api = {
 
   // Milestone 3: Diagnostic Intelligence & Targeted Remedial DPP
   generateRemedialPaper: (payload) => request('/results/generate-remedial-paper', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // Authenticated CSV Exports
+  downloadStudentAnalyticsCsv: async (rollNumber) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const res = await fetch(`${API_BASE}/results/analytics/student/${encodeURIComponent(rollNumber)}/csv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not export CSV (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `${rollNumber}_Academic_Progress_Report.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
+
+  downloadRosterCsv: async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const res = await fetch(`${API_BASE}/results/students/roster/export-csv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not export Roster CSV (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'Students_Roster_Directory.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
+
+  downloadBatchReportCsv: async (paperId, title = 'Exam') => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const res = await fetch(`${API_BASE}/results/analytics/batch/${paperId}/csv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not export Batch CSV (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_Results.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
 };

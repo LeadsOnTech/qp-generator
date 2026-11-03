@@ -75,8 +75,9 @@ export default function BatchPerformanceReport() {
   }
 
   const { paper, stats, distribution, subjectAverages, sectionComparison, top10, bottom10 } = data;
-  const pdfUrl = `${API_BASE}/results/analytics/batch/${paperId}/pdf`;
-  const csvUrl = `${API_BASE}/results/analytics/batch/${paperId}/csv`;
+  const token = localStorage.getItem('qpgen_token');
+  const pdfUrl = `${API_BASE}/results/analytics/batch/${paperId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  const csvUrl = `${API_BASE}/results/analytics/batch/${paperId}/csv${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
   return (
     <div style={styles.container}>

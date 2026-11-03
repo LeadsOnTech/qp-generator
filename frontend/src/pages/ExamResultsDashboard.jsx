@@ -396,7 +396,8 @@ export default function ExamResultsDashboard() {
               <tbody>
                 {results.map((r) => {
                   const token = r.publicToken;
-                  const pdfUrl = `${API_BASE}/results/${r.id}/pdf`;
+                  const authJwt = localStorage.getItem('qpgen_token');
+                  const pdfUrl = `${API_BASE}/results/${r.id}/pdf${authJwt ? `?token=${encodeURIComponent(authJwt)}` : ''}`;
 
                   return (
                     <tr key={r.id} style={styles.tr}>

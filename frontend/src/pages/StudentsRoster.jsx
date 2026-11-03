@@ -14,6 +14,7 @@ export default function StudentsRoster() {
   const [bulkModal, setBulkModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [exportingRoster, setExportingRoster] = useState(false);
 
   // Form State
   const [form, setForm] = useState({
@@ -121,6 +122,17 @@ export default function StudentsRoster() {
     }
   }
 
+  async function handleExportRoster() {
+    try {
+      setExportingRoster(true);
+      await api.downloadRosterCsv();
+    } catch (err) {
+      alert('Failed to export roster: ' + err.message);
+    } finally {
+      setExportingRoster(false);
+    }
+  }
+
   async function handleBulkImport(e) {
     e.preventDefault();
     if (!bulkCsv.trim()) return;
@@ -176,15 +188,14 @@ export default function StudentsRoster() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <a
-            href={`${import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api')}/results/students/roster/export-csv`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleExportRoster}
+            disabled={exportingRoster}
             style={styles.secondaryBtn}
             title="Download complete enrolled student directory as CSV"
           >
-            📤 Export Roster CSV
-          </a>
+            {exportingRoster ? 'Exporting…' : '📤 Export Roster CSV'}
+          </button>
           <button onClick={() => setBulkModal(true)} style={styles.secondaryBtn}>
             📥 Bulk Import CSV
           </button>
