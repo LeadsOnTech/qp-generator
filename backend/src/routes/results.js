@@ -1939,12 +1939,6 @@ router.post('/students/roster/bulk', async (req, res) => {
             address: s.address ? String(s.address).trim() : null,
           },
         });
-            parentRelation: s.parentRelation ? String(s.parentRelation).trim() : null,
-            parentOccupation: s.parentOccupation ? String(s.parentOccupation).trim() : null,
-            parentEmail: s.parentEmail ? String(s.parentEmail).trim() : null,
-            studentPhone: s.studentPhone ? String(s.studentPhone).trim() : null,
-          },
-        });
 
         if (existing) {
           updatedCount++;
