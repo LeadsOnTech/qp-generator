@@ -1353,6 +1353,8 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
         return {
           ...c,
           overallAccuracy: accuracy,
+          averageAccuracy: accuracy,
+          occurrenceCount: c.timesEncountered,
         };
       })
       .filter((c) => {
