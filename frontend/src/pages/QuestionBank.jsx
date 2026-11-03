@@ -274,8 +274,21 @@ export default function QuestionBank() {
           </div>
         </>
       )}
-      {showSearchModal && <SearchImageModal onClose={() => setShowSearchModal(false)} onSelect={(q) => { setShowSearchModal(false); setEditingQuestion(q); }} />}
-      {editingQuestion && <EditQuestionModal question={editingQuestion} onClose={() => setEditingQuestion(null)} onSave={() => { setEditingQuestion(null); load(); }} />}
+      {showSearchModal && (
+        <SearchImageModal
+          onClose={() => setShowSearchModal(false)}
+          onSelect={(q) => { setShowSearchModal(false); setEditingQuestion(q); }}
+          onDelete={() => { load(); }}
+        />
+      )}
+      {editingQuestion && (
+        <EditQuestionModal
+          question={editingQuestion}
+          onClose={() => setEditingQuestion(null)}
+          onSave={() => { setEditingQuestion(null); load(); }}
+          onDelete={() => { setEditingQuestion(null); load(); }}
+        />
+      )}
     </div>
   );
 }

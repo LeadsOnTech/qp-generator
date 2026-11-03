@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../lib/api';
 import MathText from './MathText';
 
-export default function SearchImageModal({ onClose, onSelect }) {
+export default function SearchImageModal({ onClose, onSelect, onDelete }) {
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [results, setResults] = useState([]);
   const [extractedText, setExtractedText] = useState('');
   const [error, setError] = useState('');
+  const [actionNotice, setActionNotice] = useState('');
   const fileInput = useRef();
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function SearchImageModal({ onClose, onSelect }) {
     }
     setLoading(true);
     setError('');
+    setActionNotice('');
     setResults([]);
     setExtractedText('');
 
@@ -45,6 +48,25 @@ export default function SearchImageModal({ onClose, onSelect }) {
       setError(err.message || 'Failed to search questions.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDeleteMatch(qId) {
+    if (!window.confirm('Are you sure you want to PERMANENTLY DELETE this question from the Question Bank?\n\nThis will remove it completely and cannot be undone.')) {
+      return;
+    }
+    setDeletingId(qId);
+    setError('');
+    setActionNotice('');
+    try {
+      await api.deleteQuestion(qId);
+      setResults((prev) => prev.filter((item) => item.id !== qId));
+      setActionNotice('Question permanently deleted from Question Bank.');
+      if (onDelete) onDelete(qId);
+    } catch (err) {
+      setError(err.message || 'Failed to delete question');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -200,6 +222,27 @@ export default function SearchImageModal({ onClose, onSelect }) {
             </div>
           )}
 
+          {actionNotice && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '10px 14px',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: 6,
+                fontSize: 13,
+                color: '#166534',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span>✓</span>
+              <span>{actionNotice}</span>
+            </div>
+          )}
+
           {extractedText && (
             <div
               style={{
@@ -236,7 +279,7 @@ export default function SearchImageModal({ onClose, onSelect }) {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                           <span
@@ -267,20 +310,46 @@ export default function SearchImageModal({ onClose, onSelect }) {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => onSelect(q)}
-                        style={{
-                          fontSize: 12,
-                          padding: '6px 14px',
-                          whiteSpace: 'nowrap',
-                          borderRadius: 6,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Select &amp; Edit
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch', minWidth: 120 }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => onSelect(q)}
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 14px',
+                            whiteSpace: 'nowrap',
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            textAlign: 'center',
+                          }}
+                        >
+                          Select &amp; Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => handleDeleteMatch(q.id)}
+                          disabled={deletingId === q.id}
+                          style={{
+                            fontSize: 12,
+                            padding: '5px 12px',
+                            whiteSpace: 'nowrap',
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: '1px solid #fecdd3',
+                            cursor: deletingId === q.id ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          {deletingId === q.id ? 'Deleting...' : '🗑️ Delete'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

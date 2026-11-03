@@ -227,18 +227,39 @@ router.patch('/:id', requireAdmin, async (req, res) => {
 });
 
 /**
- * DELETE /api/questions/:id — soft delete (keeps audit trail, never hard-deletes)
+ * DELETE /api/questions/:id — permanently delete or remove from active question bank
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const q = await prisma.question.findUnique({ where: { id: req.params.id }, include: { papers: true } });
-    if (q && q.papers && q.papers.length > 0) {
-      return res.status(400).json({ error: 'Cannot delete question: it is already used in one or more generated papers.' });
+    const { id } = req.params;
+    const q = await prisma.question.findUnique({
+      where: { id },
+      include: { papers: true, examMappings: true }
+    });
+    if (!q) {
+      return res.status(404).json({ error: 'Question not found.' });
     }
-    await prisma.question.delete({ where: { id: req.params.id } });
-    res.json({ ok: true });
+
+    // Always delete any exam mappings so question is unlinked from syllabus/exams
+    await prisma.questionExamMapping.deleteMany({ where: { questionId: id } });
+
+    if (q.papers && q.papers.length > 0) {
+      // Question was used in already-finalized paper(s).
+      // Mark isActive: false so it is permanently gone from Question Bank searches,
+      // filters, list, and future paper generation, while preserving historical paper records.
+      await prisma.question.update({
+        where: { id },
+        data: { isActive: false }
+      });
+      return res.json({ ok: true, message: 'Question permanently removed from Question Bank.' });
+    }
+
+    // If never used in any paper, delete permanently from database
+    await prisma.question.delete({ where: { id } });
+    res.json({ ok: true, message: 'Question permanently deleted from Question Bank.' });
   } catch (err) {
-    res.status(404).json({ error: 'Question not found.' });
+    console.error('Delete question error:', err);
+    res.status(500).json({ error: 'Failed to delete question: ' + err.message });
   }
 });
 

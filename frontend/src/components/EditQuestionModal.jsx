@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 
-export default function EditQuestionModal({ question, onClose, onSave }) {
+export default function EditQuestionModal({ question, onClose, onSave, onDelete }) {
   const [formData, setFormData] = useState({
     questionText: question.questionText || '',
     optionA: question.optionA || '',
@@ -13,6 +13,7 @@ export default function EditQuestionModal({ question, onClose, onSave }) {
     solutionText: question.solutionText || ''
   });
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
@@ -30,6 +31,25 @@ export default function EditQuestionModal({ question, onClose, onSave }) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to PERMANENTLY DELETE this question from the Question Bank?\n\nThis will remove it completely and cannot be undone.')) {
+      return;
+    }
+    setDeleting(true);
+    setError('');
+    try {
+      await api.deleteQuestion(question.id);
+      if (onDelete) {
+        onDelete(question.id);
+      } else {
+        onSave();
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to delete question');
+      setDeleting(false);
     }
   };
 
@@ -105,11 +125,34 @@ export default function EditQuestionModal({ question, onClose, onSave }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: 20 }}>
-            <button className="btn btn-secondary" onClick={onClose} disabled={loading}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={handleDelete}
+              disabled={loading || deleting}
+              style={{
+                background: '#ef4444',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: loading || deleting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {deleting ? 'Deleting...' : '🗑️ Delete from Question Bank'}
             </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn btn-secondary" onClick={onClose} disabled={loading || deleting}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={loading || deleting}>
+                {loading ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
