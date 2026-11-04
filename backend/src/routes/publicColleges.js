@@ -46,7 +46,9 @@ router.get('/:slug', async (req, res) => {
     if (!slug) return res.status(400).json({ error: 'College slug is required.' });
 
     let cleanSlug = slug.toLowerCase().trim();
-    if (cleanSlug === 'demo') cleanSlug = 'andhra-inspire-academy';
+    if (['demo', 'dummy', 'sample', 'test', 'demo-college', 'default'].includes(cleanSlug)) {
+      cleanSlug = 'andhra-inspire-academy';
+    }
 
     let website = await prisma.collegeWebsite.findUnique({
       where: { slug: cleanSlug },
@@ -139,6 +141,49 @@ router.get('/:slug', async (req, res) => {
       // Re-query
       website = await prisma.collegeWebsite.findUnique({
         where: { slug: cleanSlug },
+        include: {
+          institute: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logoFilename: true,
+              phone: true,
+              address: true,
+              tagline: true,
+            },
+          },
+          courses: { orderBy: { displayOrder: 'asc' } },
+          faculties: { orderBy: { displayOrder: 'asc' } },
+          facilities: { orderBy: { displayOrder: 'asc' } },
+          achievements: { orderBy: { displayOrder: 'asc' } },
+          testimonials: { orderBy: { displayOrder: 'asc' } },
+          galleryItems: { orderBy: { displayOrder: 'asc' } },
+          jobPostings: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              jobTitle: true,
+              department: true,
+              employmentType: true,
+              vacanciesCount: true,
+              minExperienceYrs: true,
+              requiredQualifications: true,
+              jobDescription: true,
+              location: true,
+              applicationDeadline: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+    }
+
+    if (!website) {
+      // Graceful fallback to demo academy for dummy / preview requests
+      website = await prisma.collegeWebsite.findUnique({
+        where: { slug: 'andhra-inspire-academy' },
         include: {
           institute: {
             select: {

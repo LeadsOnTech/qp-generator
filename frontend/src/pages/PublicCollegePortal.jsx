@@ -173,7 +173,8 @@ export default function PublicCollegePortal() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/public/colleges/${slug}`);
+      const targetSlug = (!slug || slug === 'dummy' || slug === 'demo') ? 'andhra-inspire-academy' : slug;
+      const res = await fetch(`/api/public/colleges/${targetSlug}`);
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error || 'Failed to load college website');
@@ -579,11 +580,11 @@ export default function PublicCollegePortal() {
         <div className="cp-container">
           <div className="cp-hero-grid">
             <div className="cp-hero-content cp-reveal">
-              {data.accreditation && (
-                <div className="cp-accreditation-tag">
-                  <span style={{ color: 'var(--cp-gold)' }}>★</span> {data.accreditation}
-                </div>
-              )}
+              <div className="cp-hero-intake-badge">
+                <span className="cp-pulse-dot" />
+                <span>{data.accreditation ? data.accreditation : 'Official Admissions 2026-27'}</span>
+              </div>
+
               <h2 className="cp-hero-title">
                 {data.heroTitle || 'Empowering Future Doctors & Engineers with Elite Mentorship'}
               </h2>
@@ -592,46 +593,33 @@ export default function PublicCollegePortal() {
               </p>
 
               <div className="cp-hero-actions">
-                <button onClick={() => setIsEnquiryModalOpen(true)} className="cp-btn-hero-white">
+                <button onClick={() => setIsEnquiryModalOpen(true)} className="cp-btn-hero-primary">
                   {data.heroCtaText || 'Apply for Admission 2026-27'} →
                 </button>
                 <button onClick={() => scrollToSection('courses')} className="cp-btn-hero-outline">
-                  Explore Courses
+                  Explore Academic Programmes
                 </button>
                 {data.hasOnlineExamModule && data.openExams?.length > 0 && (
                   <button onClick={() => scrollToSection('exams')} className="cp-btn-hero-accent">
-                    📝 Open Mock Tests ({data.openExams.length})
+                    Open Mock Tests ({data.openExams.length})
                   </button>
                 )}
               </div>
             </div>
 
             <div className="cp-hero-visual cp-reveal cp-delay-200">
-              <div className="cp-hero-img-wrap">
+              <div className="cp-hero-frame">
                 {data.heroBannerUrl ? (
                   <img src={data.heroBannerUrl} alt="Campus" className="cp-hero-img" />
                 ) : (
-                  <div style={{ background: 'rgba(255,255,255,0.1)', padding: 60, borderRadius: 24, textAlign: 'center' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.06)', padding: 60, textAlign: 'center' }}>
                     <h3 style={{ margin: 0, fontSize: 26, color: '#ffffff' }}>{data.displayName}</h3>
                     <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>Admissions Open for Academic Year 2026-27</p>
                   </div>
                 )}
-              </div>
-
-              {/* Floating Glassmorphic Badges */}
-              <div className="cp-hero-floating-badge-top">
-                <span style={{ fontSize: 18 }}>⭐</span>
-                <div>
-                  <div style={{ lineHeight: 1.2 }}>AIR 1 Rankers</div>
-                  <div style={{ fontSize: 10, opacity: 0.8, textTransform: 'uppercase' }}>State Top Ranks</div>
-                </div>
-              </div>
-
-              <div className="cp-hero-floating-badge-bottom">
-                <span style={{ fontSize: 24 }}>🏆</span>
-                <div>
-                  <div className="badge-num">100% Scholarship</div>
-                  <div className="badge-lbl">Annual Talent Test (AITSE)</div>
+                <div className="cp-hero-caption">
+                  <span>Main Academic Block & Laboratories</span>
+                  <span>Est. {data.estYear || '2009'}</span>
                 </div>
               </div>
             </div>
@@ -643,11 +631,11 @@ export default function PublicCollegePortal() {
           SECTION 3: INSTITUTIONAL ACHIEVEMENTS (STATS STRIP)
           ========================================================================= */}
       {data.showStatsSection !== false && statsList.length > 0 && (
-        <div className="cp-container" ref={statsRef}>
-          <div className="cp-stats-card cp-reveal">
+        <div className="cp-stats-bar" ref={statsRef}>
+          <div className="cp-container">
             <div className="cp-stats-grid">
               {statsList.map((st, idx) => (
-                <div key={idx} className="cp-stat-item">
+                <div key={idx} className="cp-stat-cell">
                   <div className="cp-stat-number">
                     <AnimatedCounter targetValue={st.value} isVisible={statsVisible} />
                   </div>
@@ -666,64 +654,52 @@ export default function PublicCollegePortal() {
         <section id="about" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Institutional Heritage</span>
+              <span className="cp-section-marker">01 / INSTITUTIONAL HERITAGE</span>
               <h3 className="cp-section-title">{data.aboutTitle || 'Committed to Academic Rigor & Ethical Character'}</h3>
               <p className="cp-section-desc">Building strong conceptual foundations and empowering students to achieve top national percentiles.</p>
             </div>
 
-            <div className="cp-about-grid">
-              <div className="cp-about-content cp-reveal cp-delay-100">
-                <p className="cp-about-text-lead">
+            <div className="cp-about-spread">
+              <div className="cp-about-col-lead cp-reveal cp-delay-100">
+                <p className="cp-about-lead">
                   {data.aboutText || 'Founded with a visionary commitment to scientific excellence, our institution blends disciplined pedagogy with cutting-edge examination technologies, diagnostic error analysis, and round-the-clock mentorship.'}
                 </p>
 
                 {/* 4 Core Institutional Pillars */}
-                <div className="cp-pillars-grid">
-                  <div className="cp-pillar-card">
-                    <div className="cp-pillar-icon">🎯</div>
-                    <div>
-                      <h4 className="cp-pillar-title">1:25 Faculty Ratio</h4>
-                      <p className="cp-pillar-desc">Small batch sizes ensuring individual attention and daily doubt clinics.</p>
-                    </div>
+                <div className="cp-pillars-dossier">
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">1:25 Faculty Ratio</h4>
+                    <p className="cp-pillar-desc">Small batch sizes ensuring individual attention and daily doubt clinics.</p>
                   </div>
 
-                  <div className="cp-pillar-card">
-                    <div className="cp-pillar-icon">📖</div>
-                    <div>
-                      <h4 className="cp-pillar-title">NCERT Line-by-Line</h4>
-                      <p className="cp-pillar-desc">Rigorous conceptual analysis mapped directly to latest NTA entrance standards.</p>
-                    </div>
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">NCERT Line-by-Line</h4>
+                    <p className="cp-pillar-desc">Rigorous conceptual analysis mapped directly to latest NTA entrance standards.</p>
                   </div>
 
-                  <div className="cp-pillar-card">
-                    <div className="cp-pillar-icon">💻</div>
-                    <div>
-                      <h4 className="cp-pillar-title">Computer CBT Labs</h4>
-                      <p className="cp-pillar-desc">National-level timed computer testing replicating exact exam conditions.</p>
-                    </div>
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">Computer CBT Labs</h4>
+                    <p className="cp-pillar-desc">National-level timed computer testing replicating exact exam conditions.</p>
                   </div>
 
-                  <div className="cp-pillar-card">
-                    <div className="cp-pillar-icon">🏡</div>
-                    <div>
-                      <h4 className="cp-pillar-title">Residential Discipline</h4>
-                      <p className="cp-pillar-desc">Air-conditioned, smartphone-free hostels with round-the-clock mentor guidance.</p>
-                    </div>
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">Residential Discipline</h4>
+                    <p className="cp-pillar-desc">Air-conditioned, smartphone-free hostels with round-the-clock mentor guidance.</p>
                   </div>
                 </div>
               </div>
 
-              {/* Vision & Mission Luxury Cards */}
+              {/* Vision & Mission Panels */}
               <div className="cp-reveal cp-delay-200">
                 {data.visionText && (
-                  <div className="cp-vision-card">
-                    <h4 className="cp-vm-title">👁 Our Vision</h4>
+                  <div className="cp-vm-panel">
+                    <span className="cp-vm-label">Our Institutional Vision</span>
                     <p className="cp-vm-text">{data.visionText}</p>
                   </div>
                 )}
                 {data.missionText && (
-                  <div className="cp-mission-card">
-                    <h4 className="cp-vm-title">🎯 Our Mission</h4>
+                  <div className="cp-vm-panel">
+                    <span className="cp-vm-label">Our Core Mission</span>
                     <p className="cp-vm-text">{data.missionText}</p>
                   </div>
                 )}
@@ -734,37 +710,47 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE (EXECUTIVE WARM CANVAS)
+          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE (EXECUTIVE EDITORIAL)
           ========================================================================= */}
       {data.showDirectorSection !== false && data.directorName && (
-        <section className="cp-section cp-section-warm">
+        <section className="cp-section cp-section-linen">
           <div className="cp-container">
-            <div className="cp-director-card cp-reveal">
-              <div className="cp-director-col-photo">
-                <div className="cp-director-img-wrap">
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">02 / LEADERSHIP ADDRESS</span>
+            </div>
+            <div className="cp-director-spread cp-reveal">
+              <div className="cp-director-media">
+                <div className="cp-director-portrait-frame">
                   {data.directorPhotoUrl ? (
-                    <img src={data.directorPhotoUrl} alt={data.directorName} className="cp-director-img" />
+                    <img src={data.directorPhotoUrl} alt={data.directorName} className="cp-director-portrait" />
                   ) : (
-                    <div className="cp-director-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52, background: '#e2e8f0' }}>
-                      👨‍🏫
+                    <div className="cp-director-portrait" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52, background: '#e2e8f0' }}>
+                      🎓
                     </div>
                   )}
                 </div>
-                <h4 className="cp-director-name">{data.directorName}</h4>
-                <p className="cp-director-title">{data.directorTitle || 'Founder & Academic Director'}</p>
-                {data.directorQualifications && (
-                  <p className="cp-director-qual">{data.directorQualifications}</p>
-                )}
+                <div>
+                  <h4 className="cp-director-name">{data.directorName}</h4>
+                  <p className="cp-director-title">{data.directorTitle || 'Founder & Academic Director'}</p>
+                  {data.directorQualifications && (
+                    <p className="cp-director-qual">{data.directorQualifications}</p>
+                  )}
+                </div>
               </div>
 
-              <div className="cp-director-content">
-                <span className="cp-section-eyebrow">Leadership Message</span>
-                <h3 style={{ fontSize: 26, fontWeight: 900, margin: 0, color: 'var(--cp-dark)', letterSpacing: '-0.02em' }}>
+              <div>
+                <h3 className="cp-director-headline">
                   "Committed to Nurturing Every Student's Highest Potential"
                 </h3>
                 <p className="cp-director-quote">
                   "{data.directorMessage || 'Success in competitive examinations like NEET and JEE is never an accident. It is the natural consequence of daily conceptual clarity, targeted practice, and fearless self-correction. At our institution, every student is known personally, guided patiently, and challenged systematically to realize their supreme potential.'}"
                 </p>
+                <div className="cp-signature-block">
+                  <div>
+                    <strong style={{ fontSize: 14, color: 'var(--cp-text-ink)' }}>{data.directorName}</strong>
+                    <div className="cp-signature-sub">{data.directorTitle || 'Founder & Academic Director'}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -772,21 +758,21 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 6: WHY CHOOSE OUR COLLEGE? (SOFT ICE-BLUE GRADIENT CANVAS)
+          SECTION 6: WHY CHOOSE OUR COLLEGE?
           ========================================================================= */}
       {data.showWhyUsSection !== false && whyUsList.length > 0 && (
-        <section id="whyus" className="cp-section cp-section-ice">
+        <section id="whyus" className="cp-section cp-section-slate">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Institutional Advantages</span>
+              <span className="cp-section-marker">03 / INSTITUTIONAL ADVANTAGES</span>
               <h3 className="cp-section-title">Why Choose Our College?</h3>
               <p className="cp-section-desc">Six proven educational pillars designed to guarantee top ranks and transformative student growth.</p>
             </div>
 
-            <div className="cp-whyus-grid">
+            <div className="cp-whyus-matrix">
               {whyUsList.map((item, idx) => (
-                <div key={idx} className={`cp-whyus-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div className="cp-whyus-icon-wrap">
+                <div key={idx} className={`cp-whyus-cell cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div className="cp-whyus-icon-frame">
                     {idx === 0 && <IconGraduationCap />}
                     {idx === 1 && <IconDocument />}
                     {idx === 2 && <IconComputer />}
@@ -804,57 +790,58 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 7: COURSES AND ACADEMIC PROGRAMMES (CRISP WHITE CANVAS)
+          SECTION 7: COURSES AND ACADEMIC PROGRAMMES
           ========================================================================= */}
       {data.showCoursesSection !== false && data.courses?.length > 0 && (
         <section id="courses" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Academic Programmes</span>
+              <span className="cp-section-marker">04 / ACADEMIC PROGRAMMES</span>
               <h3 className="cp-section-title">Courses Offered</h3>
               <p className="cp-section-desc">Designed with rigorous pedagogy and high-speed accuracy training for national entrance exams.</p>
             </div>
 
-            <div className="cp-courses-grid">
+            <div className="cp-courses-dossier-grid">
               {data.courses.map((c, idx) => (
-                <div key={c.id} className={`cp-course-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                <div key={c.id} className={`cp-course-dossier cp-reveal cp-delay-${(idx % 2) * 100 + 100}`}>
                   <div>
-                    <div className="cp-course-top">
-                      <span className="cp-badge-cat">{c.category}</span>
-                      {c.duration && <span className="cp-course-duration">⏱ {c.duration}</span>}
+                    <div className="cp-course-meta">
+                      <span className="cp-stream-tag">{c.category}</span>
+                      {c.duration && <span className="cp-duration-tag">⏱ {c.duration}</span>}
                     </div>
-                    <h4 className="cp-course-name">{c.courseName}</h4>
-                    {c.targetExam && <div className="cp-course-target">🎯 Target: {c.targetExam}</div>}
-                    <p className="cp-course-desc">{c.description}</p>
+                    <h4 className="cp-course-heading">{c.courseName}</h4>
+                    {c.targetExam && <div className="cp-target-exam">Target: {c.targetExam}</div>}
+                    <p className="cp-course-body">{c.description}</p>
                     {c.eligibility && (
-                      <div className="cp-course-eligibility">
-                        <strong>Eligibility:</strong> {c.eligibility}
+                      <div className="cp-eligibility-box">
+                        <span className="cp-eligibility-label">Eligibility Requirement</span>
+                        <span className="cp-eligibility-val">{c.eligibility}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="cp-course-footer">
+                  <div className="cp-course-actions">
                     <button
                       onClick={() => openCourseEnquiry(c.courseName)}
-                      className="cp-btn-enquire"
+                      className="cp-btn-course-apply"
                     >
-                      Enquire Now →
+                      Enquire for Course →
                     </button>
                     {c.brochureFilename ? (
                       <a
                         href={`/uploads/brochures/${c.brochureFilename}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ fontSize: 13, color: 'var(--cp-text-muted)', textDecoration: 'none', fontWeight: 700 }}
+                        className="cp-btn-course-prospectus"
                       >
-                        📄 Download Brochure
+                        Download Prospectus
                       </a>
                     ) : (
                       <button
                         onClick={() => setIsBrochureModalOpen(true)}
-                        style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--cp-text-muted)', cursor: 'pointer', fontWeight: 700 }}
+                        className="cp-btn-course-prospectus"
                       >
-                        📄 Syllabus & Fees
+                        Syllabus & Fees
                       </button>
                     )}
                   </div>
@@ -866,27 +853,29 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 8: FACULTY AND ACADEMIC LEADERSHIP (SLATE PEARL CANVAS)
+          SECTION 8: FACULTY AND ACADEMIC LEADERSHIP
           ========================================================================= */}
       {data.showFacultySection !== false && data.faculties?.length > 0 && (
         <section id="faculty" className="cp-section cp-section-slate">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Academic Mentors</span>
-              <h3 className="cp-section-title">Faculty and Academic Leadership</h3>
+              <span className="cp-section-marker">05 / ACADEMIC LEADERSHIP</span>
+              <h3 className="cp-section-title">Faculty and Academic Mentors</h3>
               <p className="cp-section-desc">Learn from seasoned educators and rank producers with master's degrees from IITs and premier national universities.</p>
             </div>
 
-            <div className="cp-faculty-grid">
+            <div className="cp-faculty-roster">
               {data.faculties.map((f, idx) => (
-                <div key={f.id} className={`cp-faculty-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
-                  {f.photoUrl ? (
-                    <img src={f.photoUrl} alt={f.name} className="cp-faculty-img" />
-                  ) : (
-                    <div className="cp-faculty-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, background: '#f1f5f9' }}>
-                      👨‍🏫
-                    </div>
-                  )}
+                <div key={f.id} className={`cp-faculty-dossier cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
+                  <div className="cp-faculty-avatar-frame">
+                    {f.photoUrl ? (
+                      <img src={f.photoUrl} alt={f.name} className="cp-faculty-avatar" />
+                    ) : (
+                      <div className="cp-faculty-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#f1f5f9' }}>
+                        🎓
+                      </div>
+                    )}
+                  </div>
                   <h4 className="cp-faculty-name">{f.name}</h4>
                   <p className="cp-faculty-desig">{f.designation}</p>
                   {f.department && (
@@ -906,67 +895,63 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 9: TEACHING METHODOLOGY (MIDNIGHT COBALT CONNECTED PIPELINE)
+          SECTION 9: TEACHING METHODOLOGY
           ========================================================================= */}
       {data.showMethodologySection !== false && methodologyList.length > 0 && (
         <section id="methodology" className="cp-section cp-section-dark">
           <div className="cp-container">
             <div className="cp-section-header cp-dark-header cp-reveal">
-              <span className="cp-section-eyebrow">Closed-Loop Learning Cycle</span>
+              <span className="cp-section-marker" style={{ color: 'var(--cp-gold)' }}>06 / PEDAGOGICAL FRAMEWORK</span>
               <h3 className="cp-section-title">Teaching Methodology & Rigour</h3>
               <p className="cp-section-desc">Our closed-loop diagnostic learning model transforms average students into national competitive toppers.</p>
             </div>
 
-            <div className="cp-methodology-container">
-              <div className="cp-methodology-grid">
-                {methodologyList.map((step, idx) => (
-                  <div key={idx} className={`cp-methodology-card cp-reveal cp-delay-${idx * 100 + 100}`}>
-                    <div className="cp-methodology-header">
-                      <span className="cp-methodology-step-num">{step.stepNumber || `0${idx + 1}`}</span>
-                      {step.badge && (
-                        <span className="cp-methodology-badge">{step.badge}</span>
-                      )}
-                    </div>
-                    <h4 className="cp-methodology-title">{step.title}</h4>
-                    <p className="cp-methodology-desc">{step.description}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="cp-methodology-timeline">
+              {methodologyList.map((step, idx) => (
+                <div key={idx} className={`cp-timeline-node cp-reveal cp-delay-${idx * 100 + 100}`}>
+                  <div className="cp-timeline-step-index">{step.stepNumber || `0${idx + 1}`}</div>
+                  {step.badge && (
+                    <div className="cp-timeline-badge">{step.badge}</div>
+                  )}
+                  <h4 className="cp-timeline-title">{step.title}</h4>
+                  <p className="cp-timeline-text">{step.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
       )}
 
       {/* =========================================================================
-          SECTION 10: CAMPUS AND INFRASTRUCTURE (ARCHITECTURAL MOSAIC)
+          SECTION 10: CAMPUS AND INFRASTRUCTURE
           ========================================================================= */}
       {data.showFacilitiesSection !== false && data.facilities?.length > 0 && (
         <section id="campus" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">State-of-the-Art Environment</span>
+              <span className="cp-section-marker">07 / CAMPUS & INFRASTRUCTURE</span>
               <h3 className="cp-section-title">Campus & Infrastructure</h3>
               <p className="cp-section-desc">A safe, distraction-free residential and academic environment engineered for complete student focus.</p>
             </div>
 
-            <div className="cp-facility-grid">
+            <div className="cp-facility-mosaic">
               {data.facilities.map((fac, idx) => (
-                <div key={fac.id} className={`cp-facility-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div className="cp-facility-img-wrap">
+                <div key={fac.id} className={`cp-facility-item cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div className="cp-facility-media-wrap">
                     {fac.photoUrl ? (
-                      <img src={fac.photoUrl} alt={fac.title} className="cp-facility-img" />
+                      <img src={fac.photoUrl} alt={fac.title} className="cp-facility-media" />
                     ) : (
-                      <div className="cp-facility-img" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
-                        🏢
+                      <div className="cp-facility-media" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
+                        🏛
                       </div>
                     )}
                   </div>
-                  <div className="cp-facility-body">
+                  <div className="cp-facility-info">
                     {fac.category && (
-                      <span className="cp-badge-cat">{fac.category}</span>
+                      <span className="cp-facility-category">{fac.category}</span>
                     )}
                     <h4 className="cp-facility-title">{fac.title}</h4>
-                    <p className="cp-facility-desc">{fac.description}</p>
+                    <p className="cp-facility-caption">{fac.description}</p>
                   </div>
                 </div>
               ))}
@@ -976,33 +961,35 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 11: STUDENT RESULTS AND HALL OF FAME (ROYAL SAPPHIRE CANVAS)
+          SECTION 11: STUDENT RESULTS AND ROLL OF HONOR
           ========================================================================= */}
       {data.showResultsSection !== false && data.achievements?.length > 0 && (
         <section id="toppers" className="cp-section cp-section-dark">
           <div className="cp-container">
             <div className="cp-section-header cp-dark-header cp-reveal">
-              <span className="cp-section-eyebrow">Hall of Fame</span>
-              <h3 className="cp-section-title">Student Achievers & Ranks</h3>
+              <span className="cp-section-marker" style={{ color: 'var(--cp-gold)' }}>08 / ROLL OF HONOR</span>
+              <h3 className="cp-section-title">Student Achievers & State Ranks</h3>
               <p className="cp-section-desc">Celebrating our stellar rankers who realized their medical and engineering dreams.</p>
             </div>
 
-            <div className="cp-toppers-grid">
+            <div className="cp-honor-roll-grid">
               {data.achievements.map((a, idx) => (
-                <div key={a.id} className={`cp-topper-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
-                  {a.photoUrl ? (
-                    <img src={a.photoUrl} alt={a.studentName} className="cp-topper-img" />
-                  ) : (
-                    <div className="cp-topper-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#1e293b' }}>
-                      🏆
-                    </div>
-                  )}
-                  <h4 className="cp-topper-name">{a.studentName}</h4>
-                  <div className="cp-topper-award">{a.examOrAward}</div>
+                <div key={a.id} className={`cp-honor-dossier cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
+                  <div className="cp-honor-avatar-wrap">
+                    {a.photoUrl ? (
+                      <img src={a.photoUrl} alt={a.studentName} className="cp-honor-avatar" />
+                    ) : (
+                      <div className="cp-honor-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#1e293b' }}>
+                        🎓
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="cp-honor-name">{a.studentName}</h4>
+                  <div className="cp-honor-award">{a.examOrAward}</div>
                   {a.rankOrScore && (
-                    <span className="cp-topper-rank">{a.rankOrScore}</span>
+                    <span className="cp-honor-rank-pill">{a.rankOrScore}</span>
                   )}
-                  {a.description && <p className="cp-topper-desc">{a.description}</p>}
+                  {a.description && <p className="cp-honor-desc">{a.description}</p>}
                 </div>
               ))}
             </div>
@@ -1011,96 +998,45 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 12: ADMISSIONS AND SCHOLARSHIPS (PREMIUM CAMPAIGN SHOWCASE)
+          SECTION 12: ADMISSIONS AND SCHOLARSHIPS
           ========================================================================= */}
       {data.showAdmissionsSection !== false && (
-        <section id="admissions" className="cp-section cp-section-warm">
+        <section id="admissions" className="cp-section cp-section-linen">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Academic Year 2026-27 Enrollment</span>
+              <span className="cp-section-marker">09 / ADMISSIONS & SCHOLARSHIPS</span>
               <h3 className="cp-section-title">Admissions & Merit Scholarships</h3>
               <p className="cp-section-desc">
                 Secure your seat for intensive national medical & engineering batches with scholarship concessions up to 100% full tuition fee waiver.
               </p>
             </div>
 
-            {/* Available Courses & Stream Tags Ribbon */}
-            {data.courses?.length > 0 && (
-              <div className="cp-reveal" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--cp-dark)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Target Streams:
-                </span>
-                {data.courses.map((c) => (
-                  <span
-                    key={c.id}
-                    className="cp-badge-pill"
-                    style={{ background: '#ffffff', color: 'var(--cp-primary)', border: '1px solid var(--cp-border)', padding: '6px 16px', fontSize: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
-                  >
-                    ✓ {c.courseName}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="cp-admissions-campaign-grid">
+              {/* 4-Step Process */}
+              <div className="cp-admissions-timeline-col cp-reveal cp-delay-100">
+                <h4 className="cp-admissions-col-heading">4-Step Admission Roadmap</h4>
 
-            <div className="cp-admissions-grid">
-              {/* 4-Step Process & Campus Commitment */}
-              <div className="cp-reveal cp-delay-100">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                  <h4 style={{ fontSize: 21, fontWeight: 900, color: 'var(--cp-dark)', margin: 0, letterSpacing: '-0.02em' }}>
-                    4-Step Admission Roadmap
-                  </h4>
-                  <span className="cp-badge-cat" style={{ background: '#fef3c7', color: '#b45309' }}>
-                    ⚡ Phase 1 Open
-                  </span>
-                </div>
-
-                <div className="cp-adm-steps-list">
-                  {(admissionProcessList.length > 0 ? admissionProcessList : [
-                    { step: '01', title: 'Submit Online Enquiry', description: 'Complete our quick online registration form with student academic marks and stream preference.' },
-                    { step: '02', title: 'Diagnostic Talent & Scholarship Test', description: 'Appear for the Annual Scholarship Test (AITSE) to evaluate baseline readiness and qualify for fee waivers.' },
-                    { step: '03', title: 'Personal Academic Counseling', description: 'Meet with senior academic deans to map individual career targets and batch allocation.' },
-                    { step: '04', title: 'Seat Allotment & Enrollment', description: 'Finalize document verification, collect curriculum kit, and attend the student induction program.' },
-                  ]).map((st, idx) => (
-                    <div key={idx} className="cp-adm-step-card">
-                      <div className="cp-adm-step-num">{st.step}</div>
-                      <div className="cp-adm-step-body">
-                        <h4>{st.title}</h4>
-                        <p>{st.description}</p>
-                      </div>
+                {(admissionProcessList.length > 0 ? admissionProcessList : [
+                  { step: '01', title: 'Submit Online Enquiry', description: 'Complete our quick online registration form with student academic marks and stream preference.' },
+                  { step: '02', title: 'Diagnostic Talent & Scholarship Test', description: 'Appear for the Annual Scholarship Test (AITSE) to evaluate baseline readiness and qualify for fee waivers.' },
+                  { step: '03', title: 'Personal Academic Counseling', description: 'Meet with senior academic deans to map individual career targets and batch allocation.' },
+                  { step: '04', title: 'Seat Allotment & Enrollment', description: 'Finalize document verification, collect curriculum kit, and attend the student induction program.' },
+                ]).map((st, idx) => (
+                  <div key={idx} className="cp-stage-item">
+                    <div className="cp-stage-num">{st.step}</div>
+                    <div>
+                      <h4 className="cp-stage-title">{st.title}</h4>
+                      <p className="cp-stage-desc">{st.description}</p>
                     </div>
-                  ))}
-                </div>
-
-                {/* Campus Academic Photograph Banner */}
-                <div style={{ marginTop: 24, borderRadius: 20, overflow: 'hidden', position: 'relative', height: 180, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
-                  <img
-                    src={data.facilities?.[0]?.photoUrl || data.galleryItems?.[0]?.photoUrl || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80'}
-                    alt="Campus Admissions"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(7,13,30,0.85) 0%, transparent 60%)', display: 'flex', alignItems: 'flex-end', padding: '18px 24px' }}>
-                    <p style={{ margin: 0, color: '#ffffff', fontSize: 13, fontWeight: 700 }}>
-                      🌟 State-of-the-Art Residential Campus • Air-Conditioned Digital Classrooms
-                    </p>
                   </div>
-                </div>
+                ))}
               </div>
 
               {/* Scholarship Tiers Card */}
-              <div className="cp-scholarships-card cp-reveal cp-delay-200">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span className="cp-badge-pill" style={{ background: 'rgba(255,255,255,0.18)' }}>
-                    ★ Merit Concessions
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--cp-accent)', fontWeight: 800 }}>
-                    Up to 100% Fee Waiver
-                  </span>
-                </div>
-
-                <h4 style={{ fontSize: 24, fontWeight: 900, margin: '16px 0 8px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
-                  Institutional Scholarship Tiers
-                </h4>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', marginBottom: 22, lineHeight: 1.6 }}>
+              <div className="cp-scholarship-ledger-card cp-reveal cp-delay-200">
+                <span className="cp-scholarship-eyebrow">Merit Concessions</span>
+                <h4 className="cp-scholarship-title">Institutional Scholarship Tiers</h4>
+                <p className="cp-scholarship-intro">
                   We reward academic dedication. Scholarship concessions apply directly to tuition fees for 2 full academic years.
                 </p>
 
@@ -1111,28 +1047,28 @@ export default function PublicCollegePortal() {
                     { name: 'Academic Achiever Concession', criteria: 'Ranks 151 - 500 in AITSE or 90% - 94.9% in 10th Board Exams', benefit: '50% Tuition Fee Waiver' },
                     { name: 'Defense & Social Quota', criteria: 'Wards of Armed Forces / Police & Single Parent Girls', benefit: 'Special 25% Institutional Grant' },
                   ]).map((sc, idx) => (
-                    <div key={idx} className="cp-scholarship-tier-item">
-                      <div className="cp-scholarship-name">{sc.name}</div>
-                      <div className="cp-scholarship-criteria">{sc.criteria}</div>
-                      <div className="cp-scholarship-benefit">✓ {sc.benefit}</div>
+                    <div key={idx} className="cp-tier-row">
+                      <div>
+                        <div className="cp-tier-name">{sc.name}</div>
+                        <div className="cp-tier-criteria">{sc.criteria}</div>
+                      </div>
+                      <div className="cp-tier-benefit">{sc.benefit}</div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ marginTop: 24, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                <div className="cp-scholarship-actions">
                   <button
                     onClick={() => setIsEnquiryModalOpen(true)}
-                    className="cp-btn-hero-white"
-                    style={{ flex: 1, padding: 14, fontSize: 14, textAlign: 'center', justifyContent: 'center' }}
+                    className="cp-btn-scholarship-apply"
                   >
                     Apply for Scholarship Test →
                   </button>
                   <button
                     onClick={() => setIsBrochureModalOpen(true)}
-                    className="cp-btn-hero-outline"
-                    style={{ padding: 14, fontSize: 14 }}
+                    className="cp-btn-scholarship-prospectus"
                   >
-                    Prospectus 📄
+                    Prospectus & Syllabus
                   </button>
                 </div>
               </div>
@@ -1142,45 +1078,39 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 13: OPEN CBT EXAMINATIONS (HIGH-TECH CBT VOUCHERS)
+          SECTION 13: OPEN CBT EXAMINATIONS
           ========================================================================= */}
       {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
         <section id="exams" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Computer-Based Testing Engine</span>
+              <span className="cp-section-marker">10 / EXAMINATION PORTAL</span>
               <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
               <p className="cp-section-desc">
                 Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions with instant diagnostic analytics.
               </p>
             </div>
 
-            <div>
+            <div className="cp-exams-schedule-table">
               {data.openExams.map((test, idx) => (
-                <div key={test.id} className={`cp-exam-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div className="cp-exam-info">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span className="cp-badge-cat">{test.examName}</span>
-                      <span className="cp-badge-pill" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}>
-                        ● Free State-Level Mock Test
-                      </span>
-                      <span className="cp-badge-pill" style={{ background: '#f8fafc', color: '#475569' }}>
-                        NTA Testing Pattern
-                      </span>
+                <div key={test.id} className={`cp-exam-voucher cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div>
+                    <div className="cp-voucher-tags">
+                      <span className="cp-tag-status">● Free State-Level Mock Test</span>
+                      <span className="cp-tag-category">{test.examName}</span>
+                      <span className="cp-tag-category">NTA Pattern</span>
                     </div>
 
-                    <h4>{test.title}</h4>
+                    <h4 className="cp-voucher-title">{test.title}</h4>
                     {test.publicDescription && (
-                      <p style={{ margin: '8px 0 14px 0', fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
-                        {test.publicDescription}
-                      </p>
+                      <p className="cp-voucher-desc">{test.publicDescription}</p>
                     )}
 
-                    <div className="cp-exam-details">
-                      <span>⏱ Duration: <strong>{test.durationMinutes} Mins</strong></span>
-                      <span>❓ Questions: <strong>{test.questionCount} Qs</strong></span>
-                      <span>⚖ Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
-                      <span>🔒 Access Code: <code style={{ color: 'var(--cp-primary)', fontWeight: 800, background: '#eff6ff', padding: '2px 8px', borderRadius: 6 }}>{test.code}</code></span>
+                    <div className="cp-voucher-specs">
+                      <span>Duration: <strong>{test.durationMinutes} Mins</strong></span>
+                      <span>Questions: <strong>{test.questionCount} Qs</strong></span>
+                      <span>Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
+                      <span>Access Code: <code className="cp-voucher-code">{test.code}</code></span>
                     </div>
                   </div>
 
@@ -1189,9 +1119,9 @@ export default function PublicCollegePortal() {
                       href={test.cbtUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="cp-btn-exam"
+                      className="cp-btn-launch-exam"
                     >
-                      Start Online Examination →
+                      Start Examination →
                     </a>
                   </div>
                 </div>
@@ -1202,36 +1132,36 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 14: FACULTY CAREERS AND RECRUITMENT (MODULAR GUARD)
+          SECTION 14: FACULTY CAREERS
           ========================================================================= */}
       {data.hasRecruitmentModule && data.showCareersSection !== false && data.jobPostings?.length > 0 && (
         <section id="careers" className="cp-section cp-section-slate">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Join Our Teaching Faculty</span>
+              <span className="cp-section-marker">11 / FACULTY OPENINGS</span>
               <h3 className="cp-section-title">Faculty Careers & Openings</h3>
               <p className="cp-section-desc">We are always looking for passionate educators and academic leaders to mentor national rankers.</p>
             </div>
 
-            <div className="cp-careers-grid">
+            <div className="cp-careers-notice-board">
               {data.jobPostings.map((job, idx) => (
-                <div key={job.id} className={`cp-job-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                <div key={job.id} className={`cp-career-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div>
-                    <h4 className="cp-job-title">{job.jobTitle}</h4>
-                    <div className="cp-job-badges">
-                      <span className="cp-job-badge">🏢 {job.department}</span>
-                      <span className="cp-job-badge">⏱ {job.employmentType}</span>
+                    <h4 className="cp-career-title">{job.jobTitle}</h4>
+                    <div className="cp-career-badges">
+                      <span className="cp-career-badge">Dept: {job.department}</span>
+                      <span className="cp-career-badge">{job.employmentType}</span>
                       {job.minExperienceYrs > 0 && (
-                        <span className="cp-job-badge">💼 {job.minExperienceYrs}+ Yrs Exp</span>
+                        <span className="cp-career-badge">{job.minExperienceYrs}+ Yrs Exp</span>
                       )}
                       {job.location && (
-                        <span className="cp-job-badge">📍 {job.location}</span>
+                        <span className="cp-career-badge">{job.location}</span>
                       )}
                     </div>
-                    <p className="cp-job-desc">{job.jobDescription}</p>
+                    <p className="cp-career-desc">{job.jobDescription}</p>
                     {job.requiredQualifications && (
-                      <div className="cp-job-qual" style={{ marginTop: 14 }}>
-                        <strong>Required Qualifications:</strong> {job.requiredQualifications}
+                      <div className="cp-job-qual" style={{ marginTop: 12 }}>
+                        <strong>Required:</strong> {job.requiredQualifications}
                       </div>
                     )}
                   </div>
@@ -1256,13 +1186,13 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 15: CAMPUS LIFE AND PHOTO GALLERY (PORCELAIN CANVAS)
+          SECTION 15: CAMPUS LIFE AND PHOTO GALLERY
           ========================================================================= */}
       {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
         <section id="gallery" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Campus Glimpses</span>
+              <span className="cp-section-marker">12 / CAMPUS GLIMPSES</span>
               <h3 className="cp-section-title">Campus Life & Photo Gallery</h3>
               <p className="cp-section-desc">Explore daily life, laboratories, convocation ceremonies, and sports activities.</p>
             </div>
@@ -1280,16 +1210,16 @@ export default function PublicCollegePortal() {
               ))}
             </div>
 
-            <div className="cp-gallery-grid">
+            <div className="cp-gallery-editorial-grid">
               {filteredGallery.map((item, idx) => (
                 <div
                   key={item.id}
-                  className={`cp-gallery-item cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
+                  className={`cp-gallery-frame cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
                   onClick={() => setPreviewMedia(item)}
                 >
-                  <img src={item.mediaUrl} alt={item.title} className="cp-gallery-img" />
-                  <div className="cp-gallery-overlay">
-                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 8 }}>{item.category}</span>
+                  <img src={item.mediaUrl} alt={item.title} className="cp-gallery-photo" />
+                  <div className="cp-gallery-caption-overlay">
+                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 6 }}>{item.category}</span>
                     <strong style={{ fontSize: 15 }}>{item.title}</strong>
                   </div>
                 </div>
@@ -1300,35 +1230,33 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 16: PARENT AND STUDENT TESTIMONIALS (INTERACTIVE CAROUSEL)
+          SECTION 16: PARENT AND STUDENT TESTIMONIALS
           ========================================================================= */}
       {data.showTestimonialsSection !== false && data.testimonials?.length > 0 && (
-        <section id="testimonials" className="cp-section cp-section-warm">
+        <section id="testimonials" className="cp-section cp-section-linen">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Alumni & Parent Voices</span>
+              <span className="cp-section-marker">13 / ALUMNI & PARENT PERSPECTIVES</span>
               <h3 className="cp-section-title">What They Say About Us</h3>
               <p className="cp-section-desc">Authentic experiences and reviews from our successful doctors, engineers, and their proud parents.</p>
             </div>
 
-            <div className="cp-testimonial-carousel-wrap cp-reveal">
-              <div className="cp-testimonial-slider">
-                {(() => {
-                  const t = data.testimonials[testimonialIndex] || data.testimonials[0];
-                  return (
-                    <div className="cp-testimonial-card-featured">
-                      <div className="cp-test-stars">
-                        {'★'.repeat(t.rating || 5)}
-                      </div>
-                      <p className="cp-test-quote">"{t.quote}"</p>
-                      <div>
-                        <h5 className="cp-test-author">{t.authorName}</h5>
-                        <p className="cp-test-role">{t.authorRole}</p>
-                      </div>
+            <div className="cp-testimonial-wrap cp-reveal">
+              {(() => {
+                const t = data.testimonials[testimonialIndex] || data.testimonials[0];
+                return (
+                  <div className="cp-testimonial-card-editorial">
+                    <div className="cp-test-stars">
+                      {'★'.repeat(t.rating || 5)}
                     </div>
-                  );
-                })()}
-              </div>
+                    <p className="cp-test-quote">"{t.quote}"</p>
+                    <div>
+                      <h5 className="cp-test-author">{t.authorName}</h5>
+                      <p className="cp-test-role">{t.authorRole}</p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Interactive Carousel Controls */}
               {data.testimonials.length > 1 && (
@@ -1375,7 +1303,7 @@ export default function PublicCollegePortal() {
           {data.showFaqSection !== false && faqsList.length > 0 && (
             <div style={{ marginBottom: 70 }} className="cp-reveal">
               <div className="cp-section-header">
-                <span className="cp-section-eyebrow">Clear Answers</span>
+                <span className="cp-section-marker">14 / FREQUENTLY ASKED QUESTIONS</span>
                 <h3 className="cp-section-title">Frequently Asked Questions</h3>
                 <p className="cp-section-desc">Everything you need to know about academic admissions, batch structure, hostel life, and testing.</p>
               </div>
@@ -1408,15 +1336,15 @@ export default function PublicCollegePortal() {
 
           {/* Admission Enquiry Form & Campus Address */}
           <div className="cp-section-header cp-reveal">
-            <span className="cp-section-eyebrow">Start Your Journey</span>
+            <span className="cp-section-marker">15 / ADMISSIONS ENQUIRY DESK</span>
             <h3 className="cp-section-title">Apply for Admission or Enquire Today</h3>
             <p className="cp-section-desc">Our senior admissions counselors are ready to help you choose the right stream and answer all your queries.</p>
           </div>
 
-          <div className="cp-contact-grid cp-reveal cp-delay-100">
+          <div className="cp-contact-spread cp-reveal cp-delay-100">
             {/* Left: High-Conversion Admission Enquiry Form */}
-            <div className="cp-card-form">
-              <h4 style={{ fontSize: 20, fontWeight: 900, color: 'var(--cp-dark)', margin: '0 0 18px 0', letterSpacing: '-0.02em' }}>
+            <div className="cp-desk-form-card">
+              <h4 className="cp-desk-heading">
                 Online Admission Enquiry
               </h4>
 
@@ -1532,63 +1460,52 @@ export default function PublicCollegePortal() {
             </div>
 
             {/* Right: Contact Information & WhatsApp */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 26, padding: 36, boxShadow: '0 6px 20px rgba(0,0,0,0.04)' }}>
-                <h4 style={{ fontSize: 19, fontWeight: 900, color: 'var(--cp-dark)', margin: '0 0 18px 0', letterSpacing: '-0.02em' }}>
-                  Campus Visit & Helpline
-                </h4>
+            <div className="cp-desk-info-card">
+              <h4 style={{ fontSize: 19, fontWeight: 700, fontFamily: 'var(--cp-font-display)', color: 'var(--cp-text-ink)', margin: 0 }}>
+                Campus Office & Helpline
+              </h4>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14, color: '#334155' }}>
-                  {data.campusAddress && (
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 20 }}>📍</span>
-                      <div>
-                        <strong>Campus Address:</strong>
-                        <p style={{ margin: '4px 0 0 0', color: '#64748b', lineHeight: 1.6 }}>{data.campusAddress}</p>
-                      </div>
-                    </div>
-                  )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14, color: 'var(--cp-text-body)' }}>
+                {data.campusAddress && (
+                  <div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Campus Location:</strong>
+                    <p style={{ margin: '4px 0 0 0', color: 'var(--cp-text-muted)', lineHeight: 1.6 }}>{data.campusAddress}</p>
+                  </div>
+                )}
 
-                  {data.contactPhone && (
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <span style={{ fontSize: 20 }}>📞</span>
-                      <div>
-                        <strong>Helpline Phone:</strong>{' '}
-                        <a href={`tel:${data.contactPhone}`} style={{ color: 'var(--cp-primary)', fontWeight: 800, textDecoration: 'none' }}>
-                          {data.contactPhone}
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                {data.contactPhone && (
+                  <div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Admissions Hotline:</strong>{' '}
+                    <a href={`tel:${data.contactPhone}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                      {data.contactPhone}
+                    </a>
+                  </div>
+                )}
 
-                  {data.contactEmail && (
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <span style={{ fontSize: 20 }}>✉</span>
-                      <div>
-                        <strong>Email Admissions:</strong>{' '}
-                        <a href={`mailto:${data.contactEmail}`} style={{ color: 'var(--cp-primary)', fontWeight: 800, textDecoration: 'none' }}>
-                          {data.contactEmail}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {data.whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${data.whatsappNumber.replace(/[^0-9]/g, '')}?text=Hello!%20I%20would%20like%20to%20enquire%20about%20admissions%20at%20${encodeURIComponent(data.displayName || 'your college')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="cp-btn-whatsapp"
-                  >
-                    <span>💬</span> Chat with Admission Counselor on WhatsApp
-                  </a>
+                {data.contactEmail && (
+                  <div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Email Desk:</strong>{' '}
+                    <a href={`mailto:${data.contactEmail}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                      {data.contactEmail}
+                    </a>
+                  </div>
                 )}
               </div>
 
+              {data.whatsappNumber && (
+                <a
+                  href={`https://wa.me/${data.whatsappNumber.replace(/[^0-9]/g, '')}?text=Hello!%20I%20would%20like%20to%20enquire%20about%20admissions%20at%20${encodeURIComponent(data.displayName || 'your college')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cp-btn-whatsapp"
+                >
+                  Chat with Counselor on WhatsApp
+                </a>
+              )}
+
               {/* Campus Location Map / Directions */}
               {data.googleMapEmbedUrl && (
-                <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 24, overflow: 'hidden', height: 260, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+                <div style={{ borderRadius: 'var(--cp-radius-sm)', overflow: 'hidden', height: 200, border: '1px solid var(--cp-border)' }}>
                   <iframe
                     src={data.googleMapEmbedUrl}
                     width="100%"
