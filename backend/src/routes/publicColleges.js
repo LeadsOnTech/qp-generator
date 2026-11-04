@@ -133,7 +133,8 @@ router.get('/:slug', async (req, res) => {
         createdAt: true,
         paper: {
           select: {
-            subject: { select: { name: true } },
+            title: true,
+            examName: true,
             questions: { select: { id: true } },
           },
         },
@@ -145,8 +146,7 @@ router.get('/:slug', async (req, res) => {
       id: test.id,
       code: test.code,
       title: test.title,
-      examName: test.examName,
-      subjectName: test.paper?.subject?.name || null,
+      examName: test.examName || test.paper?.examName || 'Competitive Exam',
       questionCount: test.paper?.questions?.length || 0,
       durationMinutes: test.durationMinutes,
       positiveMarks: test.positiveMarks,

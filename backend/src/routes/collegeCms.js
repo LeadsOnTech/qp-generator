@@ -889,8 +889,7 @@ router.get('/exams', async (req, res) => {
           select: {
             id: true,
             title: true,
-            exam: { select: { name: true } },
-            subject: { select: { name: true } },
+            examName: true,
             questions: { select: { id: true } },
           },
         },
