@@ -404,7 +404,25 @@ export default function PublicCollegePortal() {
             {data.contactEmail && (
               <a href={`mailto:${data.contactEmail}`}>✉ {data.contactEmail}</a>
             )}
-            <span style={{ opacity: 0.85, fontWeight: 600 }}>QuestionsStudio SaaS</span>
+            <Link
+              to="/login"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                background: 'rgba(255,255,255,0.18)',
+                color: '#ffffff',
+                padding: '3px 10px',
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              🔐 Staff / Admin Login
+            </Link>
           </div>
         </div>
       </div>
@@ -557,7 +575,7 @@ export default function PublicCollegePortal() {
               </div>
             </div>
 
-            <div style={{ paddingTop: 20, borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ paddingTop: 20, borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
                 onClick={() => {
                   setIsDrawerOpen(false);
@@ -568,6 +586,26 @@ export default function PublicCollegePortal() {
               >
                 Apply for Admission 2026-27 →
               </button>
+              <Link
+                to="/login"
+                onClick={() => setIsDrawerOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '11px 16px',
+                  borderRadius: 8,
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                }}
+              >
+                🔐 Staff / College Admin Login
+              </Link>
             </div>
           </div>
         </>
@@ -1656,14 +1694,31 @@ export default function PublicCollegePortal() {
               </div>
             </div>
 
-            {/* Col 4: Platform & SaaS Attribution */}
+            {/* Col 4: Platform & Administration */}
             <div>
-              <h5>QuestionsStudio</h5>
+              <h5>Administration</h5>
               <div style={{ background: '#1e293b', padding: 18, borderRadius: 16, border: '1px solid #334155' }}>
-                <strong style={{ color: '#ffffff', fontSize: 13 }}>Powered by QuestionsStudio</strong>
-                <p style={{ color: '#94a3b8', fontSize: 12, margin: '8px 0 0 0', lineHeight: 1.6 }}>
-                  Centralized Question Bank, Computer-Based Online Testing, OMR Grading & Multi-College Portal SaaS.
+                <strong style={{ color: '#ffffff', fontSize: 13 }}>College Staff & Admin Portal</strong>
+                <p style={{ color: '#94a3b8', fontSize: 12, margin: '6px 0 12px 0', lineHeight: 1.6 }}>
+                  Sign in to access student admissions CRM, manage academic courses, update faculty, and publish updates.
                 </p>
+                <Link
+                  to="/login"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#ffffff',
+                    color: '#0b1a30',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    padding: '8px 16px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                  }}
+                >
+                  🔐 Staff / Admin Login →
+                </Link>
               </div>
             </div>
           </div>
@@ -1672,7 +1727,10 @@ export default function PublicCollegePortal() {
             <div>
               © {new Date().getFullYear()} {data.displayName || data.institute?.name}. All rights reserved.
             </div>
-            <div style={{ display: 'flex', gap: 20 }}>
+            <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+              <Link to="/login" style={{ color: '#cbd5e1', textDecoration: 'underline', fontSize: 12, fontWeight: 600 }}>
+                🔐 Admin Login
+              </Link>
               <span style={{ color: '#64748b' }}>QuestionsStudio SaaS</span>
               <span style={{ color: '#64748b' }}>Privacy Policy</span>
               <span style={{ color: '#64748b' }}>Terms of Service</span>

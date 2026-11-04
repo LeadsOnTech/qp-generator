@@ -67,7 +67,7 @@ const paperEngineItems = [
 const adminOnlyExtras = [
   { to: '/images', label: 'Image Library', icon: '🖼' },
   { to: '/institutes', label: 'Institutes', icon: '🏛' },
-  { to: '/admin/websites', label: 'College Websites', icon: '🌐' },
+  { to: '/admin/websites', label: 'College Websites & Features', icon: '🌐' },
   { to: '/trial-accounts', label: 'Trial / Demo Logins', icon: '📲' },
   { to: '/admin/registrations', label: 'Registration Requests', icon: '👤' },
   { to: '/recharge-approvals', label: 'Recharge Approvals', icon: '💳' },
