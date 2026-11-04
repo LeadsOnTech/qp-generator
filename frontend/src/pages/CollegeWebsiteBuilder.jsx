@@ -460,6 +460,151 @@ export default function CollegeWebsiteBuilder() {
                   </button>
                 </div>
               </div>
+
+              {/* Modular SaaS Subscriptions */}
+              <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Modular SaaS Facilities & Subscriptions
+                  </h3>
+                  <span className="text-[11px] font-bold text-slate-400">QuestionsStudio Multi-Tenant Engine</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Colleges can independently purchase modules. Inactive modules are gracefully hidden from the public portal without broken layouts.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">📄 Question Paper Generation</div>
+                      <div className="text-[11px] text-slate-500">Centralized question bank & auto blueprint generator</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">INCLUDED</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">🌐 Public College Website</div>
+                      <div className="text-[11px] text-slate-500">17-section longform institutional homepage</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">ACTIVE</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">💻 Online Examination System (CBT)</div>
+                      <div className="text-[11px] text-slate-500">Public mock test discovery & timed CBT test engine</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.hasOnlineExamModule ?? true}
+                        onChange={(e) => setForm({ ...form, hasOnlineExamModule: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">💼 Faculty Recruitment Portal</div>
+                      <div className="text-[11px] text-slate-500">Job vacancy management & resume applications</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.hasRecruitmentModule ?? true}
+                        onChange={(e) => setForm({ ...form, hasRecruitmentModule: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">📥 Student Leads & Admissions CRM</div>
+                      <div className="text-[11px] text-slate-500">Online lead capture & WhatsApp counseling links</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.hasCrmModule ?? true}
+                        onChange={(e) => setForm({ ...form, hasCrmModule: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">📢 College Advertising & Promotion</div>
+                      <div className="text-[11px] text-slate-500">Sponsored examination placement on portal</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.hasAdvertisingModule ?? false}
+                        onChange={(e) => setForm({ ...form, hasAdvertisingModule: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* 16-Section Visibility Toggles */}
+              <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    17-Section Homepage Visibility Toggles
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={handleSaveWebsiteSettings}
+                    disabled={saving}
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
+                  >
+                    {saving ? 'Saving...' : 'Save Toggles'}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Selectively show or hide sections from your public college website homepage without deleting content.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {[
+                    { key: 'showStatsSection', label: '3. Stats & Counters' },
+                    { key: 'showAboutSection', label: '4. About Us & Heritage' },
+                    { key: 'showDirectorSection', label: '5. Director Message' },
+                    { key: 'showWhyUsSection', label: '6. Why Choose Our College' },
+                    { key: 'showCoursesSection', label: '7. Courses Offered' },
+                    { key: 'showFacultySection', label: '8. Faculty Showcase' },
+                    { key: 'showMethodologySection', label: '9. Teaching Methodology' },
+                    { key: 'showFacilitiesSection', label: '10. Campus Facilities' },
+                    { key: 'showResultsSection', label: '11. Student Hall of Fame' },
+                    { key: 'showAdmissionsSection', label: '12. Admissions & Scholarships' },
+                    { key: 'showOpenExamsSection', label: '13. Open CBT Exams' },
+                    { key: 'showCareersSection', label: '14. Faculty Careers' },
+                    { key: 'showGallerySection', label: '15. Photo Gallery' },
+                    { key: 'showTestimonialsSection', label: '16. Testimonials' },
+                    { key: 'showFaqSection', label: '17. FAQs Accordion' },
+                    { key: 'showContactFormSection', label: '17. Admission Enquiry Form' },
+                  ].map((sec) => (
+                    <label key={sec.key} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={form[sec.key] ?? true}
+                        onChange={(e) => setForm({ ...form, [sec.key]: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{sec.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -671,6 +816,21 @@ export default function CollegeWebsiteBuilder() {
           {activeTab === 'hero' && (
             <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
               <h2 className="text-lg font-bold text-slate-900">Homepage Hero Section Management</h2>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  🔥 Promotional Announcement Ticker (Top Red Banner)
+                </label>
+                <input
+                  type="text"
+                  value={form.promotionalBannerText || ''}
+                  onChange={(e) => setForm({ ...form, promotionalBannerText: e.target.value })}
+                  placeholder="e.g. 🔥 Admissions Open for Academic Year 2026-27 | Scholarship Test this Sunday | Call: +91 98480 12345"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Leave blank if you do not want to display an urgent top announcement ticker.</p>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Hero Main Headline</label>
                 <input
@@ -843,6 +1003,34 @@ export default function CollegeWebsiteBuilder() {
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Why Choose Us Advantages (JSON Array: [{'{'} title, description, icon {'}'}])
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.whyChooseUsJson || ''}
+                  onChange={(e) => setForm({ ...form, whyChooseUsJson: e.target.value })}
+                  placeholder='[{"icon":"academic-cap","title":"IITian Faculty","description":"Learn from master teachers."}]'
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Configures the 6 institutional advantage cards on Section 6 of your homepage.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Teaching Methodology Steps (JSON Array: [{'{'} stepNumber, badge, title, description {'}'}])
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.methodologyStepsJson || ''}
+                  onChange={(e) => setForm({ ...form, methodologyStepsJson: e.target.value })}
+                  placeholder='[{"stepNumber":"01","badge":"FOUNDATION","title":"Classroom Mastery","description":"Concept clarity."}]'
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Configures the 5-step learning workflow on Section 9 of your homepage.</p>
               </div>
 
               <button
@@ -1438,6 +1626,20 @@ export default function CollegeWebsiteBuilder() {
                   onChange={(e) => setForm({ ...form, metaKeywords: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Frequently Asked Questions (JSON Array: [{'{'} question, answer, category {'}'}])
+                </label>
+                <textarea
+                  rows={5}
+                  value={form.faqsJson || ''}
+                  onChange={(e) => setForm({ ...form, faqsJson: e.target.value })}
+                  placeholder='[{"question":"What board is affiliated?","answer":"BIEAP & CBSE."}]'
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Configures the FAQ accordion in Section 17 above the contact form.</p>
               </div>
 
               <button

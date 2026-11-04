@@ -196,51 +196,74 @@ router.get('/:slug', async (req, res) => {
       });
     }
 
-    // Fetch open CBT examinations
-    const openExams = await prisma.cbtTest.findMany({
-      where: {
-        paper: { instituteId: website.instituteId },
-        isPublicWebsiteVisible: true,
-      },
-      select: {
-        id: true,
-        code: true,
-        title: true,
-        examName: true,
-        durationMinutes: true,
-        positiveMarks: true,
-        negativeMarks: true,
-        securityMode: true,
-        publicDescription: true,
-        createdAt: true,
-        paper: {
-          select: {
-            title: true,
-            examName: true,
-            questions: { select: { id: true } },
+    // Modular SaaS Check: Online Examinations Module
+    let formattedExams = [];
+    if (website.hasOnlineExamModule) {
+      const openExams = await prisma.cbtTest.findMany({
+        where: {
+          paper: { instituteId: website.instituteId },
+          isPublicWebsiteVisible: true,
+        },
+        select: {
+          id: true,
+          code: true,
+          title: true,
+          examName: true,
+          durationMinutes: true,
+          positiveMarks: true,
+          negativeMarks: true,
+          securityMode: true,
+          publicDescription: true,
+          createdAt: true,
+          paper: {
+            select: {
+              title: true,
+              examName: true,
+              questions: { select: { id: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
 
-    const formattedExams = openExams.map((test) => ({
-      id: test.id,
-      code: test.code,
-      title: test.title,
-      examName: test.examName || test.paper?.examName || 'Competitive Exam',
-      questionCount: test.paper?.questions?.length || 0,
-      durationMinutes: test.durationMinutes,
-      positiveMarks: test.positiveMarks,
-      negativeMarks: test.negativeMarks,
-      publicDescription: test.publicDescription,
-      cbtUrl: `/#/cbt/${test.code}`,
-    }));
+      formattedExams = openExams.map((test) => ({
+        id: test.id,
+        code: test.code,
+        title: test.title,
+        examName: test.examName || test.paper?.examName || 'Competitive Exam',
+        questionCount: test.paper?.questions?.length || 0,
+        durationMinutes: test.durationMinutes,
+        positiveMarks: test.positiveMarks,
+        negativeMarks: test.negativeMarks,
+        publicDescription: test.publicDescription,
+        cbtUrl: `/#/cbt/${test.code}`,
+      }));
+    }
+
+    // Modular SaaS Check: Recruitment Module
+    const activeJobPostings = website.hasRecruitmentModule ? (website.jobPostings || []) : [];
+
+    // Helper safely parsing JSON
+    const safeParse = (str, fallback) => {
+      if (!str) return fallback;
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        return fallback;
+      }
+    };
 
     res.json({
       website: {
         ...website,
+        jobPostings: activeJobPostings,
         openExams: formattedExams,
+        parsedStatsCounters: safeParse(website.statsCountersJson, []),
+        parsedWhyChooseUs: safeParse(website.whyChooseUsJson, []),
+        parsedMethodologySteps: safeParse(website.methodologyStepsJson, []),
+        parsedAdmissionProcess: safeParse(website.admissionProcessJson, []),
+        parsedScholarshipDetails: safeParse(website.scholarshipDetailsJson, []),
+        parsedFaqs: safeParse(website.faqsJson, []),
       },
     });
   } catch (err) {
@@ -268,11 +291,15 @@ router.post('/:slug/enquiries', async (req, res) => {
 
     const website = await prisma.collegeWebsite.findUnique({
       where: { slug: cleanSlug },
-      select: { id: true, isPublished: true, status: true },
+      select: { id: true, isPublished: true, status: true, hasCrmModule: true },
     });
 
     if (!website || !website.isPublished || website.status === 'SUSPENDED') {
       return res.status(404).json({ error: 'College website is not active.' });
+    }
+
+    if (!website.hasCrmModule) {
+      return res.status(403).json({ error: 'Admission enquiry system is currently not activated for this institution.' });
     }
 
     const enquiry = await prisma.collegeEnquiry.create({
@@ -333,7 +360,7 @@ router.post('/:slug/careers/:jobId/apply', (req, res) => {
         include: { website: true },
       });
 
-      if (!jobPosting || !jobPosting.isActive || jobPosting.website.slug !== cleanSlug) {
+      if (!jobPosting || !jobPosting.isActive || jobPosting.website.slug !== cleanSlug || !jobPosting.website.hasRecruitmentModule) {
         return res.status(404).json({ error: 'Job opening is no longer accepting applications.' });
       }
 

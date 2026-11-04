@@ -713,6 +713,38 @@ model CollegeWebsite {
   metaKeywords         String?
   ogImageUrl           String?
 
+  // Modular SaaS Licensing & Subscriptions
+  hasOnlineExamModule    Boolean  @default(true)
+  hasRecruitmentModule   Boolean  @default(true)
+  hasCrmModule           Boolean  @default(true)
+  hasAdvertisingModule   Boolean  @default(false)
+
+  // Section Visibility Toggles
+  showStatsSection       Boolean  @default(true)
+  showAboutSection       Boolean  @default(true)
+  showDirectorSection    Boolean  @default(true)
+  showWhyUsSection       Boolean  @default(true)
+  showCoursesSection     Boolean  @default(true)
+  showFacultySection     Boolean  @default(true)
+  showMethodologySection Boolean  @default(true)
+  showFacilitiesSection  Boolean  @default(true)
+  showResultsSection     Boolean  @default(true)
+  showAdmissionsSection  Boolean  @default(true)
+  showOpenExamsSection   Boolean  @default(true)
+  showCareersSection     Boolean  @default(true)
+  showGallerySection     Boolean  @default(true)
+  showTestimonialsSection Boolean @default(true)
+  showFaqSection         Boolean  @default(true)
+  showContactFormSection Boolean  @default(true)
+
+  // Rich Configurable Long-Form Content (JSON)
+  whyChooseUsJson        String?  // [{ title, description, icon }]
+  methodologyStepsJson   String?  // [{ stepNumber, title, description, badge }]
+  admissionProcessJson   String?  // [{ step, title, description }]
+  scholarshipDetailsJson String?  // [{ name, criteria, benefit }]
+  faqsJson               String?  // [{ question, answer, category }]
+  promotionalBannerText  String?  // Marquee announcement ticker
+
   // Child Website Modules
   courses              CollegeCourse[]
   faculties            CollegeFaculty[]

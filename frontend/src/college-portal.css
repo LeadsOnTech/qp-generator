@@ -37,9 +37,45 @@
 /* Container */
 .cp-container {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1360px;
   margin: 0 auto;
   padding: 0 24px;
+}
+
+/* ---------- Announcement Ticker Bar ---------- */
+.cp-announcement-bar {
+  background: linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #991b1b 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  z-index: 101;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.cp-announcement-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 1200px;
+}
+
+.cp-announcement-badge {
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ---------- Topbar ---------- */
@@ -463,6 +499,683 @@
   color: var(--cp-text-muted);
   line-height: 1.6;
   margin: 0;
+}
+
+/* ---------- Section 4: About Institution & Pillars ---------- */
+.cp-about-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.cp-about-text-lead {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #334155;
+  margin-bottom: 24px;
+}
+
+.cp-pillars-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cp-pillar-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.cp-pillar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: var(--cp-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.cp-pillar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0 0 2px 0;
+}
+
+.cp-pillar-desc {
+  font-size: 12px;
+  color: var(--cp-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cp-vision-card,
+.cp-mission-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.cp-vision-card {
+  border-left: 4px solid var(--cp-primary);
+}
+
+.cp-mission-card {
+  border-left: 4px solid var(--cp-secondary);
+}
+
+.cp-vm-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-vm-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+/* ---------- Section 6: Why Choose Us (6-Card Grid) ---------- */
+.cp-whyus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.cp-whyus-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cp-whyus-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.cp-whyus-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.08), rgba(15, 118, 110, 0.12));
+  color: var(--cp-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.cp-whyus-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.cp-whyus-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------- Section 9: Teaching Methodology (5-Step Learning Loop) ---------- */
+.cp-methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.cp-methodology-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 18px;
+  padding: 24px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.cp-methodology-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--cp-primary);
+}
+
+.cp-methodology-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cp-methodology-step-num {
+  font-size: 28px;
+  font-weight: 900;
+  color: #cbd5e1;
+  line-height: 1;
+}
+
+.cp-methodology-badge {
+  background: #eff6ff;
+  color: var(--cp-primary);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.cp-methodology-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.cp-methodology-desc {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------- Section 12: Admissions & Scholarships ---------- */
+.cp-admissions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+
+.cp-adm-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cp-adm-step-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.cp-adm-step-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--cp-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.cp-adm-step-body h4 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0 0 4px 0;
+}
+
+.cp-adm-step-body p {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cp-scholarships-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.cp-scholarship-tier-item {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.cp-scholarship-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cp-accent);
+  margin: 0 0 4px 0;
+}
+
+.cp-scholarship-criteria {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 6px 0;
+}
+
+.cp-scholarship-benefit {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0;
+}
+
+/* ---------- Section 14: Faculty Careers ---------- */
+.cp-careers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.cp-job-card {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 18px;
+  padding: 26px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cp-job-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.cp-job-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.cp-job-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.cp-job-desc {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cp-job-qual {
+  font-size: 12px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #1e293b;
+  border-left: 3px solid var(--cp-primary);
+}
+
+.cp-btn-apply-job {
+  background: var(--cp-secondary);
+  color: #ffffff;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.2);
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.cp-btn-apply-job:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- Section 15: Gallery Filters ---------- */
+.cp-gallery-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.cp-gallery-tab-btn {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cp-gallery-tab-btn.active,
+.cp-gallery-tab-btn:hover {
+  background: var(--cp-primary);
+  color: #ffffff;
+  border-color: var(--cp-primary);
+}
+
+/* ---------- Section 17: FAQ Accordion ---------- */
+.cp-faq-list {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cp-faq-item {
+  background: #ffffff;
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s;
+}
+
+.cp-faq-item.open {
+  border-color: var(--cp-primary);
+}
+
+.cp-faq-header {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  background: #ffffff;
+}
+
+.cp-faq-header:hover {
+  background: #f8fafc;
+}
+
+.cp-faq-question {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0;
+  line-height: 1.4;
+  padding-right: 16px;
+}
+
+.cp-faq-toggle-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--cp-primary);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.cp-faq-item.open .cp-faq-toggle-icon {
+  transform: rotate(45deg);
+  background: var(--cp-primary);
+  color: #ffffff;
+}
+
+.cp-faq-body {
+  padding: 0 24px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #475569;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+/* ---------- Modals (Enquiry & Job Apply) ---------- */
+.cp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.cp-modal-box {
+  background: #ffffff;
+  border-radius: 24px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.cp-modal-header {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--cp-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cp-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--cp-dark);
+  margin: 0;
+}
+
+.cp-modal-close {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+}
+
+.cp-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.cp-modal-body {
+  padding: 28px;
+}
+
+.cp-alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ---------- Mobile Off-Canvas Drawer ---------- */
+.cp-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+.cp-mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  background: #ffffff;
+  z-index: 1000;
+  padding: 24px;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cp-drawer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.cp-drawer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-drawer-link-btn {
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cp-drawer-link-btn:hover {
+  background: #f1f5f9;
+  color: var(--cp-primary);
+}
+
+.cp-hamburger-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--cp-border);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* ---------- Responsive Adjustments for 17-Section Grid ---------- */
+@media (max-width: 1100px) {
+  .cp-methodology-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cp-whyus-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .cp-hamburger-btn {
+    display: block;
+  }
+  .cp-about-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-admissions-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-methodology-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cp-whyus-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-methodology-grid {
+    grid-template-columns: 1fr;
+  }
+  .cp-pillars-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Director's Card ---------- */

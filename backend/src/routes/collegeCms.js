@@ -140,6 +140,13 @@ router.patch('/website', async (req, res) => {
       'aboutTitle', 'aboutText', 'visionText', 'missionText', 'statsCountersJson',
       'directorName', 'directorTitle', 'directorPhotoUrl', 'directorMessage', 'directorQualifications',
       'metaTitle', 'metaDescription', 'metaKeywords', 'ogImageUrl',
+      'hasOnlineExamModule', 'hasRecruitmentModule', 'hasCrmModule', 'hasAdvertisingModule',
+      'showStatsSection', 'showAboutSection', 'showDirectorSection', 'showWhyUsSection',
+      'showCoursesSection', 'showFacultySection', 'showMethodologySection', 'showFacilitiesSection',
+      'showResultsSection', 'showAdmissionsSection', 'showOpenExamsSection', 'showCareersSection',
+      'showGallerySection', 'showTestimonialsSection', 'showFaqSection', 'showContactFormSection',
+      'whyChooseUsJson', 'methodologyStepsJson', 'admissionProcessJson', 'scholarshipDetailsJson',
+      'faqsJson', 'promotionalBannerText',
     ];
 
     const data = {};
@@ -147,6 +154,8 @@ router.patch('/website', async (req, res) => {
       if (key in req.body) {
         if (key === 'estYear') {
           data[key] = req.body[key] ? parseInt(req.body[key], 10) : null;
+        } else if (key.startsWith('has') || key.startsWith('show')) {
+          data[key] = Boolean(req.body[key]);
         } else {
           data[key] = req.body[key];
         }

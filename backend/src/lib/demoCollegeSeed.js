@@ -57,6 +57,167 @@ async function ensureDemoCollegeExists(prisma) {
           { label: 'State Top 10 Ranks', value: '62' },
           { label: 'Olympiad & KVPY Scholars', value: '140+' },
         ]),
+        promotionalBannerText: '🔥 Admissions Open for Academic Year 2026-27 | Annual Scholarship & Diagnostic Talent Test (AITSE) this Sunday | Up to 100% Fee Concessions | Call: +91 98480 12345',
+        hasOnlineExamModule: true,
+        hasRecruitmentModule: true,
+        hasCrmModule: true,
+        hasAdvertisingModule: false,
+        showStatsSection: true,
+        showAboutSection: true,
+        showDirectorSection: true,
+        showWhyUsSection: true,
+        showCoursesSection: true,
+        showFacultySection: true,
+        showMethodologySection: true,
+        showFacilitiesSection: true,
+        showResultsSection: true,
+        showAdmissionsSection: true,
+        showOpenExamsSection: true,
+        showCareersSection: true,
+        showGallerySection: true,
+        showTestimonialsSection: true,
+        showFaqSection: true,
+        showContactFormSection: true,
+        whyChooseUsJson: JSON.stringify([
+          {
+            icon: 'academic-cap',
+            title: 'IITian & Doctor Faculty Pool',
+            description: 'Learn directly from seasoned master teachers with 15+ years of track record producing Top 100 AIRs in NEET & JEE Advanced.'
+          },
+          {
+            icon: 'document-text',
+            title: 'Daily Practice Problem (DPP) Sheets',
+            description: 'Every lecture is reinforced with graded homework problem sheets (Level 1 Foundation, Level 2 Standard, Level 3 Challenger).'
+          },
+          {
+            icon: 'desktop-computer',
+            title: 'NTA-Pattern Computer CBT Labs',
+            description: 'State-of-the-art testing center simulating real-time examination pressure, countdown timers, and negative marks.'
+          },
+          {
+            icon: 'chat-alt-2',
+            title: '1-on-1 Daily Doubt Clinics',
+            description: 'Dedicated post-class doubt resolution from 4 PM to 7 PM every evening where students resolve every bottleneck.'
+          },
+          {
+            icon: 'device-mobile',
+            title: 'Parent WhatsApp Pulse Reports',
+            description: 'Automated weekly progress reports, subject-wise weakness diagnostics, and attendance notifications sent directly to parents.'
+          },
+          {
+            icon: 'shield-check',
+            title: 'Residential Campus with Strict Discipline',
+            description: '24/7 guarded, hygienic air-conditioned hostels, cell-phone-free study environments, and resident mentor guidance.'
+          }
+        ]),
+        methodologyStepsJson: JSON.stringify([
+          {
+            stepNumber: '01',
+            badge: 'FOUNDATION',
+            title: 'First-Principles Concept Mastery',
+            description: 'Deep theoretical grounding without rote memorization. Visual simulations and interactive problem derivations by senior faculty.'
+          },
+          {
+            stepNumber: '02',
+            badge: 'APPLICATION',
+            title: 'Daily Graded Worksheets (DPPs)',
+            description: 'Immediate reinforcement of concepts through timed practice sets covering single-choice, numerical, and assertion-reason questions.'
+          },
+          {
+            stepNumber: '03',
+            badge: 'BENCHMARKING',
+            title: 'Weekly OMR & Computerized CBT Tests',
+            description: 'Strict Sunday grand tests benchmarked on national NEET/JEE difficulty scales to build speed, accuracy, and test stamina.'
+          },
+          {
+            stepNumber: '04',
+            badge: 'REMEDIATION',
+            title: 'Diagnostic Error & Gap Analysis',
+            description: 'QuestionsStudio AI-powered error diagnostics pinpoint whether mistakes were calculation errors, conceptual gaps, or panic skips.'
+          },
+          {
+            stepNumber: '05',
+            badge: 'MENTORSHIP',
+            title: 'Personalized 1-on-1 Faculty Mentorship',
+            description: 'Individual counseling sessions to eliminate negative marking, refine time allocation strategies, and maintain peak mental morale.'
+          }
+        ]),
+        admissionProcessJson: JSON.stringify([
+          {
+            step: '01',
+            title: 'Online Enquiry & Registration',
+            description: 'Fill out our online admission enquiry form or visit our campus reception with student academic credentials.'
+          },
+          {
+            step: '02',
+            title: 'Diagnostic Aptitude & Scholarship Test',
+            description: 'Appear for the Andhra Inspire Talent Search Exam (AITSE) to assess conceptual readiness and earn scholarship waivers.'
+          },
+          {
+            step: '03',
+            title: 'Academic Counseling & Batch Selection',
+            description: 'One-on-one session with senior academic directors to finalize target goals (NEET Medical, IIT Engineering, or Foundation).'
+          },
+          {
+            step: '04',
+            title: 'Enrollment & Academic Onboarding',
+            description: 'Finalize document verification, study material kit distribution, hostel room allotment, and attend the student induction ceremony.'
+          }
+        ]),
+        scholarshipDetailsJson: JSON.stringify([
+          {
+            name: 'State Ranker Scholarship',
+            criteria: 'Top 50 Ranks in AITSE or 98%+ in Class 10 Board Exams',
+            benefit: '100% Full Tuition Waiver for 2 Years'
+          },
+          {
+            name: 'Merit Excellence Scholarship',
+            criteria: 'Ranks 51 - 150 in AITSE or 95% - 97.9% in 10th Board Exams',
+            benefit: '75% Tuition Fee Waiver'
+          },
+          {
+            name: 'Academic Achiever Concession',
+            criteria: 'Ranks 151 - 500 in AITSE or 90% - 94.9% in 10th Board Exams',
+            benefit: '50% Tuition Fee Waiver'
+          },
+          {
+            name: 'Special Social & Defense Quota',
+            criteria: 'Wards of Armed Forces / Police & Single Parent Girl Students',
+            benefit: 'Special 25% Institutional Grant'
+          }
+        ]),
+        faqsJson: JSON.stringify([
+          {
+            category: 'Academics',
+            question: 'What curriculum and examination boards are affiliated with the academy?',
+            answer: 'We provide integrated senior secondary education recognized by the Board of Intermediate Education, Andhra Pradesh (BIEAP) as well as CBSE-aligned competitive foundation. Concurrently, students are rigorously prepared for NEET-UG, IIT-JEE Main & Advanced, and AP/TS EAPCET.'
+          },
+          {
+            category: 'Doubt Clearance',
+            question: 'How are doubt clearance and revision handled for students needing individual support?',
+            answer: 'Every day from 4:00 PM to 7:00 PM is reserved for mandatory 1-on-1 doubt clinics. Dedicated subject teachers sit with students individually to dissect homework errors and explain tough concepts until complete mastery is attained.'
+          },
+          {
+            category: 'Hostel & Discipline',
+            question: 'What is the mobile phone and device policy for residential students?',
+            answer: 'Our residential campuses are strictly smartphone-free environments to eliminate digital distractions and foster deep focus. Supervised computer terminals are provided for CBT test practice. Parents can communicate via dedicated warden contact hours.'
+          },
+          {
+            category: 'Testing & Evaluation',
+            question: 'How frequently are exams conducted and how do parents track student progress?',
+            answer: 'Every weekend features an OMR or Computer-Based Test (CBT). Results, state percentiles, subject breakdowns, and negative marking analysis are delivered directly to parent mobile numbers via WhatsApp and SMS within 24 hours.'
+          },
+          {
+            category: 'Scholarships',
+            question: 'Can students take the Scholarship & Entrance Test online?',
+            answer: 'Yes! External students can register through the Open Examinations section on this website and attempt the online screening test from home or walk into our campus CBT testing center.'
+          },
+          {
+            category: 'Careers',
+            question: 'How can experienced teachers apply for faculty or academic leadership roles?',
+            answer: 'Passionate educators can apply directly through the Faculty Careers section of this website. Our academic dean reviews applications, followed by a written subject assessment and live classroom teaching demonstration.'
+          }
+        ]),
         directorName: 'Dr. K. S. R. Murthy',
         directorTitle: 'Founder, Chairman & Academic Director',
         directorPhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80',
@@ -73,6 +234,167 @@ async function ensureDemoCollegeExists(prisma) {
         isPublished: true,
         status: 'ACTIVE',
         publishedAt: new Date(),
+        promotionalBannerText: '🔥 Admissions Open for Academic Year 2026-27 | Annual Scholarship & Diagnostic Talent Test (AITSE) this Sunday | Up to 100% Fee Concessions | Call: +91 98480 12345',
+        hasOnlineExamModule: true,
+        hasRecruitmentModule: true,
+        hasCrmModule: true,
+        hasAdvertisingModule: false,
+        showStatsSection: true,
+        showAboutSection: true,
+        showDirectorSection: true,
+        showWhyUsSection: true,
+        showCoursesSection: true,
+        showFacultySection: true,
+        showMethodologySection: true,
+        showFacilitiesSection: true,
+        showResultsSection: true,
+        showAdmissionsSection: true,
+        showOpenExamsSection: true,
+        showCareersSection: true,
+        showGallerySection: true,
+        showTestimonialsSection: true,
+        showFaqSection: true,
+        showContactFormSection: true,
+        whyChooseUsJson: JSON.stringify([
+          {
+            icon: 'academic-cap',
+            title: 'IITian & Doctor Faculty Pool',
+            description: 'Learn directly from seasoned master teachers with 15+ years of track record producing Top 100 AIRs in NEET & JEE Advanced.'
+          },
+          {
+            icon: 'document-text',
+            title: 'Daily Practice Problem (DPP) Sheets',
+            description: 'Every lecture is reinforced with graded homework problem sheets (Level 1 Foundation, Level 2 Standard, Level 3 Challenger).'
+          },
+          {
+            icon: 'desktop-computer',
+            title: 'NTA-Pattern Computer CBT Labs',
+            description: 'State-of-the-art testing center simulating real-time examination pressure, countdown timers, and negative marks.'
+          },
+          {
+            icon: 'chat-alt-2',
+            title: '1-on-1 Daily Doubt Clinics',
+            description: 'Dedicated post-class doubt resolution from 4 PM to 7 PM every evening where students resolve every bottleneck.'
+          },
+          {
+            icon: 'device-mobile',
+            title: 'Parent WhatsApp Pulse Reports',
+            description: 'Automated weekly progress reports, subject-wise weakness diagnostics, and attendance notifications sent directly to parents.'
+          },
+          {
+            icon: 'shield-check',
+            title: 'Residential Campus with Strict Discipline',
+            description: '24/7 guarded, hygienic air-conditioned hostels, cell-phone-free study environments, and resident mentor guidance.'
+          }
+        ]),
+        methodologyStepsJson: JSON.stringify([
+          {
+            stepNumber: '01',
+            badge: 'FOUNDATION',
+            title: 'First-Principles Concept Mastery',
+            description: 'Deep theoretical grounding without rote memorization. Visual simulations and interactive problem derivations by senior faculty.'
+          },
+          {
+            stepNumber: '02',
+            badge: 'APPLICATION',
+            title: 'Daily Graded Worksheets (DPPs)',
+            description: 'Immediate reinforcement of concepts through timed practice sets covering single-choice, numerical, and assertion-reason questions.'
+          },
+          {
+            stepNumber: '03',
+            badge: 'BENCHMARKING',
+            title: 'Weekly OMR & Computerized CBT Tests',
+            description: 'Strict Sunday grand tests benchmarked on national NEET/JEE difficulty scales to build speed, accuracy, and test stamina.'
+          },
+          {
+            stepNumber: '04',
+            badge: 'REMEDIATION',
+            title: 'Diagnostic Error & Gap Analysis',
+            description: 'QuestionsStudio AI-powered error diagnostics pinpoint whether mistakes were calculation errors, conceptual gaps, or panic skips.'
+          },
+          {
+            stepNumber: '05',
+            badge: 'MENTORSHIP',
+            title: 'Personalized 1-on-1 Faculty Mentorship',
+            description: 'Individual counseling sessions to eliminate negative marking, refine time allocation strategies, and maintain peak mental morale.'
+          }
+        ]),
+        admissionProcessJson: JSON.stringify([
+          {
+            step: '01',
+            title: 'Online Enquiry & Registration',
+            description: 'Fill out our online admission enquiry form or visit our campus reception with student academic credentials.'
+          },
+          {
+            step: '02',
+            title: 'Diagnostic Aptitude & Scholarship Test',
+            description: 'Appear for the Andhra Inspire Talent Search Exam (AITSE) to assess conceptual readiness and earn scholarship waivers.'
+          },
+          {
+            step: '03',
+            title: 'Academic Counseling & Batch Selection',
+            description: 'One-on-one session with senior academic directors to finalize target goals (NEET Medical, IIT Engineering, or Foundation).'
+          },
+          {
+            step: '04',
+            title: 'Enrollment & Academic Onboarding',
+            description: 'Finalize document verification, study material kit distribution, hostel room allotment, and attend the student induction ceremony.'
+          }
+        ]),
+        scholarshipDetailsJson: JSON.stringify([
+          {
+            name: 'State Ranker Scholarship',
+            criteria: 'Top 50 Ranks in AITSE or 98%+ in Class 10 Board Exams',
+            benefit: '100% Full Tuition Waiver for 2 Years'
+          },
+          {
+            name: 'Merit Excellence Scholarship',
+            criteria: 'Ranks 51 - 150 in AITSE or 95% - 97.9% in 10th Board Exams',
+            benefit: '75% Tuition Fee Waiver'
+          },
+          {
+            name: 'Academic Achiever Concession',
+            criteria: 'Ranks 151 - 500 in AITSE or 90% - 94.9% in 10th Board Exams',
+            benefit: '50% Tuition Fee Waiver'
+          },
+          {
+            name: 'Special Social & Defense Quota',
+            criteria: 'Wards of Armed Forces / Police & Single Parent Girl Students',
+            benefit: 'Special 25% Institutional Grant'
+          }
+        ]),
+        faqsJson: JSON.stringify([
+          {
+            category: 'Academics',
+            question: 'What curriculum and examination boards are affiliated with the academy?',
+            answer: 'We provide integrated senior secondary education recognized by the Board of Intermediate Education, Andhra Pradesh (BIEAP) as well as CBSE-aligned competitive foundation. Concurrently, students are rigorously prepared for NEET-UG, IIT-JEE Main & Advanced, and AP/TS EAPCET.'
+          },
+          {
+            category: 'Doubt Clearance',
+            question: 'How are doubt clearance and revision handled for students needing individual support?',
+            answer: 'Every day from 4:00 PM to 7:00 PM is reserved for mandatory 1-on-1 doubt clinics. Dedicated subject teachers sit with students individually to dissect homework errors and explain tough concepts until complete mastery is attained.'
+          },
+          {
+            category: 'Hostel & Discipline',
+            question: 'What is the mobile phone and device policy for residential students?',
+            answer: 'Our residential campuses are strictly smartphone-free environments to eliminate digital distractions and foster deep focus. Supervised computer terminals are provided for CBT test practice. Parents can communicate via dedicated warden contact hours.'
+          },
+          {
+            category: 'Testing & Evaluation',
+            question: 'How frequently are exams conducted and how do parents track student progress?',
+            answer: 'Every weekend features an OMR or Computer-Based Test (CBT). Results, state percentiles, subject breakdowns, and negative marking analysis are delivered directly to parent mobile numbers via WhatsApp and SMS within 24 hours.'
+          },
+          {
+            category: 'Scholarships',
+            question: 'Can students take the Scholarship & Entrance Test online?',
+            answer: 'Yes! External students can register through the Open Examinations section on this website and attempt the online screening test from home or walk into our campus CBT testing center.'
+          },
+          {
+            category: 'Careers',
+            question: 'How can experienced teachers apply for faculty or academic leadership roles?',
+            answer: 'Passionate educators can apply directly through the Faculty Careers section of this website. Our academic dean reviews applications, followed by a written subject assessment and live classroom teaching demonstration.'
+          }
+        ]),
       },
     });
 
