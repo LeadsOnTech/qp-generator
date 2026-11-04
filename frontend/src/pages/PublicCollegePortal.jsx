@@ -692,13 +692,13 @@ export default function PublicCollegePortal() {
               {/* Vision & Mission Panels */}
               <div className="cp-reveal cp-delay-200">
                 {data.visionText && (
-                  <div className="cp-vm-panel">
+                  <div className="cp-vm-panel cp-vm-panel-vision">
                     <span className="cp-vm-label">Our Institutional Vision</span>
                     <p className="cp-vm-text">{data.visionText}</p>
                   </div>
                 )}
                 {data.missionText && (
-                  <div className="cp-vm-panel">
+                  <div className="cp-vm-panel cp-vm-panel-mission">
                     <span className="cp-vm-label">Our Core Mission</span>
                     <p className="cp-vm-text">{data.missionText}</p>
                   </div>
@@ -841,7 +841,7 @@ export default function PublicCollegePortal() {
                         onClick={() => setIsBrochureModalOpen(true)}
                         className="cp-btn-course-prospectus"
                       >
-                        Syllabus & Fees
+                        View Syllabus & Fees
                       </button>
                     )}
                   </div>
@@ -972,6 +972,26 @@ export default function PublicCollegePortal() {
               <p className="cp-section-desc">Celebrating our stellar rankers who realized their medical and engineering dreams.</p>
             </div>
 
+            {/* Summary Results Highlights Strip */}
+            <div className="cp-honor-highlights-strip cp-reveal">
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">140+</div>
+                <div className="cp-honor-highlight-lbl">National Top 100 Ranks</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">62</div>
+                <div className="cp-honor-highlight-lbl">State Top 10 Ranks</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">3,840+</div>
+                <div className="cp-honor-highlight-lbl">NEET & JEE Selections</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">100%</div>
+                <div className="cp-honor-highlight-lbl">Intensive Batch Success</div>
+              </div>
+            </div>
+
             <div className="cp-honor-roll-grid">
               {data.achievements.map((a, idx) => (
                 <div key={a.id} className={`cp-honor-dossier cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
@@ -1007,9 +1027,56 @@ export default function PublicCollegePortal() {
               <span className="cp-section-marker">09 / ADMISSIONS & SCHOLARSHIPS</span>
               <h3 className="cp-section-title">Admissions & Merit Scholarships</h3>
               <p className="cp-section-desc">
-                Secure your seat for intensive national medical & engineering batches with scholarship concessions up to 100% full tuition fee waiver.
+                Secure your seat for intensive national medical & engineering batches for Academic Session 2026-27 with scholarship concessions up to 100% full tuition fee waiver.
               </p>
             </div>
+
+            {/* Important Admissions Dates & Milestones Strip */}
+            <div className="cp-admissions-dates-strip cp-reveal">
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">📅 MARCH 31, 2026</div>
+                <h4 className="cp-milestone-title">Phase 1 Application Deadline</h4>
+                <p className="cp-milestone-desc">Early registration for batch allocation and scholarship test token booking.</p>
+              </div>
+
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🎯 APRIL 12, 2026</div>
+                <h4 className="cp-milestone-title">AITSE Scholarship Test</h4>
+                <p className="cp-milestone-desc">All-India Talent & Scholarship Exam conducted online (CBT) and at campus centers.</p>
+              </div>
+
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🏆 APRIL 18, 2026</div>
+                <h4 className="cp-milestone-title">Merit List & Fee Concessions</h4>
+                <p className="cp-milestone-desc">Individual scorecards released with fee concessions up to 100% full tuition waiver.</p>
+              </div>
+
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🎓 JUNE 01, 2026</div>
+                <h4 className="cp-milestone-title">Session Commencement</h4>
+                <p className="cp-milestone-desc">Formal student induction, academic kit distribution, and commencement of classes.</p>
+              </div>
+            </div>
+
+            {/* Quick Available Courses & Eligibility Ribbon */}
+            {data.courses && data.courses.length > 0 && (
+              <div className="cp-admissions-courses-ribbon cp-reveal">
+                <div className="cp-ribbon-heading">
+                  <span>Target Programmes & Academic Eligibility</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cp-secondary)' }}>Academic Session 2026-27</span>
+                </div>
+                <div className="cp-ribbon-grid">
+                  {data.courses.map((cr) => (
+                    <div key={cr.id} className="cp-ribbon-item">
+                      <div className="cp-ribbon-course-name">{cr.courseName}</div>
+                      <div className="cp-ribbon-course-elig">
+                        <strong>Eligibility:</strong> {cr.eligibility || 'Class 10 passed with 60%+ in Science & Maths'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="cp-admissions-campaign-grid">
               {/* 4-Step Process */}
@@ -1071,6 +1138,27 @@ export default function PublicCollegePortal() {
                     Prospectus & Syllabus
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Admissions Prominent Action Bar */}
+            <div className="cp-admissions-cta-bar cp-reveal">
+              <div className="cp-admissions-cta-text">
+                <h4>Admissions Open for Academic Session 2026-27</h4>
+                <p>Limited seats per batch to preserve our strict 1:25 faculty mentorship ratio.</p>
+              </div>
+              <div className="cp-admissions-cta-btns">
+                <button
+                  onClick={() => setIsEnquiryModalOpen(true)}
+                  className="cp-btn-admissions-primary"
+                >
+                  Apply Online for 2026-27 →
+                </button>
+                {data.phone && (
+                  <a href={`tel:${data.phone.replace(/[^0-9+]/g, '')}`} className="cp-btn-admissions-call">
+                    📞 {data.phone}
+                  </a>
+                )}
               </div>
             </div>
           </div>
