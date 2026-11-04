@@ -1011,23 +1011,49 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 12: ADMISSIONS AND SCHOLARSHIPS (SPLIT CAMPAIGN CANVAS)
+          SECTION 12: ADMISSIONS AND SCHOLARSHIPS (PREMIUM CAMPAIGN SHOWCASE)
           ========================================================================= */}
       {data.showAdmissionsSection !== false && (
         <section id="admissions" className="cp-section cp-section-warm">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Academic Year 2026-27</span>
-              <h3 className="cp-section-title">Admissions & Scholarships</h3>
-              <p className="cp-section-desc">Transparent 4-step admission roadmap and merit scholarships up to 100% full fee waiver.</p>
+              <span className="cp-section-eyebrow">Academic Year 2026-27 Enrollment</span>
+              <h3 className="cp-section-title">Admissions & Merit Scholarships</h3>
+              <p className="cp-section-desc">
+                Secure your seat for intensive national medical & engineering batches with scholarship concessions up to 100% full tuition fee waiver.
+              </p>
             </div>
 
+            {/* Available Courses & Stream Tags Ribbon */}
+            {data.courses?.length > 0 && (
+              <div className="cp-reveal" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 36 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--cp-dark)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Target Streams:
+                </span>
+                {data.courses.map((c) => (
+                  <span
+                    key={c.id}
+                    className="cp-badge-pill"
+                    style={{ background: '#ffffff', color: 'var(--cp-primary)', border: '1px solid var(--cp-border)', padding: '6px 16px', fontSize: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
+                  >
+                    ✓ {c.courseName}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="cp-admissions-grid">
-              {/* 4-Step Process */}
+              {/* 4-Step Process & Campus Commitment */}
               <div className="cp-reveal cp-delay-100">
-                <h4 style={{ fontSize: 20, fontWeight: 900, color: 'var(--cp-dark)', marginBottom: 22, letterSpacing: '-0.02em' }}>
-                  4-Step Admission Roadmap
-                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <h4 style={{ fontSize: 21, fontWeight: 900, color: 'var(--cp-dark)', margin: 0, letterSpacing: '-0.02em' }}>
+                    4-Step Admission Roadmap
+                  </h4>
+                  <span className="cp-badge-cat" style={{ background: '#fef3c7', color: '#b45309' }}>
+                    ⚡ Phase 1 Open
+                  </span>
+                </div>
+
                 <div className="cp-adm-steps-list">
                   {(admissionProcessList.length > 0 ? admissionProcessList : [
                     { step: '01', title: 'Submit Online Enquiry', description: 'Complete our quick online registration form with student academic marks and stream preference.' },
@@ -1044,18 +1070,38 @@ export default function PublicCollegePortal() {
                     </div>
                   ))}
                 </div>
+
+                {/* Campus Academic Photograph Banner */}
+                <div style={{ marginTop: 24, borderRadius: 20, overflow: 'hidden', position: 'relative', height: 180, boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+                  <img
+                    src={data.facilities?.[0]?.photoUrl || data.galleryItems?.[0]?.photoUrl || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=800&q=80'}
+                    alt="Campus Admissions"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(7,13,30,0.85) 0%, transparent 60%)', display: 'flex', alignItems: 'flex-end', padding: '18px 24px' }}>
+                    <p style={{ margin: 0, color: '#ffffff', fontSize: 13, fontWeight: 700 }}>
+                      🌟 State-of-the-Art Residential Campus • Air-Conditioned Digital Classrooms
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Scholarship Tiers Card */}
               <div className="cp-scholarships-card cp-reveal cp-delay-200">
-                <span className="cp-badge-pill" style={{ background: 'rgba(255,255,255,0.18)' }}>
-                  ★ Merit Concessions
-                </span>
-                <h4 style={{ fontSize: 24, fontWeight: 900, margin: '16px 0 8px 0', color: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="cp-badge-pill" style={{ background: 'rgba(255,255,255,0.18)' }}>
+                    ★ Merit Concessions
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--cp-accent)', fontWeight: 800 }}>
+                    Up to 100% Fee Waiver
+                  </span>
+                </div>
+
+                <h4 style={{ fontSize: 24, fontWeight: 900, margin: '16px 0 8px 0', color: '#ffffff', letterSpacing: '-0.02em' }}>
                   Institutional Scholarship Tiers
                 </h4>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 22, lineHeight: 1.6 }}>
-                  We reward academic dedication. Scholarship benefits apply directly to tuition fees for 2 full academic years.
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', marginBottom: 22, lineHeight: 1.6 }}>
+                  We reward academic dedication. Scholarship concessions apply directly to tuition fees for 2 full academic years.
                 </p>
 
                 <div>
@@ -1073,20 +1119,20 @@ export default function PublicCollegePortal() {
                   ))}
                 </div>
 
-                <div style={{ marginTop: 22, display: 'flex', gap: 14 }}>
+                <div style={{ marginTop: 24, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setIsEnquiryModalOpen(true)}
                     className="cp-btn-hero-white"
-                    style={{ flex: 1, padding: 13, fontSize: 13, textAlign: 'center', justifyContent: 'center' }}
+                    style={{ flex: 1, padding: 14, fontSize: 14, textAlign: 'center', justifyContent: 'center' }}
                   >
                     Apply for Scholarship Test →
                   </button>
                   <button
                     onClick={() => setIsBrochureModalOpen(true)}
                     className="cp-btn-hero-outline"
-                    style={{ padding: 13, fontSize: 13 }}
+                    style={{ padding: 14, fontSize: 14 }}
                   >
-                    Brochure 📄
+                    Prospectus 📄
                   </button>
                 </div>
               </div>
@@ -1096,31 +1142,45 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 13: OPEN CBT EXAMINATIONS (MODULAR GUARD)
+          SECTION 13: OPEN CBT EXAMINATIONS (HIGH-TECH CBT VOUCHERS)
           ========================================================================= */}
       {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
         <section id="exams" className="cp-section cp-section-white">
           <div className="cp-container">
             <div className="cp-section-header cp-reveal">
-              <span className="cp-section-eyebrow">Computer-Based Testing</span>
+              <span className="cp-section-eyebrow">Computer-Based Testing Engine</span>
               <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
-              <p className="cp-section-desc">External candidates can attempt these official online tests to assess their all-state ranking and test readiness.</p>
+              <p className="cp-section-desc">
+                Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions with instant diagnostic analytics.
+              </p>
             </div>
 
             <div>
               {data.openExams.map((test, idx) => (
                 <div key={test.id} className={`cp-exam-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div className="cp-exam-info">
-                    <span className="cp-badge-cat">{test.examName}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span className="cp-badge-cat">{test.examName}</span>
+                      <span className="cp-badge-pill" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}>
+                        ● Free State-Level Mock Test
+                      </span>
+                      <span className="cp-badge-pill" style={{ background: '#f8fafc', color: '#475569' }}>
+                        NTA Testing Pattern
+                      </span>
+                    </div>
+
                     <h4>{test.title}</h4>
                     {test.publicDescription && (
-                      <p style={{ margin: '6px 0 12px 0', fontSize: 14, color: '#475569', lineHeight: 1.55 }}>{test.publicDescription}</p>
+                      <p style={{ margin: '8px 0 14px 0', fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+                        {test.publicDescription}
+                      </p>
                     )}
+
                     <div className="cp-exam-details">
                       <span>⏱ Duration: <strong>{test.durationMinutes} Mins</strong></span>
                       <span>❓ Questions: <strong>{test.questionCount} Qs</strong></span>
                       <span>⚖ Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
-                      <span>🔒 Code: <code style={{ color: 'var(--cp-primary)', fontWeight: 700 }}>{test.code}</code></span>
+                      <span>🔒 Access Code: <code style={{ color: 'var(--cp-primary)', fontWeight: 800, background: '#eff6ff', padding: '2px 8px', borderRadius: 6 }}>{test.code}</code></span>
                     </div>
                   </div>
 
