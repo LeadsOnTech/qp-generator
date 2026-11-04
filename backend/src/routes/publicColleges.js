@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const prisma = require('../db');
+const { ensureDemoCollegeExists } = require('../lib/demoCollegeSeed');
 
 const router = express.Router();
 
@@ -41,11 +42,14 @@ const uploadResume = multer({
  */
 router.get('/:slug', async (req, res) => {
   try {
-    const { slug } = req.params;
+    let { slug } = req.params;
     if (!slug) return res.status(400).json({ error: 'College slug is required.' });
 
-    const website = await prisma.collegeWebsite.findUnique({
-      where: { slug },
+    let cleanSlug = slug.toLowerCase().trim();
+    if (cleanSlug === 'demo') cleanSlug = 'andhra-inspire-academy';
+
+    let website = await prisma.collegeWebsite.findUnique({
+      where: { slug: cleanSlug },
       include: {
         institute: {
           select: {
@@ -95,6 +99,84 @@ router.get('/:slug', async (req, res) => {
         },
       },
     });
+
+    // If website not found in DB, check if it is the demo site or an existing institute
+    if (!website) {
+      if (cleanSlug === 'andhra-inspire-academy') {
+        await ensureDemoCollegeExists(prisma);
+      } else {
+        // Check if an institute exists with this slug
+        const inst = await prisma.institute.findFirst({
+          where: {
+            OR: [
+              { slug: cleanSlug },
+              { slug: { contains: cleanSlug } },
+            ],
+          },
+        });
+        if (inst) {
+          await prisma.collegeWebsite.upsert({
+            where: { instituteId: inst.id },
+            create: {
+              instituteId: inst.id,
+              slug: inst.slug,
+              displayName: inst.name,
+              mottoTagline: inst.tagline || 'Excellence in Education',
+              contactPhone: inst.phone || '',
+              campusAddress: inst.address || '',
+              isPublished: true,
+              status: 'ACTIVE',
+              publishedAt: new Date(),
+            },
+            update: {
+              isPublished: true,
+              status: 'ACTIVE',
+            },
+          });
+        }
+      }
+
+      // Re-query
+      website = await prisma.collegeWebsite.findUnique({
+        where: { slug: cleanSlug },
+        include: {
+          institute: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logoFilename: true,
+              phone: true,
+              address: true,
+              tagline: true,
+            },
+          },
+          courses: { orderBy: { displayOrder: 'asc' } },
+          faculties: { orderBy: { displayOrder: 'asc' } },
+          facilities: { orderBy: { displayOrder: 'asc' } },
+          achievements: { orderBy: { displayOrder: 'asc' } },
+          testimonials: { orderBy: { displayOrder: 'asc' } },
+          galleryItems: { orderBy: { displayOrder: 'asc' } },
+          jobPostings: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              jobTitle: true,
+              department: true,
+              employmentType: true,
+              vacanciesCount: true,
+              minExperienceYrs: true,
+              requiredQualifications: true,
+              jobDescription: true,
+              location: true,
+              applicationDeadline: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+    }
 
     if (!website) {
       return res.status(404).json({ error: 'College website not found.' });
@@ -173,7 +255,8 @@ router.get('/:slug', async (req, res) => {
  */
 router.post('/:slug/enquiries', async (req, res) => {
   try {
-    const { slug } = req.params;
+    let cleanSlug = (req.params.slug || '').toLowerCase().trim();
+    if (cleanSlug === 'demo') cleanSlug = 'andhra-inspire-academy';
     const { studentName, parentName, phone, email, courseOfInterest, cityOrTown, academicYear, message } = req.body;
 
     if (!studentName || !studentName.trim()) {
@@ -184,7 +267,7 @@ router.post('/:slug/enquiries', async (req, res) => {
     }
 
     const website = await prisma.collegeWebsite.findUnique({
-      where: { slug },
+      where: { slug: cleanSlug },
       select: { id: true, isPublished: true, status: true },
     });
 
@@ -229,7 +312,9 @@ router.post('/:slug/careers/:jobId/apply', (req, res) => {
     }
 
     try {
-      const { slug, jobId } = req.params;
+      let { slug, jobId } = req.params;
+      let cleanSlug = (slug || '').toLowerCase().trim();
+      if (cleanSlug === 'demo') cleanSlug = 'andhra-inspire-academy';
       const {
         applicantName, email, phone, currentLocation,
         experienceYrs, currentEmployer, expectedSalary, coverLetter
@@ -248,7 +333,7 @@ router.post('/:slug/careers/:jobId/apply', (req, res) => {
         include: { website: true },
       });
 
-      if (!jobPosting || !jobPosting.isActive || jobPosting.website.slug !== slug) {
+      if (!jobPosting || !jobPosting.isActive || jobPosting.website.slug !== cleanSlug) {
         return res.status(404).json({ error: 'Job opening is no longer accepting applications.' });
       }
 
