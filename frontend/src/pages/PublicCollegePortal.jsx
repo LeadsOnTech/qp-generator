@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import '../college-portal.css';
 
 // SVG Icon Helpers
 function IconGraduationCap() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
       <path d="M6 12v5c3 3 9 3 12 0v-5" />
     </svg>
@@ -14,7 +14,7 @@ function IconGraduationCap() {
 
 function IconDocument() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -26,7 +26,7 @@ function IconDocument() {
 
 function IconComputer() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
       <line x1="8" y1="21" x2="16" y2="21" />
       <line x1="12" y1="17" x2="12" y2="21" />
@@ -36,7 +36,7 @@ function IconComputer() {
 
 function IconChat() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
     </svg>
   );
@@ -44,7 +44,7 @@ function IconChat() {
 
 function IconDeviceMobile() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
       <line x1="12" y1="18" x2="12.01" y2="18" />
     </svg>
@@ -53,10 +53,54 @@ function IconDeviceMobile() {
 
 function IconShield() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
+}
+
+// Smooth Number Counter Component
+function AnimatedCounter({ targetValue, isVisible }) {
+  const [displayValue, setDisplayValue] = useState('0');
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const str = String(targetValue || '0').trim();
+    const match = str.match(/^([^\d]*)(\d[\d,]*)(.*)$/);
+    if (!match) {
+      setDisplayValue(str);
+      return;
+    }
+    const prefix = match[1] || '';
+    const rawNum = parseInt(match[2].replace(/,/g, ''), 10);
+    const suffix = match[3] || '';
+
+    if (isNaN(rawNum)) {
+      setDisplayValue(str);
+      return;
+    }
+
+    const duration = 1600;
+    const startTime = performance.now();
+
+    function step(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.floor(ease * rawNum);
+      setDisplayValue(`${prefix}${current.toLocaleString()}${suffix}`);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        setDisplayValue(str);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }, [isVisible, targetValue]);
+
+  return <span>{displayValue}</span>;
 }
 
 export default function PublicCollegePortal() {
@@ -68,12 +112,19 @@ export default function PublicCollegePortal() {
   // Active section for sticky header highlight
   const [activeSection, setActiveSection] = useState('home');
 
+  // Stats visible trigger
+  const [statsVisible, setStatsVisible] = useState(false);
+  const statsRef = useRef(null);
+
   // Mobile drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Gallery active filter
+  // Gallery active filter & preview
   const [galleryCategory, setGalleryCategory] = useState('ALL');
   const [previewMedia, setPreviewMedia] = useState(null);
+
+  // Testimonials Carousel Active Index
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
 
   // FAQ Accordion active state (index of open item)
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
@@ -134,6 +185,53 @@ export default function PublicCollegePortal() {
       setLoading(false);
     }
   }
+
+  // Scroll Reveal Observer
+  useEffect(() => {
+    if (!data) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('cp-visible');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    const elements = document.querySelectorAll('.cp-reveal');
+    elements.forEach((el) => observer.observe(el));
+
+    // Stats counter trigger
+    let statsObserver = null;
+    if (statsRef.current) {
+      statsObserver = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setStatsVisible(true);
+          }
+        },
+        { threshold: 0.3 }
+      );
+      statsObserver.observe(statsRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (statsObserver) statsObserver.disconnect();
+    };
+  }, [data, galleryCategory]);
+
+  // Testimonial Carousel Auto-advance
+  useEffect(() => {
+    if (!data?.testimonials || data.testimonials.length <= 1) return;
+    const interval = setInterval(() => {
+      setTestimonialIndex((prev) => (prev + 1) % data.testimonials.length);
+    }, 6500);
+    return () => clearInterval(interval);
+  }, [data?.testimonials]);
 
   function scrollToSection(id) {
     setIsDrawerOpen(false);
@@ -222,22 +320,22 @@ export default function PublicCollegePortal() {
   if (loading) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 44, height: 44, border: '4px solid #1e3a8a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <h3 style={{ marginTop: 16, color: '#1e293b', fontWeight: 700 }}>Loading Official College Portal...</h3>
+        <div style={{ width: 48, height: 48, border: '4px solid #1e3a8a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <h3 style={{ marginTop: 20, color: '#1e293b', fontWeight: 800 }}>Loading Official College Portal...</h3>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ background: '#fff', padding: 40, borderRadius: 20, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: 460 }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>🏛</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>Portal Unavailable</h2>
-          <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 24px 0', lineHeight: 1.5 }}>
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: '#fff', padding: 44, borderRadius: 24, boxShadow: '0 10px 30px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: 480, border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🏛</div>
+          <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', margin: '0 0 10px 0' }}>Portal Unavailable</h2>
+          <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 26px 0', lineHeight: 1.6 }}>
             {error || 'The requested college website could not be found or is currently in draft mode.'}
           </p>
-          <Link to="/" style={{ display: 'inline-block', padding: '10px 20px', background: '#1e3a8a', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 700 }}>
+          <Link to="/" style={{ display: 'inline-block', padding: '12px 24px', background: '#1e3a8a', color: '#fff', borderRadius: 12, textDecoration: 'none', fontWeight: 800 }}>
             Go to QuestionsStudio Home
           </Link>
         </div>
@@ -279,7 +377,9 @@ export default function PublicCollegePortal() {
       {data.promotionalBannerText && (
         <div className="cp-announcement-bar">
           <div className="cp-announcement-content">
-            <span className="cp-announcement-badge">Announcement</span>
+            <span className="cp-announcement-badge">
+              <span className="cp-pulse-dot" /> Announcement
+            </span>
             <span>{data.promotionalBannerText}</span>
           </div>
         </div>
@@ -303,7 +403,7 @@ export default function PublicCollegePortal() {
             {data.contactEmail && (
               <a href={`mailto:${data.contactEmail}`}>✉ {data.contactEmail}</a>
             )}
-            <span style={{ opacity: 0.75 }}>Powered by QuestionsStudio</span>
+            <span style={{ opacity: 0.85, fontWeight: 600 }}>QuestionsStudio SaaS</span>
           </div>
         </div>
       </div>
@@ -405,7 +505,7 @@ export default function PublicCollegePortal() {
               onClick={() => setIsEnquiryModalOpen(true)}
               className="cp-btn-cta"
             >
-              Apply for Admission 2026-27 →
+              Apply for Admission →
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -427,10 +527,10 @@ export default function PublicCollegePortal() {
           <div className="cp-mobile-drawer">
             <div>
               <div className="cp-drawer-top">
-                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Quick Navigation</h4>
+                <h4 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Navigation Menu</h4>
                 <button
                   onClick={() => setIsDrawerOpen(false)}
-                  style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 16, cursor: 'pointer' }}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 16, cursor: 'pointer' }}
                 >
                   ✕
                 </button>
@@ -452,7 +552,7 @@ export default function PublicCollegePortal() {
                   <button className="cp-drawer-link-btn" onClick={() => scrollToSection('careers')}>Careers ({data.jobPostings.length})</button>
                 )}
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('gallery')}>Campus Gallery</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('contact')}>Contact & Enquiry</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('contact')}>Contact & Helpline</button>
               </div>
             </div>
 
@@ -465,7 +565,7 @@ export default function PublicCollegePortal() {
                 className="cp-btn-cta"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
-                Apply for Admission →
+                Apply for Admission 2026-27 →
               </button>
             </div>
           </div>
@@ -473,15 +573,15 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 2: LARGE HERO BANNER
+          SECTION 2: FULL-BLEED CINEMATIC HERO BANNER
           ========================================================================= */}
       <section id="home" className="cp-hero">
         <div className="cp-container">
           <div className="cp-hero-grid">
-            <div className="cp-hero-content">
+            <div className="cp-hero-content cp-reveal">
               {data.accreditation && (
                 <div className="cp-accreditation-tag">
-                  <span>★</span> {data.accreditation}
+                  <span style={{ color: 'var(--cp-gold)' }}>★</span> {data.accreditation}
                 </div>
               )}
               <h2 className="cp-hero-title">
@@ -506,15 +606,34 @@ export default function PublicCollegePortal() {
               </div>
             </div>
 
-            <div className="cp-hero-visual">
-              {data.heroBannerUrl ? (
-                <img src={data.heroBannerUrl} alt="Campus" className="cp-hero-img" />
-              ) : (
-                <div style={{ background: 'rgba(255,255,255,0.1)', padding: 40, borderRadius: 24, textAlign: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: 24, color: '#ffffff' }}>{data.displayName}</h3>
-                  <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>Admissions Open for 2026-27</p>
+            <div className="cp-hero-visual cp-reveal cp-delay-200">
+              <div className="cp-hero-img-wrap">
+                {data.heroBannerUrl ? (
+                  <img src={data.heroBannerUrl} alt="Campus" className="cp-hero-img" />
+                ) : (
+                  <div style={{ background: 'rgba(255,255,255,0.1)', padding: 60, borderRadius: 24, textAlign: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: 26, color: '#ffffff' }}>{data.displayName}</h3>
+                    <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>Admissions Open for Academic Year 2026-27</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Floating Glassmorphic Badges */}
+              <div className="cp-hero-floating-badge-top">
+                <span style={{ fontSize: 18 }}>⭐</span>
+                <div>
+                  <div style={{ lineHeight: 1.2 }}>AIR 1 Rankers</div>
+                  <div style={{ fontSize: 10, opacity: 0.8, textTransform: 'uppercase' }}>State Top Ranks</div>
                 </div>
-              )}
+              </div>
+
+              <div className="cp-hero-floating-badge-bottom">
+                <span style={{ fontSize: 24 }}>🏆</span>
+                <div>
+                  <div className="badge-num">100% Scholarship</div>
+                  <div className="badge-lbl">Annual Talent Test (AITSE)</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -524,12 +643,14 @@ export default function PublicCollegePortal() {
           SECTION 3: INSTITUTIONAL ACHIEVEMENTS (STATS STRIP)
           ========================================================================= */}
       {data.showStatsSection !== false && statsList.length > 0 && (
-        <div className="cp-container">
-          <div className="cp-stats-card">
+        <div className="cp-container" ref={statsRef}>
+          <div className="cp-stats-card cp-reveal">
             <div className="cp-stats-grid">
               {statsList.map((st, idx) => (
                 <div key={idx} className="cp-stat-item">
-                  <div className="cp-stat-number">{st.value}</div>
+                  <div className="cp-stat-number">
+                    <AnimatedCounter targetValue={st.value} isVisible={statsVisible} />
+                  </div>
                   <div className="cp-stat-label">{st.label}</div>
                 </div>
               ))}
@@ -539,19 +660,19 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 4: ABOUT OUR INSTITUTION
+          SECTION 4: ABOUT OUR INSTITUTION (PORCELAIN EDITORIAL CANVAS)
           ========================================================================= */}
       {data.showAboutSection !== false && (
-        <section id="about" className="cp-section">
+        <section id="about" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Institutional Heritage</span>
               <h3 className="cp-section-title">{data.aboutTitle || 'Committed to Academic Rigor & Ethical Character'}</h3>
               <p className="cp-section-desc">Building strong conceptual foundations and empowering students to achieve top national percentiles.</p>
             </div>
 
             <div className="cp-about-grid">
-              <div className="cp-about-content">
+              <div className="cp-about-content cp-reveal cp-delay-100">
                 <p className="cp-about-text-lead">
                   {data.aboutText || 'Founded with a visionary commitment to scientific excellence, our institution blends disciplined pedagogy with cutting-edge examination technologies, diagnostic error analysis, and round-the-clock mentorship.'}
                 </p>
@@ -562,15 +683,15 @@ export default function PublicCollegePortal() {
                     <div className="cp-pillar-icon">🎯</div>
                     <div>
                       <h4 className="cp-pillar-title">1:25 Faculty Ratio</h4>
-                      <p className="cp-pillar-desc">Small batch sizes ensuring individual attention and daily doubt resolution.</p>
+                      <p className="cp-pillar-desc">Small batch sizes ensuring individual attention and daily doubt clinics.</p>
                     </div>
                   </div>
 
                   <div className="cp-pillar-card">
                     <div className="cp-pillar-icon">📖</div>
                     <div>
-                      <h4 className="cp-pillar-title">NCERT Mastery</h4>
-                      <p className="cp-pillar-desc">Line-by-line textbook analysis mapped directly to latest NTA patterns.</p>
+                      <h4 className="cp-pillar-title">NCERT Line-by-Line</h4>
+                      <p className="cp-pillar-desc">Rigorous conceptual analysis mapped directly to latest NTA entrance standards.</p>
                     </div>
                   </div>
 
@@ -586,14 +707,14 @@ export default function PublicCollegePortal() {
                     <div className="cp-pillar-icon">🏡</div>
                     <div>
                       <h4 className="cp-pillar-title">Residential Discipline</h4>
-                      <p className="cp-pillar-desc">Air-conditioned, distraction-free residential hostels with resident mentors.</p>
+                      <p className="cp-pillar-desc">Air-conditioned, smartphone-free hostels with round-the-clock mentor guidance.</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Vision & Mission Cards */}
-              <div>
+              {/* Vision & Mission Luxury Cards */}
+              <div className="cp-reveal cp-delay-200">
                 {data.visionText && (
                   <div className="cp-vision-card">
                     <h4 className="cp-vm-title">👁 Our Vision</h4>
@@ -613,20 +734,22 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE
+          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE (EXECUTIVE WARM CANVAS)
           ========================================================================= */}
       {data.showDirectorSection !== false && data.directorName && (
-        <section className="cp-section cp-section-gray">
+        <section className="cp-section cp-section-warm">
           <div className="cp-container">
-            <div className="cp-director-card">
+            <div className="cp-director-card cp-reveal">
               <div className="cp-director-col-photo">
-                {data.directorPhotoUrl ? (
-                  <img src={data.directorPhotoUrl} alt={data.directorName} className="cp-director-img" />
-                ) : (
-                  <div className="cp-director-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, background: '#e2e8f0' }}>
-                    👨‍🏫
-                  </div>
-                )}
+                <div className="cp-director-img-wrap">
+                  {data.directorPhotoUrl ? (
+                    <img src={data.directorPhotoUrl} alt={data.directorName} className="cp-director-img" />
+                  ) : (
+                    <div className="cp-director-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52, background: '#e2e8f0' }}>
+                      👨‍🏫
+                    </div>
+                  )}
+                </div>
                 <h4 className="cp-director-name">{data.directorName}</h4>
                 <p className="cp-director-title">{data.directorTitle || 'Founder & Academic Director'}</p>
                 {data.directorQualifications && (
@@ -636,7 +759,7 @@ export default function PublicCollegePortal() {
 
               <div className="cp-director-content">
                 <span className="cp-section-eyebrow">Leadership Message</span>
-                <h3 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: 'var(--cp-dark)' }}>
+                <h3 style={{ fontSize: 26, fontWeight: 900, margin: 0, color: 'var(--cp-dark)', letterSpacing: '-0.02em' }}>
                   "Committed to Nurturing Every Student's Highest Potential"
                 </h3>
                 <p className="cp-director-quote">
@@ -649,12 +772,12 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 6: WHY CHOOSE OUR COLLEGE?
+          SECTION 6: WHY CHOOSE OUR COLLEGE? (SOFT ICE-BLUE GRADIENT CANVAS)
           ========================================================================= */}
       {data.showWhyUsSection !== false && whyUsList.length > 0 && (
-        <section id="whyus" className="cp-section">
+        <section id="whyus" className="cp-section cp-section-ice">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Institutional Advantages</span>
               <h3 className="cp-section-title">Why Choose Our College?</h3>
               <p className="cp-section-desc">Six proven educational pillars designed to guarantee top ranks and transformative student growth.</p>
@@ -662,7 +785,7 @@ export default function PublicCollegePortal() {
 
             <div className="cp-whyus-grid">
               {whyUsList.map((item, idx) => (
-                <div key={idx} className="cp-whyus-card">
+                <div key={idx} className={`cp-whyus-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div className="cp-whyus-icon-wrap">
                     {idx === 0 && <IconGraduationCap />}
                     {idx === 1 && <IconDocument />}
@@ -681,20 +804,20 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 7: COURSES AND ACADEMIC PROGRAMMES
+          SECTION 7: COURSES AND ACADEMIC PROGRAMMES (CRISP WHITE CANVAS)
           ========================================================================= */}
       {data.showCoursesSection !== false && data.courses?.length > 0 && (
-        <section id="courses" className="cp-section cp-section-gray">
+        <section id="courses" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Academic Programmes</span>
               <h3 className="cp-section-title">Courses Offered</h3>
               <p className="cp-section-desc">Designed with rigorous pedagogy and high-speed accuracy training for national entrance exams.</p>
             </div>
 
             <div className="cp-courses-grid">
-              {data.courses.map((c) => (
-                <div key={c.id} className="cp-course-card">
+              {data.courses.map((c, idx) => (
+                <div key={c.id} className={`cp-course-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div>
                     <div className="cp-course-top">
                       <span className="cp-badge-cat">{c.category}</span>
@@ -722,14 +845,14 @@ export default function PublicCollegePortal() {
                         href={`/uploads/brochures/${c.brochureFilename}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ fontSize: 12, color: 'var(--cp-text-muted)', textDecoration: 'none', fontWeight: 600 }}
+                        style={{ fontSize: 13, color: 'var(--cp-text-muted)', textDecoration: 'none', fontWeight: 700 }}
                       >
                         📄 Download Brochure
                       </a>
                     ) : (
                       <button
                         onClick={() => setIsBrochureModalOpen(true)}
-                        style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--cp-text-muted)', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--cp-text-muted)', cursor: 'pointer', fontWeight: 700 }}
                       >
                         📄 Syllabus & Fees
                       </button>
@@ -743,24 +866,24 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 8: FACULTY AND ACADEMIC LEADERSHIP
+          SECTION 8: FACULTY AND ACADEMIC LEADERSHIP (SLATE PEARL CANVAS)
           ========================================================================= */}
       {data.showFacultySection !== false && data.faculties?.length > 0 && (
-        <section id="faculty" className="cp-section">
+        <section id="faculty" className="cp-section cp-section-slate">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Academic Mentors</span>
               <h3 className="cp-section-title">Faculty and Academic Leadership</h3>
-              <p className="cp-section-desc">Learn from seasoned educators and rank producers with master's degrees from IITs and national universities.</p>
+              <p className="cp-section-desc">Learn from seasoned educators and rank producers with master's degrees from IITs and premier national universities.</p>
             </div>
 
             <div className="cp-faculty-grid">
-              {data.faculties.map((f) => (
-                <div key={f.id} className="cp-faculty-card">
+              {data.faculties.map((f, idx) => (
+                <div key={f.id} className={`cp-faculty-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
                   {f.photoUrl ? (
                     <img src={f.photoUrl} alt={f.name} className="cp-faculty-img" />
                   ) : (
-                    <div className="cp-faculty-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#f1f5f9' }}>
+                    <div className="cp-faculty-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, background: '#f1f5f9' }}>
                       👨‍🏫
                     </div>
                   )}
@@ -773,7 +896,7 @@ export default function PublicCollegePortal() {
                     <p className="cp-faculty-qual">{f.qualification}</p>
                   )}
                   {f.bio && (
-                    <p style={{ fontSize: 12, color: '#64748b', marginTop: 10, lineHeight: 1.5 }}>{f.bio}</p>
+                    <p style={{ fontSize: 13, color: '#64748b', marginTop: 12, lineHeight: 1.55 }}>{f.bio}</p>
                   )}
                 </div>
               ))}
@@ -783,57 +906,61 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 9: TEACHING METHODOLOGY AND ACADEMIC RIGOUR
+          SECTION 9: TEACHING METHODOLOGY (MIDNIGHT COBALT CONNECTED PIPELINE)
           ========================================================================= */}
       {data.showMethodologySection !== false && methodologyList.length > 0 && (
-        <section id="methodology" className="cp-section cp-section-gray">
+        <section id="methodology" className="cp-section cp-section-dark">
           <div className="cp-container">
-            <div className="cp-section-header">
-              <span className="cp-section-eyebrow">Proven 5-Step Academic Cycle</span>
+            <div className="cp-section-header cp-dark-header cp-reveal">
+              <span className="cp-section-eyebrow">Closed-Loop Learning Cycle</span>
               <h3 className="cp-section-title">Teaching Methodology & Rigour</h3>
               <p className="cp-section-desc">Our closed-loop diagnostic learning model transforms average students into national competitive toppers.</p>
             </div>
 
-            <div className="cp-methodology-grid">
-              {methodologyList.map((step, idx) => (
-                <div key={idx} className="cp-methodology-card">
-                  <div className="cp-methodology-header">
-                    <span className="cp-methodology-step-num">{step.stepNumber || `0${idx + 1}`}</span>
-                    {step.badge && (
-                      <span className="cp-methodology-badge">{step.badge}</span>
-                    )}
+            <div className="cp-methodology-container">
+              <div className="cp-methodology-grid">
+                {methodologyList.map((step, idx) => (
+                  <div key={idx} className={`cp-methodology-card cp-reveal cp-delay-${idx * 100 + 100}`}>
+                    <div className="cp-methodology-header">
+                      <span className="cp-methodology-step-num">{step.stepNumber || `0${idx + 1}`}</span>
+                      {step.badge && (
+                        <span className="cp-methodology-badge">{step.badge}</span>
+                      )}
+                    </div>
+                    <h4 className="cp-methodology-title">{step.title}</h4>
+                    <p className="cp-methodology-desc">{step.description}</p>
                   </div>
-                  <h4 className="cp-methodology-title">{step.title}</h4>
-                  <p className="cp-methodology-desc">{step.description}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
       )}
 
       {/* =========================================================================
-          SECTION 10: CAMPUS AND INFRASTRUCTURE
+          SECTION 10: CAMPUS AND INFRASTRUCTURE (ARCHITECTURAL MOSAIC)
           ========================================================================= */}
       {data.showFacilitiesSection !== false && data.facilities?.length > 0 && (
-        <section id="campus" className="cp-section">
+        <section id="campus" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">State-of-the-Art Environment</span>
               <h3 className="cp-section-title">Campus & Infrastructure</h3>
               <p className="cp-section-desc">A safe, distraction-free residential and academic environment engineered for complete student focus.</p>
             </div>
 
             <div className="cp-facility-grid">
-              {data.facilities.map((fac) => (
-                <div key={fac.id} className="cp-facility-card">
-                  {fac.photoUrl ? (
-                    <img src={fac.photoUrl} alt={fac.title} className="cp-facility-img" />
-                  ) : (
-                    <div className="cp-facility-img" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
-                      🏢
-                    </div>
-                  )}
+              {data.facilities.map((fac, idx) => (
+                <div key={fac.id} className={`cp-facility-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div className="cp-facility-img-wrap">
+                    {fac.photoUrl ? (
+                      <img src={fac.photoUrl} alt={fac.title} className="cp-facility-img" />
+                    ) : (
+                      <div className="cp-facility-img" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
+                        🏢
+                      </div>
+                    )}
+                  </div>
                   <div className="cp-facility-body">
                     {fac.category && (
                       <span className="cp-badge-cat">{fac.category}</span>
@@ -849,24 +976,24 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 11: STUDENT RESULTS AND HALL OF FAME
+          SECTION 11: STUDENT RESULTS AND HALL OF FAME (ROYAL SAPPHIRE CANVAS)
           ========================================================================= */}
       {data.showResultsSection !== false && data.achievements?.length > 0 && (
-        <section id="toppers" className="cp-section cp-section-gray">
+        <section id="toppers" className="cp-section cp-section-dark">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-dark-header cp-reveal">
               <span className="cp-section-eyebrow">Hall of Fame</span>
               <h3 className="cp-section-title">Student Achievers & Ranks</h3>
               <p className="cp-section-desc">Celebrating our stellar rankers who realized their medical and engineering dreams.</p>
             </div>
 
             <div className="cp-toppers-grid">
-              {data.achievements.map((a) => (
-                <div key={a.id} className="cp-topper-card">
+              {data.achievements.map((a, idx) => (
+                <div key={a.id} className={`cp-topper-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
                   {a.photoUrl ? (
                     <img src={a.photoUrl} alt={a.studentName} className="cp-topper-img" />
                   ) : (
-                    <div className="cp-topper-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, background: '#f1f5f9' }}>
+                    <div className="cp-topper-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#1e293b' }}>
                       🏆
                     </div>
                   )}
@@ -884,12 +1011,12 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 12: ADMISSIONS AND SCHOLARSHIPS
+          SECTION 12: ADMISSIONS AND SCHOLARSHIPS (SPLIT CAMPAIGN CANVAS)
           ========================================================================= */}
       {data.showAdmissionsSection !== false && (
-        <section id="admissions" className="cp-section">
+        <section id="admissions" className="cp-section cp-section-warm">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Academic Year 2026-27</span>
               <h3 className="cp-section-title">Admissions & Scholarships</h3>
               <p className="cp-section-desc">Transparent 4-step admission roadmap and merit scholarships up to 100% full fee waiver.</p>
@@ -897,8 +1024,8 @@ export default function PublicCollegePortal() {
 
             <div className="cp-admissions-grid">
               {/* 4-Step Process */}
-              <div>
-                <h4 style={{ fontSize: 18, fontWeight: 800, color: 'var(--cp-dark)', marginBottom: 18 }}>
+              <div className="cp-reveal cp-delay-100">
+                <h4 style={{ fontSize: 20, fontWeight: 900, color: 'var(--cp-dark)', marginBottom: 22, letterSpacing: '-0.02em' }}>
                   4-Step Admission Roadmap
                 </h4>
                 <div className="cp-adm-steps-list">
@@ -920,14 +1047,14 @@ export default function PublicCollegePortal() {
               </div>
 
               {/* Scholarship Tiers Card */}
-              <div className="cp-scholarships-card">
-                <span className="cp-badge-pill" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              <div className="cp-scholarships-card cp-reveal cp-delay-200">
+                <span className="cp-badge-pill" style={{ background: 'rgba(255,255,255,0.18)' }}>
                   ★ Merit Concessions
                 </span>
-                <h4 style={{ fontSize: 22, fontWeight: 900, margin: '14px 0 6px 0', color: '#ffffff' }}>
+                <h4 style={{ fontSize: 24, fontWeight: 900, margin: '16px 0 8px 0', color: '#ffffff' }}>
                   Institutional Scholarship Tiers
                 </h4>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 22, lineHeight: 1.6 }}>
                   We reward academic dedication. Scholarship benefits apply directly to tuition fees for 2 full academic years.
                 </p>
 
@@ -946,18 +1073,18 @@ export default function PublicCollegePortal() {
                   ))}
                 </div>
 
-                <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
+                <div style={{ marginTop: 22, display: 'flex', gap: 14 }}>
                   <button
                     onClick={() => setIsEnquiryModalOpen(true)}
                     className="cp-btn-hero-white"
-                    style={{ flex: 1, padding: 12, fontSize: 13, textAlign: 'center' }}
+                    style={{ flex: 1, padding: 13, fontSize: 13, textAlign: 'center', justifyContent: 'center' }}
                   >
                     Apply for Scholarship Test →
                   </button>
                   <button
                     onClick={() => setIsBrochureModalOpen(true)}
                     className="cp-btn-hero-outline"
-                    style={{ padding: 12, fontSize: 13 }}
+                    style={{ padding: 13, fontSize: 13 }}
                   >
                     Brochure 📄
                   </button>
@@ -969,31 +1096,31 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 13: OPEN EXAMINATIONS (MODULAR GUARD)
+          SECTION 13: OPEN CBT EXAMINATIONS (MODULAR GUARD)
           ========================================================================= */}
       {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
-        <section id="exams" className="cp-section cp-section-gray">
+        <section id="exams" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Computer-Based Testing</span>
               <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
               <p className="cp-section-desc">External candidates can attempt these official online tests to assess their all-state ranking and test readiness.</p>
             </div>
 
             <div>
-              {data.openExams.map((test) => (
-                <div key={test.id} className="cp-exam-card">
+              {data.openExams.map((test, idx) => (
+                <div key={test.id} className={`cp-exam-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div className="cp-exam-info">
                     <span className="cp-badge-cat">{test.examName}</span>
                     <h4>{test.title}</h4>
                     {test.publicDescription && (
-                      <p style={{ margin: '4px 0 10px 0', fontSize: 13, color: '#475569' }}>{test.publicDescription}</p>
+                      <p style={{ margin: '6px 0 12px 0', fontSize: 14, color: '#475569', lineHeight: 1.55 }}>{test.publicDescription}</p>
                     )}
                     <div className="cp-exam-details">
                       <span>⏱ Duration: <strong>{test.durationMinutes} Mins</strong></span>
                       <span>❓ Questions: <strong>{test.questionCount} Qs</strong></span>
                       <span>⚖ Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
-                      <span>🔒 Code: <code>{test.code}</code></span>
+                      <span>🔒 Code: <code style={{ color: 'var(--cp-primary)', fontWeight: 700 }}>{test.code}</code></span>
                     </div>
                   </div>
 
@@ -1018,17 +1145,17 @@ export default function PublicCollegePortal() {
           SECTION 14: FACULTY CAREERS AND RECRUITMENT (MODULAR GUARD)
           ========================================================================= */}
       {data.hasRecruitmentModule && data.showCareersSection !== false && data.jobPostings?.length > 0 && (
-        <section id="careers" className="cp-section">
+        <section id="careers" className="cp-section cp-section-slate">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Join Our Teaching Faculty</span>
               <h3 className="cp-section-title">Faculty Careers & Openings</h3>
               <p className="cp-section-desc">We are always looking for passionate educators and academic leaders to mentor national rankers.</p>
             </div>
 
             <div className="cp-careers-grid">
-              {data.jobPostings.map((job) => (
-                <div key={job.id} className="cp-job-card">
+              {data.jobPostings.map((job, idx) => (
+                <div key={job.id} className={`cp-job-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div>
                     <h4 className="cp-job-title">{job.jobTitle}</h4>
                     <div className="cp-job-badges">
@@ -1043,7 +1170,7 @@ export default function PublicCollegePortal() {
                     </div>
                     <p className="cp-job-desc">{job.jobDescription}</p>
                     {job.requiredQualifications && (
-                      <div className="cp-job-qual" style={{ marginTop: 12 }}>
+                      <div className="cp-job-qual" style={{ marginTop: 14 }}>
                         <strong>Required Qualifications:</strong> {job.requiredQualifications}
                       </div>
                     )}
@@ -1069,19 +1196,19 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 15: CAMPUS LIFE AND PHOTO GALLERY
+          SECTION 15: CAMPUS LIFE AND PHOTO GALLERY (PORCELAIN CANVAS)
           ========================================================================= */}
       {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
-        <section id="gallery" className="cp-section cp-section-gray">
+        <section id="gallery" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Campus Glimpses</span>
               <h3 className="cp-section-title">Campus Life & Photo Gallery</h3>
               <p className="cp-section-desc">Explore daily life, laboratories, convocation ceremonies, and sports activities.</p>
             </div>
 
             {/* Gallery Category Filter Tabs */}
-            <div className="cp-gallery-tabs">
+            <div className="cp-gallery-tabs cp-reveal">
               {['ALL', 'CAMPUS', 'LABS', 'EVENTS', 'SPORTS'].map((cat) => (
                 <button
                   key={cat}
@@ -1094,16 +1221,16 @@ export default function PublicCollegePortal() {
             </div>
 
             <div className="cp-gallery-grid">
-              {filteredGallery.map((item) => (
+              {filteredGallery.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="cp-gallery-item"
+                  className={`cp-gallery-item cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
                   onClick={() => setPreviewMedia(item)}
                 >
                   <img src={item.mediaUrl} alt={item.title} className="cp-gallery-img" />
                   <div className="cp-gallery-overlay">
-                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 6 }}>{item.category}</span>
-                    <strong style={{ fontSize: 14 }}>{item.title}</strong>
+                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 8 }}>{item.category}</span>
+                    <strong style={{ fontSize: 15 }}>{item.title}</strong>
                   </div>
                 </div>
               ))}
@@ -1113,45 +1240,80 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 16: PARENT AND STUDENT TESTIMONIALS
+          SECTION 16: PARENT AND STUDENT TESTIMONIALS (INTERACTIVE CAROUSEL)
           ========================================================================= */}
       {data.showTestimonialsSection !== false && data.testimonials?.length > 0 && (
-        <section id="testimonials" className="cp-section">
+        <section id="testimonials" className="cp-section cp-section-warm">
           <div className="cp-container">
-            <div className="cp-section-header">
+            <div className="cp-section-header cp-reveal">
               <span className="cp-section-eyebrow">Alumni & Parent Voices</span>
               <h3 className="cp-section-title">What They Say About Us</h3>
               <p className="cp-section-desc">Authentic experiences and reviews from our successful doctors, engineers, and their proud parents.</p>
             </div>
 
-            <div className="cp-testimonials-grid">
-              {data.testimonials.map((t) => (
-                <div key={t.id} className="cp-testimonial-card">
-                  <div>
-                    <div className="cp-test-stars">
-                      {'★'.repeat(t.rating || 5)}
+            <div className="cp-testimonial-carousel-wrap cp-reveal">
+              <div className="cp-testimonial-slider">
+                {(() => {
+                  const t = data.testimonials[testimonialIndex] || data.testimonials[0];
+                  return (
+                    <div className="cp-testimonial-card-featured">
+                      <div className="cp-test-stars">
+                        {'★'.repeat(t.rating || 5)}
+                      </div>
+                      <p className="cp-test-quote">"{t.quote}"</p>
+                      <div>
+                        <h5 className="cp-test-author">{t.authorName}</h5>
+                        <p className="cp-test-role">{t.authorRole}</p>
+                      </div>
                     </div>
-                    <p className="cp-test-quote">"{t.quote}"</p>
+                  );
+                })()}
+              </div>
+
+              {/* Interactive Carousel Controls */}
+              {data.testimonials.length > 1 && (
+                <div className="cp-carousel-controls">
+                  <button
+                    className="cp-carousel-btn"
+                    onClick={() => setTestimonialIndex((prev) => (prev === 0 ? data.testimonials.length - 1 : prev - 1))}
+                    aria-label="Previous Testimonial"
+                  >
+                    ←
+                  </button>
+
+                  <div className="cp-carousel-dots">
+                    {data.testimonials.map((_, idx) => (
+                      <button
+                        key={idx}
+                        className={`cp-carousel-dot ${testimonialIndex === idx ? 'active' : ''}`}
+                        onClick={() => setTestimonialIndex(idx)}
+                        aria-label={`Slide ${idx + 1}`}
+                      />
+                    ))}
                   </div>
-                  <div>
-                    <h5 className="cp-test-author">{t.authorName}</h5>
-                    <p className="cp-test-role">{t.authorRole}</p>
-                  </div>
+
+                  <button
+                    className="cp-carousel-btn"
+                    onClick={() => setTestimonialIndex((prev) => (prev + 1) % data.testimonials.length)}
+                    aria-label="Next Testimonial"
+                  >
+                    →
+                  </button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
       )}
 
       {/* =========================================================================
-          SECTION 17: FAQ, CONTACT AND FINAL ADMISSION CTA
+          SECTION 17: FAQ ACCORDION, CONTACT & FINAL ADMISSION CTA
           ========================================================================= */}
-      <section id="contact" className="cp-section cp-section-gray">
+      <section id="contact" className="cp-section cp-section-slate">
         <div className="cp-container">
           {/* FAQ Accordion */}
           {data.showFaqSection !== false && faqsList.length > 0 && (
-            <div style={{ marginBottom: 60 }}>
+            <div style={{ marginBottom: 70 }} className="cp-reveal">
               <div className="cp-section-header">
                 <span className="cp-section-eyebrow">Clear Answers</span>
                 <h3 className="cp-section-title">Frequently Asked Questions</h3>
@@ -1185,16 +1347,16 @@ export default function PublicCollegePortal() {
           )}
 
           {/* Admission Enquiry Form & Campus Address */}
-          <div className="cp-section-header">
+          <div className="cp-section-header cp-reveal">
             <span className="cp-section-eyebrow">Start Your Journey</span>
             <h3 className="cp-section-title">Apply for Admission or Enquire Today</h3>
             <p className="cp-section-desc">Our senior admissions counselors are ready to help you choose the right stream and answer all your queries.</p>
           </div>
 
-          <div className="cp-contact-grid">
+          <div className="cp-contact-grid cp-reveal cp-delay-100">
             {/* Left: High-Conversion Admission Enquiry Form */}
             <div className="cp-card-form">
-              <h4 style={{ fontSize: 18, fontWeight: 800, color: 'var(--cp-dark)', margin: '0 0 16px 0' }}>
+              <h4 style={{ fontSize: 20, fontWeight: 900, color: 'var(--cp-dark)', margin: '0 0 18px 0', letterSpacing: '-0.02em' }}>
                 Online Admission Enquiry
               </h4>
 
@@ -1310,29 +1472,29 @@ export default function PublicCollegePortal() {
             </div>
 
             {/* Right: Contact Information & WhatsApp */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 24, padding: 32, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-                <h4 style={{ fontSize: 18, fontWeight: 800, color: 'var(--cp-dark)', margin: '0 0 16px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 26, padding: 36, boxShadow: '0 6px 20px rgba(0,0,0,0.04)' }}>
+                <h4 style={{ fontSize: 19, fontWeight: 900, color: 'var(--cp-dark)', margin: '0 0 18px 0', letterSpacing: '-0.02em' }}>
                   Campus Visit & Helpline
                 </h4>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 14, color: '#334155' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14, color: '#334155' }}>
                   {data.campusAddress && (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 18 }}>📍</span>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 20 }}>📍</span>
                       <div>
                         <strong>Campus Address:</strong>
-                        <p style={{ margin: '4px 0 0 0', color: '#64748b', lineHeight: 1.5 }}>{data.campusAddress}</p>
+                        <p style={{ margin: '4px 0 0 0', color: '#64748b', lineHeight: 1.6 }}>{data.campusAddress}</p>
                       </div>
                     </div>
                   )}
 
                   {data.contactPhone && (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span style={{ fontSize: 18 }}>📞</span>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span style={{ fontSize: 20 }}>📞</span>
                       <div>
                         <strong>Helpline Phone:</strong>{' '}
-                        <a href={`tel:${data.contactPhone}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={`tel:${data.contactPhone}`} style={{ color: 'var(--cp-primary)', fontWeight: 800, textDecoration: 'none' }}>
                           {data.contactPhone}
                         </a>
                       </div>
@@ -1340,11 +1502,11 @@ export default function PublicCollegePortal() {
                   )}
 
                   {data.contactEmail && (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span style={{ fontSize: 18 }}>✉</span>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span style={{ fontSize: 20 }}>✉</span>
                       <div>
                         <strong>Email Admissions:</strong>{' '}
-                        <a href={`mailto:${data.contactEmail}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={`mailto:${data.contactEmail}`} style={{ color: 'var(--cp-primary)', fontWeight: 800, textDecoration: 'none' }}>
                           {data.contactEmail}
                         </a>
                       </div>
@@ -1366,7 +1528,7 @@ export default function PublicCollegePortal() {
 
               {/* Campus Location Map / Directions */}
               {data.googleMapEmbedUrl && (
-                <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 20, overflow: 'hidden', height: 240 }}>
+                <div style={{ background: '#ffffff', border: '1px solid var(--cp-border)', borderRadius: 24, overflow: 'hidden', height: 260, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
                   <iframe
                     src={data.googleMapEmbedUrl}
                     width="100%"
@@ -1392,11 +1554,11 @@ export default function PublicCollegePortal() {
             {/* Col 1: About & Motto */}
             <div>
               <h4>{data.displayName || data.institute?.name}</h4>
-              <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: 13, margin: '0 0 16px 0' }}>
+              <p style={{ color: '#94a3b8', lineHeight: 1.65, fontSize: 13, margin: '0 0 18px 0' }}>
                 {data.mottoTagline || 'Shaping State Toppers & National Rankers in NEET, JEE & EAPCET with elite faculty mentorship and advanced computerized testing.'}
               </p>
               {data.accreditation && (
-                <div style={{ display: 'inline-block', background: '#1e293b', border: '1px solid #334155', padding: '4px 10px', borderRadius: 6, fontSize: 11, color: '#e2e8f0' }}>
+                <div style={{ display: 'inline-block', background: '#1e293b', border: '1px solid #334155', padding: '5px 12px', borderRadius: 8, fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>
                   ✓ {data.accreditation}
                 </div>
               )}
@@ -1409,17 +1571,17 @@ export default function PublicCollegePortal() {
                 <li><button onClick={() => scrollToSection('home')}>Home</button></li>
                 <li><button onClick={() => scrollToSection('about')}>About Us</button></li>
                 <li><button onClick={() => scrollToSection('courses')}>Courses Offered</button></li>
-                <li><button onClick={() => scrollToSection('faculty')}>Faculty</button></li>
+                <li><button onClick={() => scrollToSection('faculty')}>Faculty Directory</button></li>
                 <li><button onClick={() => scrollToSection('toppers')}>Hall of Fame</button></li>
-                <li><button onClick={() => scrollToSection('admissions')}>Admissions</button></li>
+                <li><button onClick={() => scrollToSection('admissions')}>Admissions & Scholarships</button></li>
               </ul>
             </div>
 
             {/* Col 3: Contact Details */}
             <div>
               <h5>Campus Office</h5>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: '#94a3b8' }}>
-                <p style={{ margin: 0, lineHeight: 1.5 }}>{data.campusAddress}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, color: '#94a3b8' }}>
+                <p style={{ margin: 0, lineHeight: 1.6 }}>{data.campusAddress}</p>
                 {data.contactPhone && (
                   <p style={{ margin: 0 }}>📞 {data.contactPhone}</p>
                 )}
@@ -1432,9 +1594,9 @@ export default function PublicCollegePortal() {
             {/* Col 4: Platform & SaaS Attribution */}
             <div>
               <h5>QuestionsStudio</h5>
-              <div style={{ background: '#1e293b', padding: 16, borderRadius: 12, border: '1px solid #334155' }}>
+              <div style={{ background: '#1e293b', padding: 18, borderRadius: 16, border: '1px solid #334155' }}>
                 <strong style={{ color: '#ffffff', fontSize: 13 }}>Powered by QuestionsStudio</strong>
-                <p style={{ color: '#94a3b8', fontSize: 11, margin: '6px 0 0 0', lineHeight: 1.5 }}>
+                <p style={{ color: '#94a3b8', fontSize: 12, margin: '8px 0 0 0', lineHeight: 1.6 }}>
                   Centralized Question Bank, Computer-Based Online Testing, OMR Grading & Multi-College Portal SaaS.
                 </p>
               </div>
@@ -1445,7 +1607,7 @@ export default function PublicCollegePortal() {
             <div>
               © {new Date().getFullYear()} {data.displayName || data.institute?.name}. All rights reserved.
             </div>
-            <div style={{ display: 'flex', gap: 18 }}>
+            <div style={{ display: 'flex', gap: 20 }}>
               <span style={{ color: '#64748b' }}>QuestionsStudio SaaS</span>
               <span style={{ color: '#64748b' }}>Privacy Policy</span>
               <span style={{ color: '#64748b' }}>Terms of Service</span>
@@ -1466,10 +1628,10 @@ export default function PublicCollegePortal() {
             </div>
             <div className="cp-modal-body">
               {enquirySuccess ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-                  <h4 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 8px 0', color: '#065f46' }}>Enquiry Submitted!</h4>
-                  <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.5 }}>
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 52, marginBottom: 14 }}>🎉</div>
+                  <h4 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 8px 0', color: '#065f46' }}>Enquiry Submitted!</h4>
+                  <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6 }}>
                     Thank you! Our admission counselor will get in touch with you at <strong>{enquiryForm.phone}</strong> shortly.
                   </p>
                   <button
@@ -1478,7 +1640,7 @@ export default function PublicCollegePortal() {
                       setEnquirySuccess(false);
                     }}
                     className="cp-btn-cta"
-                    style={{ marginTop: 20 }}
+                    style={{ marginTop: 22 }}
                   >
                     Close Window
                   </button>
@@ -1504,7 +1666,7 @@ export default function PublicCollegePortal() {
                       <input
                         type="tel"
                         required
-                        placeholder="10 digit mobile"
+                        placeholder="10-digit mobile"
                         value={enquiryForm.phone}
                         onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
                         className="cp-input"
@@ -1540,7 +1702,7 @@ export default function PublicCollegePortal() {
                     type="submit"
                     disabled={enquirySubmitting}
                     className="cp-btn-submit"
-                    style={{ marginTop: 10 }}
+                    style={{ marginTop: 12 }}
                   >
                     {enquirySubmitting ? 'Submitting...' : 'Submit Application →'}
                   </button>
@@ -1560,7 +1722,7 @@ export default function PublicCollegePortal() {
             <div className="cp-modal-header">
               <div>
                 <h3 className="cp-modal-title">Apply for {selectedJob.jobTitle}</h3>
-                <span style={{ fontSize: 12, color: 'var(--cp-primary)', fontWeight: 700 }}>
+                <span style={{ fontSize: 13, color: 'var(--cp-primary)', fontWeight: 800 }}>
                   Department of {selectedJob.department}
                 </span>
               </div>
@@ -1568,10 +1730,10 @@ export default function PublicCollegePortal() {
             </div>
             <div className="cp-modal-body">
               {jobSuccess ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>📄</div>
-                  <h4 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 8px 0', color: '#065f46' }}>Application Submitted!</h4>
-                  <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.5 }}>
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ fontSize: 52, marginBottom: 14 }}>📄</div>
+                  <h4 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 8px 0', color: '#065f46' }}>Application Submitted!</h4>
+                  <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6 }}>
                     Your application and resume have been securely forwarded to the academic selection board. Shortlisted candidates will be invited for interview and demo lecture.
                   </p>
                   <button
@@ -1580,7 +1742,7 @@ export default function PublicCollegePortal() {
                       setJobSuccess(false);
                     }}
                     className="cp-btn-cta"
-                    style={{ marginTop: 20 }}
+                    style={{ marginTop: 22 }}
                   >
                     Done
                   </button>
@@ -1669,7 +1831,7 @@ export default function PublicCollegePortal() {
                       accept=".pdf,.doc,.docx"
                       onChange={(e) => setResumeFile(e.target.files[0])}
                       className="cp-input"
-                      style={{ padding: 8 }}
+                      style={{ padding: 10 }}
                     />
                   </div>
 
@@ -1708,12 +1870,12 @@ export default function PublicCollegePortal() {
               <h3 className="cp-modal-title">Institutional Prospectus & Syllabus</h3>
               <button className="cp-modal-close" onClick={() => setIsBrochureModalOpen(false)}>✕</button>
             </div>
-            <div className="cp-modal-body" style={{ textAlign: 'center', padding: '30px 20px' }}>
-              <div style={{ fontSize: 52, marginBottom: 12 }}>📘</div>
-              <h4 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 8px 0', color: 'var(--cp-dark)' }}>
+            <div className="cp-modal-body" style={{ textAlign: 'center', padding: '34px 24px' }}>
+              <div style={{ fontSize: 56, marginBottom: 14 }}>📘</div>
+              <h4 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 10px 0', color: 'var(--cp-dark)' }}>
                 {data.displayName} Academic Guide
               </h4>
-              <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, maxWidth: 420, margin: '0 auto 24px' }}>
+              <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.65, maxWidth: 440, margin: '0 auto 26px' }}>
                 Download our comprehensive handbook containing batch structures, weekly timetable, test series calendar, hostel policies, and fee concession details.
               </p>
               <button
@@ -1735,7 +1897,7 @@ export default function PublicCollegePortal() {
           ========================================================================= */}
       {previewMedia && (
         <div className="cp-modal-backdrop" onClick={() => setPreviewMedia(null)}>
-          <div style={{ maxWidth: 840, width: '100%', background: '#000', borderRadius: 20, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ maxWidth: 880, width: '100%', background: '#000', borderRadius: 24, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.6)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ position: 'relative' }}>
               <img
                 src={previewMedia.mediaUrl}
@@ -1744,15 +1906,15 @@ export default function PublicCollegePortal() {
               />
               <button
                 onClick={() => setPreviewMedia(null)}
-                style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: 36, height: 36, borderRadius: '50%', fontSize: 20, cursor: 'pointer' }}
+                style={{ position: 'absolute', top: 18, right: 18, background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', width: 38, height: 38, borderRadius: '50%', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 ✕
               </button>
             </div>
-            <div style={{ padding: '16px 24px', background: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '18px 26px', background: '#0b132b', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <strong style={{ fontSize: 16 }}>{previewMedia.title}</strong>
-                <span style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginTop: 2 }}>Category: {previewMedia.category}</span>
+                <span style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginTop: 3 }}>Category: {previewMedia.category}</span>
               </div>
             </div>
           </div>
