@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getStoredToken } from '../lib/api';
+
+function getAuthToken() {
+  return getStoredToken();
+}
 
 export default function CollegeWebsiteBuilder() {
   const [website, setWebsite] = useState(null);
@@ -41,7 +46,7 @@ export default function CollegeWebsiteBuilder() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/college-cms/website', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -73,7 +78,7 @@ export default function CollegeWebsiteBuilder() {
   async function fetchExams(token) {
     try {
       const res = await fetch('/api/college-cms/exams', {
-        headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
       });
       const data = await res.json();
       if (res.ok) setOpenExams(data.exams || []);
@@ -85,7 +90,7 @@ export default function CollegeWebsiteBuilder() {
   async function fetchApplications(token) {
     try {
       const res = await fetch('/api/college-cms/applications', {
-        headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${getAuthToken()}` },
       });
       const data = await res.json();
       if (res.ok) setApplications(data.applications || []);
@@ -99,7 +104,7 @@ export default function CollegeWebsiteBuilder() {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/college-cms/website', {
         method: 'PATCH',
         headers: {
@@ -124,7 +129,7 @@ export default function CollegeWebsiteBuilder() {
   async function handlePublishToggle(publish) {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const endpoint = publish ? '/api/college-cms/publish' : '/api/college-cms/unpublish';
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -147,7 +152,7 @@ export default function CollegeWebsiteBuilder() {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/college-cms/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -165,7 +170,7 @@ export default function CollegeWebsiteBuilder() {
   // Sub-items management (Courses, Faculty, Facilities, etc.)
   async function handleSaveSubItem() {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const isEdit = Boolean(editingItem?.id);
       const endpoint = `/api/college-cms/${modalType}${isEdit ? `/${editingItem.id}` : ''}`;
       const method = isEdit ? 'PATCH' : 'POST';
@@ -193,7 +198,7 @@ export default function CollegeWebsiteBuilder() {
   async function handleDeleteSubItem(type, id) {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/college-cms/${type}/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -207,7 +212,7 @@ export default function CollegeWebsiteBuilder() {
 
   async function handleToggleExamVisible(examId, currentVal) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/college-cms/exams/${examId}`, {
         method: 'PATCH',
         headers: {
@@ -225,7 +230,7 @@ export default function CollegeWebsiteBuilder() {
 
   async function handleUpdateEnquiryStatus(enquiryId, status) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/college-cms/enquiries/${enquiryId}`, {
         method: 'PATCH',
         headers: {
@@ -251,17 +256,30 @@ export default function CollegeWebsiteBuilder() {
   }
 
   if (error || !website) {
+    const isSessionExpired = error && (error.toLowerCase().includes('session') || error.toLowerCase().includes('logged in') || error.toLowerCase().includes('token'));
     return (
-      <div className="p-8 max-w-lg mx-auto text-center bg-white rounded-2xl border border-rose-200 shadow-sm mt-8">
-        <span className="text-4xl">⚠️</span>
-        <h3 className="text-base font-bold text-slate-800 mt-2">Error Loading Website</h3>
-        <p className="text-xs text-slate-600 mt-1">{error}</p>
-        <button
-          onClick={fetchWebsite}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"
-        >
-          Try Again
-        </button>
+      <div className="p-8 max-w-lg mx-auto text-center bg-white rounded-2xl border border-slate-200 shadow-sm mt-8">
+        <span className="text-4xl">{isSessionExpired ? '🔐' : '⚠️'}</span>
+        <h3 className="text-base font-bold text-slate-800 mt-2">
+          {isSessionExpired ? 'Authentication Required' : 'Error Loading Website'}
+        </h3>
+        <p className="text-xs text-slate-600 mt-1">{error || 'College website configuration not found.'}</p>
+        <div className="mt-5 flex items-center justify-center gap-2">
+          {isSessionExpired && (
+            <Link
+              to="/login?redirect=/website-builder"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              Sign In Again →
+            </Link>
+          )}
+          <button
+            onClick={fetchWebsite}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -1239,7 +1257,7 @@ export default function CollegeWebsiteBuilder() {
                       if (file) {
                         const url = await handleFileUpload(file, 'gallery');
                         if (url) {
-                          const token = localStorage.getItem('token');
+                          const token = getAuthToken();
                           await fetch('/api/college-cms/gallery', {
                             method: 'POST',
                             headers: {

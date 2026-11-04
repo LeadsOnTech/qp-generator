@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getStoredToken } from '../lib/api';
+
+function getAuthToken() {
+  return getStoredToken();
+}
 
 export default function SuperAdminWebsites() {
   const [websites, setWebsites] = useState([]);
@@ -21,7 +26,7 @@ export default function SuperAdminWebsites() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch('/api/admin/college-websites', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,7 +45,7 @@ export default function SuperAdminWebsites() {
     if (!window.confirm(`Are you sure you want to mark this website as ${newStatus}?`)) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/admin/college-websites/${websiteId}/status`, {
         method: 'PATCH',
         headers: {
@@ -61,7 +66,7 @@ export default function SuperAdminWebsites() {
     if (!selectedWebsite) return;
     setModuleUpdating(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/admin/college-websites/${selectedWebsite.id}/modules`, {
         method: 'PATCH',
         headers: {
@@ -90,7 +95,7 @@ export default function SuperAdminWebsites() {
     if (!selectedWebsite || !newPassword) return;
     setPasswordMsg(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`/api/admin/college-websites/${selectedWebsite.id}/reset-password`, {
         method: 'POST',
         headers: {

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, getStoredToken } from '../lib/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
 
@@ -396,7 +396,7 @@ export default function ExamResultsDashboard() {
               <tbody>
                 {results.map((r) => {
                   const token = r.publicToken;
-                  const authJwt = localStorage.getItem('qpgen_token');
+                  const authJwt = getStoredToken();
                   const pdfUrl = `${API_BASE}/results/${r.id}/pdf${authJwt ? `?token=${encodeURIComponent(authJwt)}` : ''}`;
 
                   return (

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, getStoredToken } from '../lib/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
 
@@ -75,7 +75,7 @@ export default function BatchPerformanceReport() {
   }
 
   const { paper, stats, distribution, subjectAverages, sectionComparison, top10, bottom10 } = data;
-  const token = localStorage.getItem('qpgen_token');
+  const token = getStoredToken();
   const pdfUrl = `${API_BASE}/results/analytics/batch/${paperId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
   const csvUrl = `${API_BASE}/results/analytics/batch/${paperId}/csv${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 

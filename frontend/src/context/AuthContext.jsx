@@ -1,16 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '../lib/api';
+import { api, getStoredToken, clearStoredToken, saveStoredToken } from '../lib/api';
 
 const AuthContext = createContext(null);
 
-const TOKEN_KEY = 'qf_auth_token';
+export const getToken = getStoredToken;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadCurrentUser = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getToken();
     if (!token) {
       setUser(null);
       setLoading(false);
@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
       setUser(me);
     } catch (err) {
       // Token invalid/expired — clear it so the login screen shows cleanly
-      localStorage.removeItem(TOKEN_KEY);
+      clearStoredToken();
       setUser(null);
     } finally {
       setLoading(false);
@@ -37,14 +37,14 @@ export function AuthProvider({ children }) {
       // screen and call verifyTwoFactor() to actually complete login.
       return { requiresTwoFactor: true, pendingToken: res.pendingToken };
     }
-    localStorage.setItem(TOKEN_KEY, res.token);
+    saveStoredToken(res.token);
     setUser(res.user);
     return { requiresTwoFactor: false, user: res.user };
   }
 
   async function verifyTwoFactor(pendingToken, code) {
     const res = await api.verifyTwoFactorLogin(pendingToken, code);
-    localStorage.setItem(TOKEN_KEY, res.token);
+    saveStoredToken(res.token);
     setUser(res.user);
     return res.user;
   }
@@ -52,20 +52,20 @@ export function AuthProvider({ children }) {
   
   async function signupWithOtp(payload) {
     const res = await api.verifyOtp(payload);
-    localStorage.setItem(TOKEN_KEY, res.token);
+    saveStoredToken(res.token);
     setUser(res.user);
     return res;
   }
 
   async function signup(instituteName, email, password) {
     const res = await api.signup(instituteName, email, password);
-    localStorage.setItem(TOKEN_KEY, res.token);
+    saveStoredToken(res.token);
     setUser(res.user);
     return res.user;
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY);
+    clearStoredToken();
     setUser(null);
   }
 
@@ -80,8 +80,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
-}
-
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
 }

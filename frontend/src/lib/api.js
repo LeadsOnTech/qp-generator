@@ -1,8 +1,29 @@
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
-const TOKEN_KEY = 'qf_auth_token';
+
+export function getStoredToken() {
+  return (
+    localStorage.getItem('qf_auth_token') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('qpgen_token') ||
+    ''
+  );
+}
+
+export function clearStoredToken() {
+  localStorage.removeItem('qf_auth_token');
+  localStorage.removeItem('token');
+  localStorage.removeItem('qpgen_token');
+}
+
+export function saveStoredToken(token) {
+  if (!token) return;
+  localStorage.setItem('qf_auth_token', token);
+  localStorage.setItem('token', token);
+  localStorage.setItem('qpgen_token', token);
+}
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getStoredToken();
   const headers = options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -12,7 +33,7 @@ async function request(path, options = {}) {
   if (res.status === 401) {
     // Session expired or invalid — clear the stale token so the app
     // naturally falls back to the login screen on next render.
-    localStorage.removeItem(TOKEN_KEY);
+    clearStoredToken();
   }
   if (!res.ok) {
     throw new Error(data.error || `Request failed (${res.status})`);
@@ -60,7 +81,7 @@ export const api = {
   removeBulkDuplicates: () => request('/duplicates/bulk-remove', { method: 'POST' }),
   removeDuplicateIds: (ids) => request('/duplicates/remove-ids', { method: 'POST', body: JSON.stringify({ ids }) }),
   previewBatch: async (batchId) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const res = await fetch(`${API_BASE}/questions/batch/${batchId}/preview`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -98,7 +119,7 @@ export const api = {
    * save using a temporary in-browser link.
    */
   downloadPaperPdf: async (id, withAnswers, filenameHint, optionFormat, answerFormat, set = 'A', isMasterKey = false, isBundle = false, watermarkOpts = {}, ecoMode = 'AUTO') => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const params = new URLSearchParams();
     if (withAnswers) params.set('answers', '1');
     if (optionFormat) params.set('optionFormat', optionFormat);
@@ -139,7 +160,7 @@ export const api = {
    * Downloads an optical-scanner-compatible printable 1-page A4 OMR evaluation sheet.
    */
   downloadOmrSheet: async (id, filenameHint, opts = {}) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const params = new URLSearchParams();
     if (opts.layout) params.set('layout', opts.layout);
     if (opts.set) params.set('set', opts.set);
@@ -170,7 +191,7 @@ export const api = {
    * Downloads printable paper-saving answer key chits (slips) for student distribution.
    */
   downloadKeyChits: async (id, filenameHint, opts = {}) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const params = new URLSearchParams();
     if (opts.mode) params.set('mode', opts.mode);
     if (opts.set) params.set('set', opts.set);
@@ -328,7 +349,7 @@ export const api = {
 
   // Authenticated CSV Exports
   downloadStudentAnalyticsCsv: async (rollNumber) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const res = await fetch(`${API_BASE}/results/analytics/student/${encodeURIComponent(rollNumber)}/csv`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -348,7 +369,7 @@ export const api = {
   },
 
   downloadRosterCsv: async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const res = await fetch(`${API_BASE}/results/students/roster/export-csv`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -368,7 +389,7 @@ export const api = {
   },
 
   downloadBatchReportCsv: async (paperId, title = 'Exam') => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = getStoredToken();
     const res = await fetch(`${API_BASE}/results/analytics/batch/${paperId}/csv`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
