@@ -47,6 +47,9 @@ import ExamResultsDashboard from './pages/ExamResultsDashboard';
 import StudentAnalytics from './pages/StudentAnalytics';
 import BatchPerformanceReport from './pages/BatchPerformanceReport';
 import StudentsRoster from './pages/StudentsRoster';
+import PublicCollegePortal from './pages/PublicCollegePortal';
+import CollegeWebsiteBuilder from './pages/CollegeWebsiteBuilder';
+import SuperAdminWebsites from './pages/SuperAdminWebsites';
 
 export default function App() {
   return (
@@ -77,6 +80,13 @@ export default function App() {
           <Route path="/r/:token" element={<PublicScorecard />} />
           <Route path="/report/:token" element={<PublicScorecard />} />
 
+          {/* Public College Websites */}
+          <Route path="/colleges/:slug" element={<PublicCollegePortal />} />
+          <Route path="/colleges/:slug/courses" element={<PublicCollegePortal defaultTab="courses" />} />
+          <Route path="/colleges/:slug/exams" element={<PublicCollegePortal defaultTab="exams" />} />
+          <Route path="/colleges/:slug/careers" element={<PublicCollegePortal defaultTab="careers" />} />
+          <Route path="/colleges/:slug/admissions" element={<PublicCollegePortal defaultTab="admissions" />} />
+
           {/* Requires login (Admin or Institute) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
@@ -95,6 +105,7 @@ export default function App() {
 
               {/* Institute-only */}
               <Route path="/institute-dashboard" element={<InstituteDashboard />} />
+              <Route path="/website-builder" element={<CollegeWebsiteBuilder />} />
               <Route path="/my-institute" element={<MyInstituteProfile />} />
               <Route path="/recharge" element={<Recharge />} />
               <Route path="/security" element={<SecuritySettings />} />
@@ -112,6 +123,7 @@ export default function App() {
                 <Route path="/checks" element={<QualityChecks />} />
                 <Route path="/analytics/:chapterId" element={<ChapterAnalytics />} />
                 <Route path="/institutes" element={<Institutes />} />
+                <Route path="/admin/websites" element={<SuperAdminWebsites />} />
                 <Route path="/trial-accounts" element={<TrialAccounts />} />
                 <Route path="/recharge-approvals" element={<RechargeApprovals />} />
                 <Route path="/admin/registrations" element={<RegistrationApprovals />} />

@@ -34,6 +34,9 @@ const authRoutes = require('./routes/auth');
 const cbtRoutes = require('./routes/cbt');
 const resultRoutes = require('./routes/results');
 const publicResultRoutes = require('./routes/publicResults');
+const publicCollegesRoutes = require('./routes/publicColleges');
+const collegeCmsRoutes = require('./routes/collegeCms');
+const superAdminWebsitesRoutes = require('./routes/superAdminWebsites');
 const { requireAuth, requireAdmin } = require('./lib/auth');
 
 const app = express();
@@ -54,6 +57,7 @@ app.get('/api/health', (req, res) => res.json({
 app.use('/api/auth', authRoutes);
 app.use('/api/cbt', cbtRoutes);
 app.use('/api/public/results', publicResultRoutes);
+app.use('/api/public/colleges', publicCollegesRoutes);
 
 // Everything below this line requires a logged-in user (Admin or Institute)
 app.use('/api', requireAuth);
@@ -63,6 +67,7 @@ app.use('/api/upload', requireAdmin, uploadRoutes);
 app.use('/api/tagging', requireAdmin, taggingRoutes);
 app.use('/api/duplicates', requireAdmin, duplicateRoutes);
 app.use('/api/checks', requireAdmin, checkRoutes);
+app.use('/api/admin/college-websites', requireAdmin, superAdminWebsitesRoutes);
 
 // Logged-in (Admin or Institute) — routes internally scope data by institute
 app.use('/api/questions', questionRoutes);
@@ -73,6 +78,7 @@ app.use('/api/exams', examRoutes);
 app.use('/api/institutes', instituteRoutes);
 app.use('/api/recharge', rechargeRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/college-cms', collegeCmsRoutes);
 
 // Serve compiled frontend in production
 const candidatePaths = [

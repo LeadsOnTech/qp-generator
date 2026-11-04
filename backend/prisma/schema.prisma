@@ -101,6 +101,9 @@ model Institute {
   whatsAppMessageLogs  WhatsAppMessageLog[]
   whatsAppUsageLedgers WhatsAppUsageLedger[]
   whatsAppWalletBalance Float @default(0.0)
+
+  // Multi-College Public Website & Portal
+  website              CollegeWebsite?
 }
 
 // ---------- Credit ledger ----------
@@ -358,6 +361,8 @@ model CbtTest {
   status                 String          @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED
   showSolutionsImmediate Boolean         @default(true)
   isResultsReleased      Boolean         @default(true)
+  isPublicWebsiteVisible Boolean         @default(false)
+  publicDescription      String?
 
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
@@ -634,5 +639,240 @@ model WhatsAppUsageLedger {
   createdAt    DateTime  @default(now())
 
   @@index([instituteId])
+}
+
+// ==========================================
+// MULTI-COLLEGE WEBSITE & PORTAL SYSTEM
+// ==========================================
+
+model CollegeWebsite {
+  id                   String              @id @default(cuid())
+  instituteId          String              @unique
+  institute            Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  // Domain & URL Architecture
+  slug                 String              @unique // matches Institute.slug
+  subdomain            String?             @unique // e.g. "aims" -> aims.questionsstudio.in (future)
+  customDomain         String?             @unique // e.g. "www.aimscollege.in" (future)
+  domainStatus         String              @default("UNCONFIGURED") // UNCONFIGURED | PENDING_DNS | VERIFIED | ACTIVE | FAILED
+  sslStatus            String              @default("NONE") // NONE | PROVISIONING | ACTIVE | EXPIRED
+
+  // Lifecycle & Publication State
+  isPublished          Boolean             @default(false)
+  status               String              @default("ACTIVE") // ACTIVE | SUSPENDED | UNDER_REVIEW
+  publishedAt          DateTime?
+  publishedVersion     Int                 @default(0)
+
+  // Branding & Visual Theme System
+  themeTemplate        String              @default("CLASSIC_ACADEMIC") // CLASSIC_ACADEMIC | MODERN_PREMIER | TECH_EXCELLENCE
+  primaryColor         String              @default("#1e40af") // Tailwind Blue 800
+  secondaryColor       String              @default("#0f766e") // Tailwind Teal 700
+  accentColor          String              @default("#f59e0b") // Tailwind Amber 500
+  fontFamily           String              @default("Inter")
+  heroTitle            String?             @default("Empowering Future Leaders & Achievers")
+  heroSubtitle         String?             @default("Excellence in Academic Preparation, Competitive Ranks & Holistic Development")
+  heroBannerUrl        String?
+  heroCtaText          String?             @default("Apply for Admission")
+  heroCtaLink          String?             @default("#admissions")
+
+  // College Identity & Profile
+  displayName          String?
+  mottoTagline         String?
+  estYear              Int?
+  accreditation        String?             // e.g. "NAAC A+ Accredited", "CBSE Affiliated"
+  campusAddress        String?
+  contactPhone         String?
+  contactEmail         String?
+  whatsappNumber       String?
+  googleMapEmbedUrl    String?
+
+  // Social Channels
+  socialFacebook       String?
+  socialInstagram      String?
+  socialYoutube        String?
+  socialLinkedin       String?
+  socialTwitter        String?
+
+  // About Section & Institutional Highlights
+  aboutTitle           String?             @default("Welcome to Our Institution")
+  aboutText            String?             // Rich text/markdown
+  visionText           String?
+  missionText          String?
+  statsCountersJson    String?             // e.g. [{"label":"Students Mentored","value":"15,000+"},{"label":"Selections in NEET/JEE","value":"3,200+"}]
+
+  // Leadership / Director's Corner
+  directorName         String?
+  directorTitle        String?             @default("Director / Chairman")
+  directorPhotoUrl     String?
+  directorMessage      String?
+  directorQualifications String?
+
+  // SEO & OpenGraph Meta
+  metaTitle            String?
+  metaDescription      String?
+  metaKeywords         String?
+  ogImageUrl           String?
+
+  // Child Website Modules
+  courses              CollegeCourse[]
+  faculties            CollegeFaculty[]
+  facilities           CollegeFacility[]
+  achievements         CollegeAchievement[]
+  testimonials         CollegeTestimonial[]
+  galleryItems         CollegeGalleryItem[]
+  enquiries            CollegeEnquiry[]
+  jobPostings          CollegeJobPosting[]
+
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+}
+
+// 1. Courses Offered
+model CollegeCourse {
+  id               String         @id @default(cuid())
+  websiteId        String
+  website          CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  courseName       String         // e.g. "NEET 2-Year Intensive Long Term"
+  slug             String         // URL slug: "neet-long-term"
+  category         String         // MEDICAL | ENGINEERING | FOUNDATION | DEGREE
+  targetExam       String?        // NEET-UG | JEE Main | Advanced | BIPC | MPC
+  duration         String?        // e.g. "2 Academic Years"
+  eligibility      String?        // e.g. "Class 10 with 60% aggregate"
+  description      String?
+  syllabusOverview String?
+  highlightsJson   String?        // JSON array of bullet points
+  brochureFilename String?
+  isFeatured       Boolean        @default(false)
+  displayOrder     Int            @default(0)
+  createdAt        DateTime       @default(now())
+}
+
+// 2. Faculty Profiles
+model CollegeFaculty {
+  id            String         @id @default(cuid())
+  websiteId     String
+  website       CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  name          String
+  designation   String         // e.g. "Senior HOD & Master Lecturer"
+  department    String         // Physics, Chemistry, Mathematics, Biology
+  qualification String         // e.g. "M.Sc. Physics (IIT Madras), 18+ yrs exp"
+  experienceYrs Int?
+  photoUrl      String?
+  bio           String?
+  displayOrder  Int            @default(0)
+  createdAt     DateTime       @default(now())
+}
+
+// 3. Infrastructure & Facilities
+model CollegeFacility {
+  id           String         @id @default(cuid())
+  websiteId    String
+  website      CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title        String         // e.g. "Advanced Digital Physics Laboratory"
+  category     String         // LAB | LIBRARY | SPORTS | HOSTEL | TRANSPORT | SMART_CLASS
+  description  String?
+  photoUrl     String?
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+// 4. Student Achievements & Hall of Fame
+model CollegeAchievement {
+  id           String         @id @default(cuid())
+  websiteId    String
+  website      CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  studentName  String?
+  examOrAward  String         // e.g. "NEET 2024 AIR 42", "JEE Advanced State 1st Rank"
+  rankOrScore  String?        // "AIR 42 (710/720)"
+  year         Int            @default(2025)
+  category     String         // ACADEMIC | COMPETITIVE_EXAM | SPORTS | OLYMPIAD
+  description  String?
+  photoUrl     String?
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+// 5. Testimonials & Reviews
+model CollegeTestimonial {
+  id           String         @id @default(cuid())
+  websiteId    String
+  website      CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  authorName   String
+  authorRole   String         // e.g. "Alumni (AIIMS New Delhi, Batch 2023)" or "Parent of Sai Charan"
+  quote        String
+  rating       Int            @default(5)
+  avatarUrl    String?
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+// 6. Media Gallery
+model CollegeGalleryItem {
+  id           String         @id @default(cuid())
+  websiteId    String
+  website      CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title        String?
+  category     String         @default("CAMPUS") // CAMPUS | LABS | CULTURAL | SPORTS | CONVOCATION
+  mediaUrl     String
+  mediaType    String         @default("IMAGE") // IMAGE | YOUTUBE_VIDEO
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+// 7. Admissions & General Inquiries (Private to this College)
+model CollegeEnquiry {
+  id                String         @id @default(cuid())
+  websiteId         String
+  website           CollegeWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  studentName       String
+  parentName        String?
+  phone             String
+  email             String?
+  courseOfInterest  String?
+  cityOrTown        String?
+  academicYear      String?
+  message           String?
+  status            String         @default("NEW") // NEW | CONTACTED | COUNSELED | ENROLLED | CLOSED
+  adminNotes        String?
+  createdAt         DateTime       @default(now())
+}
+
+// 8. Faculty Recruitment Careers
+model CollegeJobPosting {
+  id                     String                 @id @default(cuid())
+  websiteId              String
+  website                CollegeWebsite         @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  jobTitle               String                 // e.g. "Senior NEET Biology Faculty"
+  department             String                 // Science / Math / Humanities / Admin
+  employmentType         String                 @default("FULL_TIME") // FULL_TIME | PART_TIME | VISITING
+  vacanciesCount         Int                    @default(1)
+  minExperienceYrs       Int                    @default(3)
+  requiredQualifications String                 // e.g. "M.Sc. / Ph.D in Botany / Zoology"
+  jobDescription         String
+  location               String?
+  applicationDeadline    DateTime?
+  isActive               Boolean                @default(true)
+  applications           CollegeJobApplication[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+}
+
+// 9. Faculty Job Applications (Private to this College)
+model CollegeJobApplication {
+  id              String            @id @default(cuid())
+  jobPostingId    String
+  jobPosting      CollegeJobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  applicantName   String
+  email           String
+  phone           String
+  currentLocation String?
+  experienceYrs   Int
+  currentEmployer String?
+  expectedSalary  String?
+  resumeFilename  String            // Stored securely in /uploads/resumes
+  coverLetter     String?
+  status          String            @default("SUBMITTED") // SUBMITTED | SHORTLISTED | INTERVIEW_SCHEDULED | REJECTED | HIRED
+  internalNotes   String?
+  createdAt       DateTime          @default(now())
 }
 

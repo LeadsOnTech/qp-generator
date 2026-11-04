@@ -67,6 +67,7 @@ const paperEngineItems = [
 const adminOnlyExtras = [
   { to: '/images', label: 'Image Library', icon: '🖼' },
   { to: '/institutes', label: 'Institutes', icon: '🏛' },
+  { to: '/admin/websites', label: 'College Websites', icon: '🌐' },
   { to: '/trial-accounts', label: 'Trial / Demo Logins', icon: '📲' },
   { to: '/admin/registrations', label: 'Registration Requests', icon: '👤' },
   { to: '/recharge-approvals', label: 'Recharge Approvals', icon: '💳' },
@@ -79,6 +80,7 @@ const instituteNavItems = [
   { to: '/papers', label: 'Papers', icon: '▣' },
   { to: '/students', label: 'Students Roster', icon: '👨‍🎓' },
   { to: '/student-analytics', label: 'Student Analytics', icon: '📈' },
+  { to: '/website-builder', label: 'College Website', icon: '🌐' },
   { to: '/questions', label: 'Question Bank', icon: '▤' },
   { to: '/my-institute', label: 'My Institute Profile', icon: '🏛' },
   { to: '/recharge', label: 'Recharge Credits', icon: '💳' },
