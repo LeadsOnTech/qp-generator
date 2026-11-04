@@ -103,32 +103,6 @@ function AnimatedCounter({ targetValue, isVisible }) {
   return <span>{displayValue}</span>;
 }
 
-
-// Course Domain Thumbnails matching the reference design
-function getCourseThumbnail(c, idx) {
-  const cat = (c?.category || '').toUpperCase();
-  const name = (c?.courseName || '').toLowerCase();
-  if (name.includes('medical') || cat === 'MEDICAL') {
-    if (name.includes('repeater') || name.includes('dropper') || name.includes('long-term')) {
-      return 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=85';
-    }
-    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=85';
-  }
-  if (name.includes('engineering') || name.includes('jee') || cat === 'ENGINEERING') {
-    return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=85';
-  }
-  if (name.includes('foundation') || cat === 'FOUNDATION') {
-    return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=85';
-  }
-  const defaults = [
-    'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=85',
-    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=85',
-    'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=85',
-    'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=85',
-  ];
-  return defaults[idx % defaults.length];
-}
-
 export default function PublicCollegePortal() {
   const { slug } = useParams();
   const [data, setData] = useState(null);
@@ -530,7 +504,7 @@ export default function PublicCollegePortal() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
               onClick={() => setIsEnquiryModalOpen(true)}
-              className="cp-gold-pill-btn"
+              className="cp-btn-cta"
             >
               Apply for Admission →
             </button>
@@ -602,40 +576,31 @@ export default function PublicCollegePortal() {
       {/* =========================================================================
           SECTION 2: FULL-BLEED CINEMATIC HERO BANNER
           ========================================================================= */}
-      <section id="home" className="cp-ref-hero">
+      <section id="home" className="cp-hero">
         <div className="cp-container">
-          <div className="cp-ref-hero-grid">
+          <div className="cp-hero-grid">
             <div className="cp-hero-content cp-reveal">
-              <div className="cp-ref-hero-badge">
-                <span>✓ {data.accreditation || 'BIEAP Recognized & CBSE Affiliated'}</span>
+              <div className="cp-hero-intake-badge">
+                <span className="cp-pulse-dot" />
+                <span>{data.accreditation ? data.accreditation : 'Official Admissions 2026-27'}</span>
               </div>
 
-              <h2 className="cp-ref-hero-title">
-                Empowering Future<br />
-                Doctors & Engineers<br />
-                with <span className="cp-gold-text">Elite Mentorship</span>
+              <h2 className="cp-hero-title">
+                {data.heroTitle || 'Empowering Future Doctors & Engineers with Elite Mentorship'}
               </h2>
-              <p className="cp-ref-hero-subtitle">
-                {data.heroSubtitle || "Andhra Pradesh's Premier Residential Academy for NEET-UG, JEE Advanced & Intermediate Excellence"}
+              <p className="cp-hero-subtitle">
+                {data.heroSubtitle || 'Premier Academic Academy for NEET-UG, IIT-JEE Advanced & Intermediate Excellence with 14+ Years of Proven State Ranks.'}
               </p>
 
-              <div className="cp-ref-hero-actions">
-                <button onClick={() => setIsEnquiryModalOpen(true)} className="cp-gold-pill-btn">
+              <div className="cp-hero-actions">
+                <button onClick={() => setIsEnquiryModalOpen(true)} className="cp-btn-hero-primary">
                   {data.heroCtaText || 'Apply for Admission 2026-27'} →
                 </button>
-                <button
-                  onClick={() => scrollToSection('courses')}
-                  className="cp-outline-pill-btn"
-                  style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)' }}
-                >
-                  Explore Courses
+                <button onClick={() => scrollToSection('courses')} className="cp-btn-hero-outline">
+                  Explore Academic Programmes
                 </button>
                 {data.hasOnlineExamModule && data.openExams?.length > 0 && (
-                  <button
-                    onClick={() => scrollToSection('exams')}
-                    className="cp-navy-pill-btn"
-                    style={{ background: '#0284c7', borderColor: '#0284c7' }}
-                  >
+                  <button onClick={() => scrollToSection('exams')} className="cp-btn-hero-accent">
                     Open Mock Tests ({data.openExams.length})
                   </button>
                 )}
@@ -643,122 +608,101 @@ export default function PublicCollegePortal() {
             </div>
 
             <div className="cp-hero-visual cp-reveal cp-delay-200">
-              <div className="cp-ref-hero-img-frame">
-                <img
-                  src={data.heroBannerUrl || 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=85'}
-                  alt="Campus"
-                  className="cp-ref-hero-img"
-                />
+              <div className="cp-hero-frame">
+                {data.heroBannerUrl ? (
+                  <img src={data.heroBannerUrl} alt="Campus" className="cp-hero-img" />
+                ) : (
+                  <div style={{ background: 'rgba(255,255,255,0.06)', padding: 60, textAlign: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: 26, color: '#ffffff' }}>{data.displayName}</h3>
+                    <p style={{ marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>Admissions Open for Academic Year 2026-27</p>
+                  </div>
+                )}
+                <div className="cp-hero-caption">
+                  <span>Main Academic Block & Laboratories</span>
+                  <span>Est. {data.estYear || '2009'}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="cp-ref-hero-curve" />
       </section>
 
       {/* =========================================================================
           SECTION 3: INSTITUTIONAL ACHIEVEMENTS (STATS STRIP)
           ========================================================================= */}
-      {data.showStatsSection !== false && (
-        <div className="cp-ref-stats-bar" ref={statsRef}>
+      {data.showStatsSection !== false && statsList.length > 0 && (
+        <div className="cp-stats-bar" ref={statsRef}>
           <div className="cp-container">
-            <div className="cp-ref-stats-card cp-reveal">
-              <div className="cp-ref-stat-item">
-                <div className="cp-ref-stat-icon">🎓</div>
-                <div>
-                  <div className="cp-ref-stat-num">
-                    <AnimatedCounter targetValue={statsList[0]?.value || '18,500+'} isVisible={statsVisible} />
+            <div className="cp-stats-grid">
+              {statsList.map((st, idx) => (
+                <div key={idx} className="cp-stat-cell">
+                  <div className="cp-stat-number">
+                    <AnimatedCounter targetValue={st.value} isVisible={statsVisible} />
                   </div>
-                  <div className="cp-ref-stat-lbl">{statsList[0]?.label || 'Students Mentored'}</div>
+                  <div className="cp-stat-label">{st.label}</div>
                 </div>
-              </div>
-
-              <div className="cp-ref-stat-item">
-                <div className="cp-ref-stat-icon">🏅</div>
-                <div>
-                  <div className="cp-ref-stat-num">
-                    <AnimatedCounter targetValue={statsList[1]?.value || '3,840+'} isVisible={statsVisible} />
-                  </div>
-                  <div className="cp-ref-stat-lbl">{statsList[1]?.label || 'NEET & JEE Selections'}</div>
-                </div>
-              </div>
-
-              <div className="cp-ref-stat-item">
-                <div className="cp-ref-stat-icon">🏆</div>
-                <div>
-                  <div className="cp-ref-stat-num">
-                    <AnimatedCounter targetValue={statsList[2]?.value || '62'} isVisible={statsVisible} />
-                  </div>
-                  <div className="cp-ref-stat-lbl">{statsList[2]?.label || 'State Top 10 Ranks'}</div>
-                </div>
-              </div>
-
-              <div className="cp-ref-stat-item">
-                <div className="cp-ref-stat-icon">🌟</div>
-                <div>
-                  <div className="cp-ref-stat-num">
-                    <AnimatedCounter targetValue={statsList[3]?.value || '140+'} isVisible={statsVisible} />
-                  </div>
-                  <div className="cp-ref-stat-lbl">{statsList[3]?.label || 'Olympiad & KVPY Scholars'}</div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          SECTION 4: ABOUT OUR INSTITUTION (14+ YEARS OF ACADEMIC INTEGRITY)
+          SECTION 4: ABOUT OUR INSTITUTION (PORCELAIN EDITORIAL CANVAS)
           ========================================================================= */}
       {data.showAboutSection !== false && (
         <section id="about" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-ref-about-grid">
-              <div className="cp-reveal cp-delay-100">
-                <h3 className="cp-ref-about-title">
-                  14+ Years of Academic Integrity &amp; Unmatched Results
-                </h3>
-                <p className="cp-ref-about-desc">
-                  {data.aboutText ||
-                    'Trusted by thousands of students and parents, Andhra Inspire Academy combines rigorous academics, expert mentorship and a results-driven culture to prepare students for NEET, JEE and competitive examinations.'}
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">01 / INSTITUTIONAL HERITAGE</span>
+              <h3 className="cp-section-title">{data.aboutTitle || 'Committed to Academic Rigor & Ethical Character'}</h3>
+              <p className="cp-section-desc">Building strong conceptual foundations and empowering students to achieve top national percentiles.</p>
+            </div>
+
+            <div className="cp-about-spread">
+              <div className="cp-about-col-lead cp-reveal cp-delay-100">
+                <p className="cp-about-lead">
+                  {data.aboutText || 'Founded with a visionary commitment to scientific excellence, our institution blends disciplined pedagogy with cutting-edge examination technologies, diagnostic error analysis, and round-the-clock mentorship.'}
                 </p>
 
-                <div className="cp-ref-checklist-grid">
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Result-focused academic system</span>
+                {/* 4 Core Institutional Pillars */}
+                <div className="cp-pillars-dossier">
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">1:25 Faculty Ratio</h4>
+                    <p className="cp-pillar-desc">Small batch sizes ensuring individual attention and daily doubt clinics.</p>
                   </div>
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Individual student mentoring</span>
+
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">NCERT Line-by-Line</h4>
+                    <p className="cp-pillar-desc">Rigorous conceptual analysis mapped directly to latest NTA entrance standards.</p>
                   </div>
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Experienced &amp; dedicated faculty</span>
+
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">Computer CBT Labs</h4>
+                    <p className="cp-pillar-desc">National-level timed computer testing replicating exact exam conditions.</p>
                   </div>
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Strong conceptual foundation</span>
-                  </div>
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Regular assessments &amp; analysis</span>
-                  </div>
-                  <div className="cp-ref-check-item">
-                    <span className="cp-ref-check-icon">✓</span>
-                    <span>Proven track record (14+ yrs)</span>
+
+                  <div className="cp-pillar-item">
+                    <h4 className="cp-pillar-title">Residential Discipline</h4>
+                    <p className="cp-pillar-desc">Air-conditioned, smartphone-free hostels with round-the-clock mentor guidance.</p>
                   </div>
                 </div>
               </div>
 
+              {/* Vision & Mission Panels */}
               <div className="cp-reveal cp-delay-200">
-                <div className="cp-ref-about-img-frame">
-                  <img
-                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=85"
-                    alt="Classroom Students"
-                    className="cp-ref-about-img"
-                  />
-                </div>
+                {data.visionText && (
+                  <div className="cp-vm-panel cp-vm-panel-vision">
+                    <span className="cp-vm-label">Our Institutional Vision</span>
+                    <p className="cp-vm-text">{data.visionText}</p>
+                  </div>
+                )}
+                {data.missionText && (
+                  <div className="cp-vm-panel cp-vm-panel-mission">
+                    <span className="cp-vm-label">Our Core Mission</span>
+                    <p className="cp-vm-text">{data.missionText}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -766,39 +710,47 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE
+          SECTION 5: DIRECTOR AND LEADERSHIP MESSAGE (EXECUTIVE EDITORIAL)
           ========================================================================= */}
       {data.showDirectorSection !== false && data.directorName && (
-        <section className="cp-section cp-section-white" style={{ paddingTop: 0 }}>
+        <section className="cp-section cp-section-linen">
           <div className="cp-container">
-            <div className="cp-ref-director-panel cp-reveal">
-              <div className="cp-ref-director-quote-mark">”</div>
-
-              <div className="cp-ref-director-photo-wrap">
-                <img
-                  src={data.directorPhotoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=85'}
-                  alt={data.directorName}
-                  className="cp-ref-director-photo"
-                />
-                <h4 className="cp-ref-director-name">{data.directorName}</h4>
-                <p className="cp-ref-director-role">{data.directorTitle || 'Founder, Chairman & Academic Director'}</p>
-                {data.directorQualifications && (
-                  <p className="cp-ref-director-qual">{data.directorQualifications}</p>
-                )}
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">02 / LEADERSHIP ADDRESS</span>
+            </div>
+            <div className="cp-director-spread cp-reveal">
+              <div className="cp-director-media">
+                <div className="cp-director-portrait-frame">
+                  {data.directorPhotoUrl ? (
+                    <img src={data.directorPhotoUrl} alt={data.directorName} className="cp-director-portrait" />
+                  ) : (
+                    <div className="cp-director-portrait" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52, background: '#e2e8f0' }}>
+                      🎓
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="cp-director-name">{data.directorName}</h4>
+                  <p className="cp-director-title">{data.directorTitle || 'Founder & Academic Director'}</p>
+                  {data.directorQualifications && (
+                    <p className="cp-director-qual">{data.directorQualifications}</p>
+                  )}
+                </div>
               </div>
 
               <div>
-                <div className="cp-ref-leadership-badge">
-                  <span>🎓 LEADERSHIP MESSAGE</span>
-                </div>
-                <h3 className="cp-ref-director-headline">
+                <h3 className="cp-director-headline">
                   "Committed to Nurturing Every Student's Highest Potential"
                 </h3>
-                <p className="cp-ref-director-quote">
-                  "{data.directorMessage ||
-                    'Success in competitive examinations like NEET and JEE is never an accident. It is the natural consequence of daily conceptual clarity, targeted practice, and fearless self-correction. At Andhra Inspire Academy, every student is known personally, guided patiently, and challenged systematically to realize their supreme potential.'}"
+                <p className="cp-director-quote">
+                  "{data.directorMessage || 'Success in competitive examinations like NEET and JEE is never an accident. It is the natural consequence of daily conceptual clarity, targeted practice, and fearless self-correction. At our institution, every student is known personally, guided patiently, and challenged systematically to realize their supreme potential.'}"
                 </p>
-                <div className="cp-ref-director-signature">K. S. R. Murthy</div>
+                <div className="cp-signature-block">
+                  <div>
+                    <strong style={{ fontSize: 14, color: 'var(--cp-text-ink)' }}>{data.directorName}</strong>
+                    <div className="cp-signature-sub">{data.directorTitle || 'Founder & Academic Director'}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -808,29 +760,28 @@ export default function PublicCollegePortal() {
       {/* =========================================================================
           SECTION 6: WHY CHOOSE OUR COLLEGE?
           ========================================================================= */}
-      {data.showWhyUsSection !== false && (
-        <section id="whyus" className="cp-section" style={{ background: '#fcfbf7' }}>
+      {data.showWhyUsSection !== false && whyUsList.length > 0 && (
+        <section id="whyus" className="cp-section cp-section-slate">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Why Choose Our College?</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                A result-oriented academic ecosystem designed for serious aspirants.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">03 / INSTITUTIONAL ADVANTAGES</span>
+              <h3 className="cp-section-title">Why Choose Our College?</h3>
+              <p className="cp-section-desc">Six proven educational pillars designed to guarantee top ranks and transformative student growth.</p>
             </div>
 
-            <div className="cp-ref-whyus-grid">
-              {[
-                { title: 'Experienced Faculty', desc: 'Subject experts with proven mentoring excellence.', icon: '👨‍🏫' },
-                { title: 'Personalised Attention', desc: 'Individual guidance and regular performance tracking.', icon: '🎯' },
-                { title: 'Structured Academics', desc: 'Concept-based teaching with systematic revision and tests.', icon: '📚' },
-                { title: 'Competitive Focus', desc: 'Integrated NEET, JEE & Olympiad preparation.', icon: '🏆' },
-                { title: 'Holistic Development', desc: 'Academics, discipline and character building.', icon: '🌱' },
-                { title: 'Safe & Supportive Campus', desc: 'A focused, student-friendly residential environment.', icon: '🛡️' },
-              ].map((item, idx) => (
-                <div key={idx} className={`cp-ref-whyus-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div className="cp-ref-whyus-icon">{item.icon}</div>
-                  <h4 className="cp-ref-whyus-title">{item.title}</h4>
-                  <p className="cp-ref-whyus-desc">{item.desc}</p>
+            <div className="cp-whyus-matrix">
+              {whyUsList.map((item, idx) => (
+                <div key={idx} className={`cp-whyus-cell cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div className="cp-whyus-icon-frame">
+                    {idx === 0 && <IconGraduationCap />}
+                    {idx === 1 && <IconDocument />}
+                    {idx === 2 && <IconComputer />}
+                    {idx === 3 && <IconChat />}
+                    {idx === 4 && <IconDeviceMobile />}
+                    {idx >= 5 && <IconShield />}
+                  </div>
+                  <h4 className="cp-whyus-title">{item.title}</h4>
+                  <p className="cp-whyus-desc">{item.description}</p>
                 </div>
               ))}
             </div>
@@ -839,51 +790,60 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 7: COURSES OFFERED
+          SECTION 7: COURSES AND ACADEMIC PROGRAMMES
           ========================================================================= */}
       {data.showCoursesSection !== false && data.courses?.length > 0 && (
         <section id="courses" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Courses Offered</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Comprehensive academic programmes for intermediate and competitive examinations.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">04 / ACADEMIC PROGRAMMES</span>
+              <h3 className="cp-section-title">Courses Offered</h3>
+              <p className="cp-section-desc">Designed with rigorous pedagogy and high-speed accuracy training for national entrance exams.</p>
             </div>
 
-            <div className="cp-ref-courses-grid">
+            <div className="cp-courses-dossier-grid">
               {data.courses.map((c, idx) => (
-                <div key={c.id} className={`cp-ref-course-card cp-reveal cp-delay-${(idx % 2) * 100 + 100}`}>
-                  <div className="cp-ref-course-thumb-wrap">
-                    <img
-                      src={getCourseThumbnail(c, idx)}
-                      alt={c.courseName}
-                      className="cp-ref-course-thumb"
-                    />
-                  </div>
-                  <div className="cp-ref-course-content">
-                    <div>
-                      <h4 className="cp-ref-course-title">{c.courseName}</h4>
-                      <div className="cp-ref-course-class">
-                        {c.duration ? c.duration : 'Classes 11 & 12'}
-                      </div>
-                      <p className="cp-ref-course-desc">{c.description}</p>
+                <div key={c.id} className={`cp-course-dossier cp-reveal cp-delay-${(idx % 2) * 100 + 100}`}>
+                  <div>
+                    <div className="cp-course-meta">
+                      <span className="cp-stream-tag">{c.category}</span>
+                      {c.duration && <span className="cp-duration-tag">⏱ {c.duration}</span>}
                     </div>
+                    <h4 className="cp-course-heading">{c.courseName}</h4>
+                    {c.targetExam && <div className="cp-target-exam">Target: {c.targetExam}</div>}
+                    <p className="cp-course-body">{c.description}</p>
+                    {c.eligibility && (
+                      <div className="cp-eligibility-box">
+                        <span className="cp-eligibility-label">Eligibility Requirement</span>
+                        <span className="cp-eligibility-val">{c.eligibility}</span>
+                      </div>
+                    )}
+                  </div>
 
-                    <div className="cp-ref-course-actions">
-                      <button
-                        onClick={() => openCourseEnquiry(c.courseName)}
-                        className="cp-navy-pill-btn"
+                  <div className="cp-course-actions">
+                    <button
+                      onClick={() => openCourseEnquiry(c.courseName)}
+                      className="cp-btn-course-apply"
+                    >
+                      Enquire for Course →
+                    </button>
+                    {c.brochureFilename ? (
+                      <a
+                        href={`/uploads/brochures/${c.brochureFilename}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cp-btn-course-prospectus"
                       >
-                        Enquire Now →
-                      </button>
+                        Download Prospectus
+                      </a>
+                    ) : (
                       <button
                         onClick={() => setIsBrochureModalOpen(true)}
-                        className="cp-outline-pill-btn"
+                        className="cp-btn-course-prospectus"
                       >
-                        View Details
+                        View Syllabus & Fees
                       </button>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -896,26 +856,37 @@ export default function PublicCollegePortal() {
           SECTION 8: FACULTY AND ACADEMIC LEADERSHIP
           ========================================================================= */}
       {data.showFacultySection !== false && data.faculties?.length > 0 && (
-        <section id="faculty" className="cp-section" style={{ background: '#fcfbf7' }}>
+        <section id="faculty" className="cp-section cp-section-slate">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Faculty and Academic Leadership</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                A team of experienced educators dedicated to student success.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">05 / ACADEMIC LEADERSHIP</span>
+              <h3 className="cp-section-title">Faculty and Academic Mentors</h3>
+              <p className="cp-section-desc">Learn from seasoned educators and rank producers with master's degrees from IITs and premier national universities.</p>
             </div>
 
-            <div className="cp-ref-faculty-grid">
+            <div className="cp-faculty-roster">
               {data.faculties.map((f, idx) => (
-                <div key={f.id} className={`cp-ref-faculty-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
-                  <img
-                    src={f.photoUrl || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'}
-                    alt={f.name}
-                    className="cp-ref-faculty-avatar"
-                  />
-                  <h4 className="cp-ref-faculty-name">{f.name}</h4>
-                  <p className="cp-ref-faculty-role">{f.designation}</p>
-                  <p className="cp-ref-faculty-exp">{f.experienceYrs ? `${f.experienceYrs}+ Years Experience` : f.qualification}</p>
+                <div key={f.id} className={`cp-faculty-dossier cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
+                  <div className="cp-faculty-avatar-frame">
+                    {f.photoUrl ? (
+                      <img src={f.photoUrl} alt={f.name} className="cp-faculty-avatar" />
+                    ) : (
+                      <div className="cp-faculty-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#f1f5f9' }}>
+                        🎓
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="cp-faculty-name">{f.name}</h4>
+                  <p className="cp-faculty-desig">{f.designation}</p>
+                  {f.department && (
+                    <span className="cp-faculty-dept">{f.department}</span>
+                  )}
+                  {f.qualification && (
+                    <p className="cp-faculty-qual">{f.qualification}</p>
+                  )}
+                  {f.bio && (
+                    <p style={{ fontSize: 13, color: '#64748b', marginTop: 12, lineHeight: 1.55 }}>{f.bio}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -924,34 +895,26 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 9: TEACHING METHODOLOGY & RIGOUR
+          SECTION 9: TEACHING METHODOLOGY
           ========================================================================= */}
-      {data.showMethodologySection !== false && (
-        <section id="methodology" className="cp-ref-methodology-section">
+      {data.showMethodologySection !== false && methodologyList.length > 0 && (
+        <section id="methodology" className="cp-section cp-section-dark">
           <div className="cp-container">
-            <div className="cp-section-header cp-dark-header cp-reveal" style={{ textAlign: 'center', marginBottom: 30 }}>
-              <h3 className="cp-section-title" style={{ color: '#ffffff', fontSize: 32 }}>
-                Teaching Methodology &amp; Rigour
-              </h3>
-              <p className="cp-section-desc" style={{ color: '#cbd5e1', maxWidth: 640, margin: '0 auto' }}>
-                A structured, test-driven and student-centric learning system.
-              </p>
+            <div className="cp-section-header cp-dark-header cp-reveal">
+              <span className="cp-section-marker" style={{ color: 'var(--cp-gold)' }}>06 / PEDAGOGICAL FRAMEWORK</span>
+              <h3 className="cp-section-title">Teaching Methodology & Rigour</h3>
+              <p className="cp-section-desc">Our closed-loop diagnostic learning model transforms average students into national competitive toppers.</p>
             </div>
 
-            <div className="cp-ref-methodology-flow cp-reveal">
-              {[
-                { title: 'Conceptual Learning', icon: '📖' },
-                { title: 'Daily Practice', icon: '📝' },
-                { title: 'Weekly Tests', icon: '📑' },
-                { title: 'Performance Analysis', icon: '📊' },
-                { title: 'Doubt Clearing', icon: '👥' },
-              ].map((step, idx) => (
-                <div key={idx} style={{ display: 'contents' }}>
-                  <div className="cp-ref-method-node">
-                    <div className="cp-ref-method-icon">{step.icon}</div>
-                    <div className="cp-ref-method-title">{step.title}</div>
-                  </div>
-                  {idx < 4 && <div className="cp-ref-method-arrow">→</div>}
+            <div className="cp-methodology-timeline">
+              {methodologyList.map((step, idx) => (
+                <div key={idx} className={`cp-timeline-node cp-reveal cp-delay-${idx * 100 + 100}`}>
+                  <div className="cp-timeline-step-index">{step.stepNumber || `0${idx + 1}`}</div>
+                  {step.badge && (
+                    <div className="cp-timeline-badge">{step.badge}</div>
+                  )}
+                  <h4 className="cp-timeline-title">{step.title}</h4>
+                  <p className="cp-timeline-text">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -965,24 +928,30 @@ export default function PublicCollegePortal() {
       {data.showFacilitiesSection !== false && data.facilities?.length > 0 && (
         <section id="campus" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Campus &amp; Infrastructure</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                A modern learning environment with modern facilities.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">07 / CAMPUS & INFRASTRUCTURE</span>
+              <h3 className="cp-section-title">Campus & Infrastructure</h3>
+              <p className="cp-section-desc">A safe, distraction-free residential and academic environment engineered for complete student focus.</p>
             </div>
 
-            <div className="cp-ref-campus-grid">
+            <div className="cp-facility-mosaic">
               {data.facilities.map((fac, idx) => (
-                <div key={fac.id} className={`cp-ref-campus-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
-                  <img
-                    src={fac.photoUrl || 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=600&q=85'}
-                    alt={fac.title}
-                    className="cp-ref-campus-img"
-                  />
-                  <div className="cp-ref-campus-info">
-                    <h4 className="cp-ref-campus-title">{fac.title}</h4>
-                    <p className="cp-ref-campus-desc">{fac.description}</p>
+                <div key={fac.id} className={`cp-facility-item cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div className="cp-facility-media-wrap">
+                    {fac.photoUrl ? (
+                      <img src={fac.photoUrl} alt={fac.title} className="cp-facility-media" />
+                    ) : (
+                      <div className="cp-facility-media" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
+                        🏛
+                      </div>
+                    )}
+                  </div>
+                  <div className="cp-facility-info">
+                    {fac.category && (
+                      <span className="cp-facility-category">{fac.category}</span>
+                    )}
+                    <h4 className="cp-facility-title">{fac.title}</h4>
+                    <p className="cp-facility-caption">{fac.description}</p>
                   </div>
                 </div>
               ))}
@@ -992,33 +961,55 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 11: STUDENT ACHIEVERS AND RANKS
+          SECTION 11: STUDENT RESULTS AND ROLL OF HONOR
           ========================================================================= */}
       {data.showResultsSection !== false && data.achievements?.length > 0 && (
-        <section id="toppers" className="cp-ref-achievers-section">
+        <section id="toppers" className="cp-section cp-section-dark">
           <div className="cp-container">
-            <div className="cp-section-header cp-dark-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ color: '#ffffff', fontSize: 32 }}>
-                Student Achievers &amp; Ranks
-              </h3>
-              <p className="cp-section-desc" style={{ color: '#cbd5e1', maxWidth: 640, margin: '0 auto' }}>
-                Celebrating our outstanding students and their remarkable achievements.
-              </p>
+            <div className="cp-section-header cp-dark-header cp-reveal">
+              <span className="cp-section-marker" style={{ color: 'var(--cp-gold)' }}>08 / ROLL OF HONOR</span>
+              <h3 className="cp-section-title">Student Achievers & State Ranks</h3>
+              <p className="cp-section-desc">Celebrating our stellar rankers who realized their medical and engineering dreams.</p>
             </div>
 
-            <div className="cp-ref-achievers-grid">
+            {/* Summary Results Highlights Strip */}
+            <div className="cp-honor-highlights-strip cp-reveal">
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">140+</div>
+                <div className="cp-honor-highlight-lbl">National Top 100 Ranks</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">62</div>
+                <div className="cp-honor-highlight-lbl">State Top 10 Ranks</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">3,840+</div>
+                <div className="cp-honor-highlight-lbl">NEET & JEE Selections</div>
+              </div>
+              <div className="cp-honor-highlight-item">
+                <div className="cp-honor-highlight-val">100%</div>
+                <div className="cp-honor-highlight-lbl">Intensive Batch Success</div>
+              </div>
+            </div>
+
+            <div className="cp-honor-roll-grid">
               {data.achievements.map((a, idx) => (
-                <div key={a.id} className={`cp-ref-achiever-card cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
-                  <div className="cp-ref-achiever-avatar-wrap">
-                    <img
-                      src={a.photoUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=600&q=85'}
-                      alt={a.studentName}
-                      className="cp-ref-achiever-avatar"
-                    />
+                <div key={a.id} className={`cp-honor-dossier cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}>
+                  <div className="cp-honor-avatar-wrap">
+                    {a.photoUrl ? (
+                      <img src={a.photoUrl} alt={a.studentName} className="cp-honor-avatar" />
+                    ) : (
+                      <div className="cp-honor-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, background: '#1e293b' }}>
+                        🎓
+                      </div>
+                    )}
                   </div>
-                  <h4 className="cp-ref-achiever-name">{a.studentName}</h4>
-                  <div className="cp-ref-achiever-exam">{a.examOrAward}</div>
-                  <div className="cp-ref-achiever-rank">{a.rankOrScore}</div>
+                  <h4 className="cp-honor-name">{a.studentName}</h4>
+                  <div className="cp-honor-award">{a.examOrAward}</div>
+                  {a.rankOrScore && (
+                    <span className="cp-honor-rank-pill">{a.rankOrScore}</span>
+                  )}
+                  {a.description && <p className="cp-honor-desc">{a.description}</p>}
                 </div>
               ))}
             </div>
@@ -1027,83 +1018,147 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 12: ADMISSIONS AND MERIT SCHOLARSHIPS
+          SECTION 12: ADMISSIONS AND SCHOLARSHIPS
           ========================================================================= */}
       {data.showAdmissionsSection !== false && (
-        <section id="admissions" className="cp-ref-admissions-section">
+        <section id="admissions" className="cp-section cp-section-linen">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <div className="cp-ref-admissions-pill-badge">ADMISSIONS 2026-27</div>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Admissions &amp; Merit Scholarships</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Be a part of Andhra Inspire Academy and take the next step towards your dream career.
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">09 / ADMISSIONS & SCHOLARSHIPS</span>
+              <h3 className="cp-section-title">Admissions & Merit Scholarships</h3>
+              <p className="cp-section-desc">
+                Secure your seat for intensive national medical & engineering batches for Academic Session 2026-27 with scholarship concessions up to 100% full tuition fee waiver.
               </p>
             </div>
 
-            <div className="cp-ref-admissions-grid">
-              {/* Left Column: 4 Admission Highlights */}
-              <div className="cp-ref-admission-feature-list cp-reveal cp-delay-100">
-                <div className="cp-ref-adm-feature-item">
-                  <div className="cp-ref-adm-feature-icon">🎓</div>
-                  <div>
-                    <h4 className="cp-ref-adm-feature-title">Wide Range of Courses</h4>
-                    <p className="cp-ref-adm-feature-desc">Intermediate, NEET, JEE &amp; Foundation.</p>
-                  </div>
-                </div>
-
-                <div className="cp-ref-adm-feature-item">
-                  <div className="cp-ref-adm-feature-icon">🏅</div>
-                  <div>
-                    <h4 className="cp-ref-adm-feature-title">Merit-Based Scholarships</h4>
-                    <p className="cp-ref-adm-feature-desc">Rewarding academic excellence.</p>
-                  </div>
-                </div>
-
-                <div className="cp-ref-adm-feature-item">
-                  <div className="cp-ref-adm-feature-icon">📝</div>
-                  <div>
-                    <h4 className="cp-ref-adm-feature-title">Simple Admission Process</h4>
-                    <p className="cp-ref-adm-feature-desc">Inquiry → Counseling → Admission.</p>
-                  </div>
-                </div>
-
-                <div className="cp-ref-adm-feature-item">
-                  <div className="cp-ref-adm-feature-icon">⏳</div>
-                  <div>
-                    <h4 className="cp-ref-adm-feature-title">Limited Seats</h4>
-                    <p className="cp-ref-adm-feature-desc">Apply early to secure your seat.</p>
-                  </div>
-                </div>
+            {/* Important Admissions Dates & Milestones Strip */}
+            <div className="cp-admissions-dates-strip cp-reveal">
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">📅 MARCH 31, 2026</div>
+                <h4 className="cp-milestone-title">Phase 1 Application Deadline</h4>
+                <p className="cp-milestone-desc">Early registration for batch allocation and scholarship test token booking.</p>
               </div>
 
-              {/* Right Column: Important Dates Card */}
-              <div className="cp-ref-dates-card cp-reveal cp-delay-200">
-                <h4 className="cp-ref-dates-title">📅 Important Dates</h4>
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🎯 APRIL 12, 2026</div>
+                <h4 className="cp-milestone-title">AITSE Scholarship Test</h4>
+                <p className="cp-milestone-desc">All-India Talent & Scholarship Exam conducted online (CBT) and at campus centers.</p>
+              </div>
 
-                <div className="cp-ref-date-row">
-                  <span className="cp-ref-date-lbl">Application Start:</span>
-                  <span className="cp-ref-date-val">15 January 2026</span>
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🏆 APRIL 18, 2026</div>
+                <h4 className="cp-milestone-title">Merit List & Fee Concessions</h4>
+                <p className="cp-milestone-desc">Individual scorecards released with fee concessions up to 100% full tuition waiver.</p>
+              </div>
+
+              <div className="cp-milestone-card">
+                <div className="cp-milestone-date">🎓 JUNE 01, 2026</div>
+                <h4 className="cp-milestone-title">Session Commencement</h4>
+                <p className="cp-milestone-desc">Formal student induction, academic kit distribution, and commencement of classes.</p>
+              </div>
+            </div>
+
+            {/* Quick Available Courses & Eligibility Ribbon */}
+            {data.courses && data.courses.length > 0 && (
+              <div className="cp-admissions-courses-ribbon cp-reveal">
+                <div className="cp-ribbon-heading">
+                  <span>Target Programmes & Academic Eligibility</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cp-secondary)' }}>Academic Session 2026-27</span>
                 </div>
-                <div className="cp-ref-date-row">
-                  <span className="cp-ref-date-lbl">Last Date to Apply:</span>
-                  <span className="cp-ref-date-val">30 April 2026</span>
+                <div className="cp-ribbon-grid">
+                  {data.courses.map((cr) => (
+                    <div key={cr.id} className="cp-ribbon-item">
+                      <div className="cp-ribbon-course-name">{cr.courseName}</div>
+                      <div className="cp-ribbon-course-elig">
+                        <strong>Eligibility:</strong> {cr.eligibility || 'Class 10 passed with 60%+ in Science & Maths'}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="cp-ref-date-row">
-                  <span className="cp-ref-date-lbl">Entrance Test:</span>
-                  <span className="cp-ref-date-val">10 May 2026</span>
-                </div>
-                <div className="cp-ref-date-row">
-                  <span className="cp-ref-date-lbl">Result &amp; Counseling:</span>
-                  <span className="cp-ref-date-val">18 May 2026</span>
+              </div>
+            )}
+
+            <div className="cp-admissions-campaign-grid">
+              {/* 4-Step Process */}
+              <div className="cp-admissions-timeline-col cp-reveal cp-delay-100">
+                <h4 className="cp-admissions-col-heading">4-Step Admission Roadmap</h4>
+
+                {(admissionProcessList.length > 0 ? admissionProcessList : [
+                  { step: '01', title: 'Submit Online Enquiry', description: 'Complete our quick online registration form with student academic marks and stream preference.' },
+                  { step: '02', title: 'Diagnostic Talent & Scholarship Test', description: 'Appear for the Annual Scholarship Test (AITSE) to evaluate baseline readiness and qualify for fee waivers.' },
+                  { step: '03', title: 'Personal Academic Counseling', description: 'Meet with senior academic deans to map individual career targets and batch allocation.' },
+                  { step: '04', title: 'Seat Allotment & Enrollment', description: 'Finalize document verification, collect curriculum kit, and attend the student induction program.' },
+                ]).map((st, idx) => (
+                  <div key={idx} className="cp-stage-item">
+                    <div className="cp-stage-num">{st.step}</div>
+                    <div>
+                      <h4 className="cp-stage-title">{st.title}</h4>
+                      <p className="cp-stage-desc">{st.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Scholarship Tiers Card */}
+              <div className="cp-scholarship-ledger-card cp-reveal cp-delay-200">
+                <span className="cp-scholarship-eyebrow">Merit Concessions</span>
+                <h4 className="cp-scholarship-title">Institutional Scholarship Tiers</h4>
+                <p className="cp-scholarship-intro">
+                  We reward academic dedication. Scholarship concessions apply directly to tuition fees for 2 full academic years.
+                </p>
+
+                <div>
+                  {(scholarshipList.length > 0 ? scholarshipList : [
+                    { name: 'State Ranker Scholarship', criteria: 'Top 50 Ranks in AITSE or 98%+ in 10th Board Exams', benefit: '100% Full Tuition Waiver for 2 Years' },
+                    { name: 'Merit Excellence Scholarship', criteria: 'Ranks 51 - 150 in AITSE or 95% - 97.9% in 10th Board Exams', benefit: '75% Tuition Fee Waiver' },
+                    { name: 'Academic Achiever Concession', criteria: 'Ranks 151 - 500 in AITSE or 90% - 94.9% in 10th Board Exams', benefit: '50% Tuition Fee Waiver' },
+                    { name: 'Defense & Social Quota', criteria: 'Wards of Armed Forces / Police & Single Parent Girls', benefit: 'Special 25% Institutional Grant' },
+                  ]).map((sc, idx) => (
+                    <div key={idx} className="cp-tier-row">
+                      <div>
+                        <div className="cp-tier-name">{sc.name}</div>
+                        <div className="cp-tier-criteria">{sc.criteria}</div>
+                      </div>
+                      <div className="cp-tier-benefit">{sc.benefit}</div>
+                    </div>
+                  ))}
                 </div>
 
+                <div className="cp-scholarship-actions">
+                  <button
+                    onClick={() => setIsEnquiryModalOpen(true)}
+                    className="cp-btn-scholarship-apply"
+                  >
+                    Apply for Scholarship Test →
+                  </button>
+                  <button
+                    onClick={() => setIsBrochureModalOpen(true)}
+                    className="cp-btn-scholarship-prospectus"
+                  >
+                    Prospectus & Syllabus
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Admissions Prominent Action Bar */}
+            <div className="cp-admissions-cta-bar cp-reveal">
+              <div className="cp-admissions-cta-text">
+                <h4>Admissions Open for Academic Session 2026-27</h4>
+                <p>Limited seats per batch to preserve our strict 1:25 faculty mentorship ratio.</p>
+              </div>
+              <div className="cp-admissions-cta-btns">
                 <button
                   onClick={() => setIsEnquiryModalOpen(true)}
-                  className="cp-gold-pill-btn"
-                  style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}
+                  className="cp-btn-admissions-primary"
                 >
-                  Apply for Admission →
+                  Apply Online for 2026-27 →
                 </button>
+                {data.phone && (
+                  <a href={`tel:${data.phone.replace(/[^0-9+]/g, '')}`} className="cp-btn-admissions-call">
+                    📞 {data.phone}
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -1111,15 +1166,16 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 13: OPEN CBT EXAMINATIONS (MODULAR SAAS GUARD)
+          SECTION 13: OPEN CBT EXAMINATIONS
           ========================================================================= */}
       {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
         <section id="exams" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Open Mock &amp; Scholarship Examinations</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions.
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">10 / EXAMINATION PORTAL</span>
+              <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
+              <p className="cp-section-desc">
+                Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions with instant diagnostic analytics.
               </p>
             </div>
 
@@ -1151,7 +1207,7 @@ export default function PublicCollegePortal() {
                       href={test.cbtUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="cp-navy-pill-btn"
+                      className="cp-btn-launch-exam"
                     >
                       Start Examination →
                     </a>
@@ -1164,41 +1220,52 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
-          SECTION 14: FACULTY CAREERS AND OPENINGS
+          SECTION 14: FACULTY CAREERS
           ========================================================================= */}
-      {data.hasRecruitmentModule && data.showCareersSection !== false && (
-        <section id="careers" className="cp-section cp-section-white">
+      {data.hasRecruitmentModule && data.showCareersSection !== false && data.jobPostings?.length > 0 && (
+        <section id="careers" className="cp-section cp-section-slate">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Faculty Careers &amp; Openings</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Join our academic team and make a difference in student lives.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">11 / FACULTY OPENINGS</span>
+              <h3 className="cp-section-title">Faculty Careers & Openings</h3>
+              <p className="cp-section-desc">We are always looking for passionate educators and academic leaders to mentor national rankers.</p>
             </div>
 
-            <div className="cp-ref-careers-grid">
-              {(data.jobPostings && data.jobPostings.length > 0 ? data.jobPostings : [
-                { id: '1', jobTitle: 'Senior Mathematics Faculty', requiredQualifications: 'M.Sc., B.Ed.', minExperienceYrs: 5, location: 'Vijayawada', applicationDeadline: '2026-04-30' },
-                { id: '2', jobTitle: 'NEET/JEE Chemistry Faculty', requiredQualifications: 'M.Sc., Ph.D. / Net Pref.', minExperienceYrs: 3, location: 'Vijayawada', applicationDeadline: '2026-04-30' },
-              ]).map((job, idx) => (
-                <div key={job.id} className={`cp-ref-career-card cp-reveal cp-delay-${idx * 100 + 100}`}>
-                  <h4 className="cp-ref-career-title">{job.jobTitle}</h4>
-                  <div className="cp-ref-career-meta-list">
-                    <div><strong>Qualification:</strong> {job.requiredQualifications}</div>
-                    <div><strong>Experience:</strong> {job.minExperienceYrs}+ Years</div>
-                    <div><strong>Location:</strong> {job.location || 'Vijayawada'}</div>
-                    <div><strong>Last Date:</strong> 30 April 2026</div>
+            <div className="cp-careers-notice-board">
+              {data.jobPostings.map((job, idx) => (
+                <div key={job.id} className={`cp-career-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div>
+                    <h4 className="cp-career-title">{job.jobTitle}</h4>
+                    <div className="cp-career-badges">
+                      <span className="cp-career-badge">Dept: {job.department}</span>
+                      <span className="cp-career-badge">{job.employmentType}</span>
+                      {job.minExperienceYrs > 0 && (
+                        <span className="cp-career-badge">{job.minExperienceYrs}+ Yrs Exp</span>
+                      )}
+                      {job.location && (
+                        <span className="cp-career-badge">{job.location}</span>
+                      )}
+                    </div>
+                    <p className="cp-career-desc">{job.jobDescription}</p>
+                    {job.requiredQualifications && (
+                      <div className="cp-job-qual" style={{ marginTop: 12 }}>
+                        <strong>Required:</strong> {job.requiredQualifications}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setJobSuccess(false);
-                      setJobError(null);
-                    }}
-                    className="cp-navy-pill-btn"
-                  >
-                    Apply Now →
-                  </button>
+
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setJobSuccess(false);
+                        setJobError(null);
+                      }}
+                      className="cp-btn-apply-job"
+                    >
+                      Apply Online with Resume →
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1209,44 +1276,41 @@ export default function PublicCollegePortal() {
       {/* =========================================================================
           SECTION 15: CAMPUS LIFE AND PHOTO GALLERY
           ========================================================================= */}
-      {data.showGallerySection !== false && (
-        <section id="gallery" className="cp-section" style={{ background: '#fcfbf7' }}>
+      {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
+        <section id="gallery" className="cp-section cp-section-white">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 30 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Campus Life &amp; Photo Gallery</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                A glimpse of our academic and co-curricular activities.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">12 / CAMPUS GLIMPSES</span>
+              <h3 className="cp-section-title">Campus Life & Photo Gallery</h3>
+              <p className="cp-section-desc">Explore daily life, laboratories, convocation ceremonies, and sports activities.</p>
             </div>
 
-            {/* Filter Pills */}
-            <div className="cp-ref-gallery-filters cp-reveal">
-              {['ALL', 'ACADEMICS', 'EVENTS', 'SPORTS', 'CAMPUS'].map((cat) => (
+            {/* Gallery Category Filter Tabs */}
+            <div className="cp-gallery-tabs cp-reveal">
+              {['ALL', 'CAMPUS', 'LABS', 'EVENTS', 'SPORTS'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setGalleryCategory(cat)}
-                  className={`cp-ref-filter-pill ${galleryCategory === cat ? 'active' : ''}`}
+                  className={`cp-gallery-tab-btn ${galleryCategory === cat ? 'active' : ''}`}
                 >
-                  {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                  {cat === 'ALL' ? 'All Photos' : cat}
                 </button>
               ))}
             </div>
 
-            <div className="cp-ref-gallery-grid cp-reveal">
-              {(filteredGallery.length > 0 ? filteredGallery : [
-                { id: '1', mediaUrl: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=600&q=85', title: 'Campus Lawn' },
-                { id: '2', mediaUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=85', title: 'Chemistry Lab' },
-                { id: '3', mediaUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=85', title: 'Interactive Learning' },
-                { id: '4', mediaUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=600&q=85', title: 'Athletics & Sports' },
-                { id: '5', mediaUrl: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=85', title: 'Convocation' },
-              ]).slice(0, 5).map((item, idx) => (
-                <img
-                  key={item.id || idx}
-                  src={item.mediaUrl}
-                  alt={item.title}
-                  className="cp-ref-gallery-img"
+            <div className="cp-gallery-editorial-grid">
+              {filteredGallery.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className={`cp-gallery-frame cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
                   onClick={() => setPreviewMedia(item)}
-                />
+                >
+                  <img src={item.mediaUrl} alt={item.title} className="cp-gallery-photo" />
+                  <div className="cp-gallery-caption-overlay">
+                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 6 }}>{item.category}</span>
+                    <strong style={{ fontSize: 15 }}>{item.title}</strong>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -1256,136 +1320,129 @@ export default function PublicCollegePortal() {
       {/* =========================================================================
           SECTION 16: PARENT AND STUDENT TESTIMONIALS
           ========================================================================= */}
-      {data.showTestimonialsSection !== false && (
-        <section id="testimonials" className="cp-section cp-section-white">
+      {data.showTestimonialsSection !== false && data.testimonials?.length > 0 && (
+        <section id="testimonials" className="cp-section cp-section-linen">
           <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>What They Say About Us</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Trusted by students and parents for quality education and consistent results.
-              </p>
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">13 / ALUMNI & PARENT PERSPECTIVES</span>
+              <h3 className="cp-section-title">What They Say About Us</h3>
+              <p className="cp-section-desc">Authentic experiences and reviews from our successful doctors, engineers, and their proud parents.</p>
             </div>
 
-            <div className="cp-ref-testimonial-container cp-reveal">
-              <button
-                className="cp-ref-nav-arrow"
-                onClick={() => setTestimonialIndex((prev) => (prev === 0 ? (data.testimonials?.length || 3) - 1 : prev - 1))}
-                aria-label="Previous Testimonial"
-              >
-                ‹
-              </button>
-
-              <div className="cp-ref-testimonial-card">
-                <div className="cp-ref-stars">★★★★★</div>
-                <p className="cp-ref-testimonial-quote">
-                  "{data.testimonials?.[testimonialIndex]?.quote ||
-                    'The disciplined academic environment and personal attention at Andhra Inspire Academy helped my son develop confidence and secure a top rank in NEET. The faculty are truly committed to each student.'}"
-                </p>
-                <h5 className="cp-ref-testimonial-author">
-                  {data.testimonials?.[testimonialIndex]?.authorName || 'V. Sambasiva Rao'}
-                </h5>
-                <p className="cp-ref-testimonial-role">
-                  {data.testimonials?.[testimonialIndex]?.authorRole || 'Parent of Sneha Latha (State 1st Rank)'}
-                </p>
-              </div>
-
-              <button
-                className="cp-ref-nav-arrow"
-                onClick={() => setTestimonialIndex((prev) => (prev + 1) % (data.testimonials?.length || 3))}
-                aria-label="Next Testimonial"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* =========================================================================
-          SECTION 17: FREQUENTLY ASKED QUESTIONS
-          ========================================================================= */}
-      {data.showFaqSection !== false && (
-        <section id="faqs" className="cp-section" style={{ background: '#fcfbf7' }}>
-          <div className="cp-container">
-            <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-              <h3 className="cp-section-title" style={{ fontSize: 32 }}>Frequently Asked Questions</h3>
-              <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-                Quick answers to common questions about admissions, courses and campus.
-              </p>
-            </div>
-
-            <div className="cp-ref-faqs-container cp-reveal">
-              {[
-                {
-                  question: 'What courses are offered at Andhra Inspire Academy?',
-                  answer: 'We offer 2-Year Intensive Medical (NEET-UG), 2-Year Intensive Engineering (IIT-JEE Main & Advanced), 4-Year Foundation for Classes 8, 9 & 10, and Long-Term Repeater batches.'
-                },
-                {
-                  question: 'Is the college residential or day-scholar?',
-                  answer: 'We provide both comprehensive residential facilities with AC hostels and strict study hours, as well as day-scholar programs with supervised study hours.'
-                },
-                {
-                  question: 'How are the classes conducted?',
-                  answer: 'Classes combine deep concept lectures with daily practice worksheets (DPPs), error analysis sessions, and weekly simulated computer-based tests (CBT).'
-                },
-                {
-                  question: 'Are there scholarships for meritorious students?',
-                  answer: 'Yes! We offer merit scholarships up to 100% full tuition fee waivers based on performance in our annual scholarship test (AITSE) and board exam scores.'
-                },
-                {
-                  question: 'How can I apply for admission?',
-                  answer: 'You can submit the online enquiry form on this website, call our admissions helpline directly, or visit our campus at Benz Circle, Vijayawada.'
-                },
-                {
-                  question: 'Can I appear for the entrance test from outside the city?',
-                  answer: 'Yes, our talent search exam (AITSE) can be taken online in computer-based test (CBT) format from any location with a laptop or desktop computer.'
-                },
-              ].map((faq, idx) => {
-                const isOpen = openFaqIndex === idx;
+            <div className="cp-testimonial-wrap cp-reveal">
+              {(() => {
+                const t = data.testimonials[testimonialIndex] || data.testimonials[0];
                 return (
-                  <div key={idx} className={`cp-ref-faq-item ${isOpen ? 'open' : ''}`}>
-                    <div
-                      className="cp-ref-faq-question"
-                      onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
-                    >
-                      <span>{faq.question}</span>
-                      <span style={{ fontSize: 13, color: '#94a3b8' }}>{isOpen ? '▲' : '▼'}</span>
+                  <div className="cp-testimonial-card-editorial">
+                    <div className="cp-test-stars">
+                      {'★'.repeat(t.rating || 5)}
                     </div>
-                    {isOpen && (
-                      <div className="cp-ref-faq-answer">
-                        {faq.answer}
-                      </div>
-                    )}
+                    <p className="cp-test-quote">"{t.quote}"</p>
+                    <div>
+                      <h5 className="cp-test-author">{t.authorName}</h5>
+                      <p className="cp-test-role">{t.authorRole}</p>
+                    </div>
                   </div>
                 );
-              })}
+              })()}
+
+              {/* Interactive Carousel Controls */}
+              {data.testimonials.length > 1 && (
+                <div className="cp-carousel-controls">
+                  <button
+                    className="cp-carousel-btn"
+                    onClick={() => setTestimonialIndex((prev) => (prev === 0 ? data.testimonials.length - 1 : prev - 1))}
+                    aria-label="Previous Testimonial"
+                  >
+                    ←
+                  </button>
+
+                  <div className="cp-carousel-dots">
+                    {data.testimonials.map((_, idx) => (
+                      <button
+                        key={idx}
+                        className={`cp-carousel-dot ${testimonialIndex === idx ? 'active' : ''}`}
+                        onClick={() => setTestimonialIndex(idx)}
+                        aria-label={`Slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    className="cp-carousel-btn"
+                    onClick={() => setTestimonialIndex((prev) => (prev + 1) % data.testimonials.length)}
+                    aria-label="Next Testimonial"
+                  >
+                    →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
       )}
 
       {/* =========================================================================
-          SECTION 18: APPLY FOR ADMISSION OR ENQUIRE TODAY
+          SECTION 17: FAQ ACCORDION, CONTACT & FINAL ADMISSION CTA
           ========================================================================= */}
-      <section id="contact" className="cp-section cp-section-white">
+      <section id="contact" className="cp-section cp-section-slate">
         <div className="cp-container">
-          <div className="cp-section-header cp-reveal" style={{ textAlign: 'center', marginBottom: 44 }}>
-            <h3 className="cp-section-title" style={{ fontSize: 32 }}>Apply for Admission or Enquire Today</h3>
-            <p className="cp-section-desc" style={{ maxWidth: 640, margin: '0 auto' }}>
-              Get in touch with our admissions team for course details, eligibility and application process.
-            </p>
+          {/* FAQ Accordion */}
+          {data.showFaqSection !== false && faqsList.length > 0 && (
+            <div style={{ marginBottom: 70 }} className="cp-reveal">
+              <div className="cp-section-header">
+                <span className="cp-section-marker">14 / FREQUENTLY ASKED QUESTIONS</span>
+                <h3 className="cp-section-title">Frequently Asked Questions</h3>
+                <p className="cp-section-desc">Everything you need to know about academic admissions, batch structure, hostel life, and testing.</p>
+              </div>
+
+              <div className="cp-faq-list">
+                {faqsList.map((faq, idx) => {
+                  const isOpen = openFaqIndex === idx;
+                  return (
+                    <div key={idx} className={`cp-faq-item ${isOpen ? 'open' : ''}`}>
+                      <div
+                        className="cp-faq-header"
+                        onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
+                      >
+                        <h4 className="cp-faq-question">{faq.question}</h4>
+                        <div className="cp-faq-toggle-icon">
+                          {isOpen ? '✕' : '+'}
+                        </div>
+                      </div>
+                      {isOpen && (
+                        <div className="cp-faq-body">
+                          {faq.answer}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Admission Enquiry Form & Campus Address */}
+          <div className="cp-section-header cp-reveal">
+            <span className="cp-section-marker">15 / ADMISSIONS ENQUIRY DESK</span>
+            <h3 className="cp-section-title">Apply for Admission or Enquire Today</h3>
+            <p className="cp-section-desc">Our senior admissions counselors are ready to help you choose the right stream and answer all your queries.</p>
           </div>
 
-          <div className="cp-ref-contact-grid cp-reveal">
-            {/* Left Column: Form */}
-            <div className="cp-ref-form-card">
+          <div className="cp-contact-spread cp-reveal cp-delay-100">
+            {/* Left: High-Conversion Admission Enquiry Form */}
+            <div className="cp-desk-form-card">
+              <h4 className="cp-desk-heading">
+                Online Admission Enquiry
+              </h4>
+
               {enquirySuccess && (
-                <div className="cp-alert-success" style={{ marginBottom: 20 }}>
-                  ✓ Thank you! Your enquiry has been received. Our admissions team will contact you shortly.
+                <div className="cp-alert-success">
+                  <span>✓</span> Thank you! Your enquiry has been received. Our admissions counselor will get in touch with you shortly.
                 </div>
               )}
               {enquiryError && (
-                <div className="cp-alert-error" style={{ marginBottom: 20 }}>
+                <div className="cp-alert-error">
                   {enquiryError}
                 </div>
               )}
@@ -1393,22 +1450,21 @@ export default function PublicCollegePortal() {
               <form onSubmit={handleEnquirySubmit}>
                 <div className="cp-form-row">
                   <div>
-                    <label className="cp-label">Student Name *</label>
+                    <label className="cp-label">Student Full Name *</label>
                     <input
                       type="text"
                       required
-                      placeholder="Student full name"
+                      placeholder="e.g. Rahul Sharma"
                       value={enquiryForm.studentName}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, studentName: e.target.value })}
                       className="cp-input"
                     />
                   </div>
                   <div>
-                    <label className="cp-label">Parent Name *</label>
+                    <label className="cp-label">Parent / Guardian Name</label>
                     <input
                       type="text"
-                      required
-                      placeholder="Parent / Guardian name"
+                      placeholder="e.g. S. Sharma"
                       value={enquiryForm.parentName}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, parentName: e.target.value })}
                       className="cp-input"
@@ -1418,49 +1474,63 @@ export default function PublicCollegePortal() {
 
                 <div className="cp-form-row">
                   <div>
-                    <label className="cp-label">Course Seeking Admission *</label>
-                    <select
-                      required
-                      value={enquiryForm.courseOfInterest}
-                      onChange={(e) => setEnquiryForm({ ...enquiryForm, courseOfInterest: e.target.value })}
-                      className="cp-select"
-                    >
-                      <option value="">Select Target Course</option>
-                      <option value="NEET 2-Year Intensive Medical Batch">NEET 2-Year Intensive Medical Batch</option>
-                      <option value="IIT-JEE Main & Advanced Elite Batch">IIT-JEE Main & Advanced Elite Batch</option>
-                      <option value="4-Year IIT/NEET Foundation Program">4-Year IIT/NEET Foundation Program</option>
-                      <option value="NEET Long-Term Achievers Batch (Repeater)">NEET Long-Term Achievers Batch (Repeater)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="cp-label">Mobile Number *</label>
+                    <label className="cp-label">Mobile Number * (10 Digits)</label>
                     <input
                       type="tel"
                       required
-                      placeholder="10-digit mobile number"
+                      placeholder="e.g. 9876543210"
                       value={enquiryForm.phone}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, phone: e.target.value })}
                       className="cp-input"
                     />
                   </div>
+                  <div>
+                    <label className="cp-label">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. student@gmail.com"
+                      value={enquiryForm.email}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
+                      className="cp-input"
+                    />
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
-                  <label className="cp-label">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="student@example.com"
-                    value={enquiryForm.email}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, email: e.target.value })}
-                    className="cp-input"
-                  />
+                <div className="cp-form-row">
+                  <div>
+                    <label className="cp-label">Course / Stream of Interest</label>
+                    <select
+                      value={enquiryForm.courseOfInterest}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, courseOfInterest: e.target.value })}
+                      className="cp-select"
+                    >
+                      <option value="">Select Target Course</option>
+                      {data.courses?.map((c) => (
+                        <option key={c.id} value={c.courseName}>{c.courseName}</option>
+                      ))}
+                      <option value="NEET Medical">NEET Medical (2-Year)</option>
+                      <option value="IIT-JEE Engineering">IIT-JEE Engineering (2-Year)</option>
+                      <option value="Foundation Program">Foundation Program (Class 8-10)</option>
+                      <option value="Long Term Repeater">Long Term Repeater Batch</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="cp-label">City / Town</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Vijayawada, Guntur"
+                      value={enquiryForm.cityOrTown}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, cityOrTown: e.target.value })}
+                      className="cp-input"
+                    />
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: 22 }}>
-                  <label className="cp-label">Message (Optional)</label>
+                <div className="cp-form-group">
+                  <label className="cp-label">Questions or Additional Requirements</label>
                   <textarea
                     rows={3}
-                    placeholder="Any specific questions about hostel, batch timings, or syllabus..."
+                    placeholder="Tell us about previous test scores or hostel accommodation requirements..."
                     value={enquiryForm.message}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, message: e.target.value })}
                     className="cp-textarea"
@@ -1470,150 +1540,142 @@ export default function PublicCollegePortal() {
                 <button
                   type="submit"
                   disabled={enquirySubmitting}
-                  className="cp-navy-pill-btn"
-                  style={{ width: '100%', justifyContent: 'center', padding: '14px 24px', fontSize: 14 }}
+                  className="cp-btn-submit"
                 >
-                  {enquirySubmitting ? 'Submitting Enquiry...' : 'SUBMIT INQUIRY →'}
+                  {enquirySubmitting ? 'Submitting Enquiry...' : 'Submit Admission Enquiry →'}
                 </button>
               </form>
             </div>
 
-            {/* Right Column: Contact Details + Map Snapshot */}
-            <div>
-              <div className="cp-ref-contact-info-card">
-                <div className="cp-ref-info-row">
-                  <div className="cp-ref-info-icon">📞</div>
-                  <div>
-                    <div className="cp-ref-info-lbl">Call Us</div>
-                    <div className="cp-ref-info-val">
-                      <a href={`tel:${data.contactPhone || '+918669212345'}`}>{data.contactPhone || '+91 86692 12345'}</a>
-                    </div>
-                  </div>
-                </div>
+            {/* Right: Contact Information & WhatsApp */}
+            <div className="cp-desk-info-card">
+              <h4 style={{ fontSize: 19, fontWeight: 700, fontFamily: 'var(--cp-font-display)', color: 'var(--cp-text-ink)', margin: 0 }}>
+                Campus Office & Helpline
+              </h4>
 
-                <div className="cp-ref-info-row">
-                  <div className="cp-ref-info-icon">✉</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontSize: 14, color: 'var(--cp-text-body)' }}>
+                {data.campusAddress && (
                   <div>
-                    <div className="cp-ref-info-lbl">Email Address</div>
-                    <div className="cp-ref-info-val">
-                      <a href={`mailto:${data.contactEmail || 'admissions@andhrainspire.edu.in'}`}>{data.contactEmail || 'admissions@andhrainspire.edu.in'}</a>
-                    </div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Campus Location:</strong>
+                    <p style={{ margin: '4px 0 0 0', color: 'var(--cp-text-muted)', lineHeight: 1.6 }}>{data.campusAddress}</p>
                   </div>
-                </div>
+                )}
 
-                <div className="cp-ref-info-row">
-                  <div className="cp-ref-info-icon">📍</div>
+                {data.contactPhone && (
                   <div>
-                    <div className="cp-ref-info-lbl">Campus Location</div>
-                    <div className="cp-ref-info-val">
-                      {data.campusAddress || 'Plot 42, Benz Circle, MG Road, Vijayawada, Andhra Pradesh - 520010'}
-                    </div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Admissions Hotline:</strong>{' '}
+                    <a href={`tel:${data.contactPhone}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                      {data.contactPhone}
+                    </a>
                   </div>
-                </div>
+                )}
+
+                {data.contactEmail && (
+                  <div>
+                    <strong style={{ color: 'var(--cp-text-ink)' }}>Email Desk:</strong>{' '}
+                    <a href={`mailto:${data.contactEmail}`} style={{ color: 'var(--cp-primary)', fontWeight: 700, textDecoration: 'none' }}>
+                      {data.contactEmail}
+                    </a>
+                  </div>
+                )}
               </div>
 
-              {/* Map Snapshot */}
-              <div className="cp-ref-map-card">
-                <iframe
-                  title="Campus Map"
-                  src="https://maps.google.com/maps?q=Benz+Circle,+Vijayawada,+Andhra+Pradesh&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
+              {data.whatsappNumber && (
+                <a
+                  href={`https://wa.me/${data.whatsappNumber.replace(/[^0-9]/g, '')}?text=Hello!%20I%20would%20like%20to%20enquire%20about%20admissions%20at%20${encodeURIComponent(data.displayName || 'your college')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cp-btn-whatsapp"
+                >
+                  Chat with Counselor on WhatsApp
+                </a>
+              )}
+
+              {/* Campus Location Map / Directions */}
+              {data.googleMapEmbedUrl && (
+                <div style={{ borderRadius: 'var(--cp-radius-sm)', overflow: 'hidden', height: 200, border: '1px solid var(--cp-border)' }}>
+                  <iframe
+                    src={data.googleMapEmbedUrl}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    title="Campus Map"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* =========================================================================
-          SECTION 19: PROFESSIONAL INSTITUTIONAL FOOTER
+          MULTI-COLUMN INSTITUTIONAL FOOTER
           ========================================================================= */}
-      <footer className="cp-ref-footer">
+      <footer className="cp-footer">
         <div className="cp-container">
-          <div className="cp-ref-footer-grid">
-            {/* Col 1: Brand */}
+          <div className="cp-footer-grid">
+            {/* Col 1: About & Motto */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                {logoUrl && (
-                  <img
-                    src={logoUrl}
-                    alt={data.displayName}
-                    style={{ height: 42, width: 'auto' }}
-                  />
-                )}
-                <div>
-                  <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#ffffff' }}>
-                    {data.displayName}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: 12, color: '#94a3b8' }}>
-                    {data.mottoTagline || 'Shaping State Toppers in NEET & JEE'}
-                  </p>
-                </div>
-              </div>
-              <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, maxWidth: 320 }}>
-                Andhra Pradesh's leading residential academy for competitive medical and engineering entrance coaching.
+              <h4>{data.displayName || data.institute?.name}</h4>
+              <p style={{ color: '#94a3b8', lineHeight: 1.65, fontSize: 13, margin: '0 0 18px 0' }}>
+                {data.mottoTagline || 'Shaping State Toppers & National Rankers in NEET, JEE & EAPCET with elite faculty mentorship and advanced computerized testing.'}
               </p>
+              {data.accreditation && (
+                <div style={{ display: 'inline-block', background: '#1e293b', border: '1px solid #334155', padding: '5px 12px', borderRadius: 8, fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>
+                  ✓ {data.accreditation}
+                </div>
+              )}
             </div>
 
             {/* Col 2: Quick Links */}
-            <div className="cp-ref-footer-col">
-              <h4>Quick Links</h4>
-              <ul className="cp-ref-footer-links">
+            <div>
+              <h5>Quick Navigation</h5>
+              <ul>
                 <li><button onClick={() => scrollToSection('home')}>Home</button></li>
                 <li><button onClick={() => scrollToSection('about')}>About Us</button></li>
-                <li><button onClick={() => scrollToSection('courses')}>Courses</button></li>
-                <li><button onClick={() => scrollToSection('faculty')}>Faculty</button></li>
-                <li><button onClick={() => scrollToSection('campus')}>Campus</button></li>
-                <li><button onClick={() => scrollToSection('toppers')}>Toppers</button></li>
-                <li><button onClick={() => scrollToSection('contact')}>Contact</button></li>
+                <li><button onClick={() => scrollToSection('courses')}>Courses Offered</button></li>
+                <li><button onClick={() => scrollToSection('faculty')}>Faculty Directory</button></li>
+                <li><button onClick={() => scrollToSection('toppers')}>Hall of Fame</button></li>
+                <li><button onClick={() => scrollToSection('admissions')}>Admissions & Scholarships</button></li>
               </ul>
             </div>
 
-            {/* Col 3: Contact */}
-            <div className="cp-ref-footer-col">
-              <h4>Contact</h4>
-              <ul className="cp-ref-footer-links">
-                <li style={{ color: '#cbd5e1' }}>📞 {data.contactPhone || '+91 86692 12345'}</li>
-                <li style={{ color: '#cbd5e1' }}>✉ {data.contactEmail || 'admissions@andhrainspire.edu.in'}</li>
-                <li style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>
-                  {data.campusAddress || 'Plot 42, Benz Circle, MG Road, Vijayawada - 520010'}
-                </li>
-              </ul>
+            {/* Col 3: Contact Details */}
+            <div>
+              <h5>Campus Office</h5>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, color: '#94a3b8' }}>
+                <p style={{ margin: 0, lineHeight: 1.6 }}>{data.campusAddress}</p>
+                {data.contactPhone && (
+                  <p style={{ margin: 0 }}>📞 {data.contactPhone}</p>
+                )}
+                {data.contactEmail && (
+                  <p style={{ margin: 0 }}>✉ {data.contactEmail}</p>
+                )}
+              </div>
             </div>
 
-            {/* Col 4: QuestionsStudio SaaS */}
-            <div className="cp-ref-footer-col">
-              <h4>QuestionsStudio</h4>
-              <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 12 }}>
-                Powered by QuestionsStudio Educational SaaS. Centralized Question Bank, CBT Testing &amp; Examination Engine.
-              </p>
-              <Link
-                to="/"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  color: '#f59e0b',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textDecoration: 'none'
-                }}
-              >
-                QuestionsStudio Portal →
-              </Link>
+            {/* Col 4: Platform & SaaS Attribution */}
+            <div>
+              <h5>QuestionsStudio</h5>
+              <div style={{ background: '#1e293b', padding: 18, borderRadius: 16, border: '1px solid #334155' }}>
+                <strong style={{ color: '#ffffff', fontSize: 13 }}>Powered by QuestionsStudio</strong>
+                <p style={{ color: '#94a3b8', fontSize: 12, margin: '8px 0 0 0', lineHeight: 1.6 }}>
+                  Centralized Question Bank, Computer-Based Online Testing, OMR Grading & Multi-College Portal SaaS.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="cp-ref-footer-bottom">
-            <span>© {new Date().getFullYear()} {data.displayName}. All rights reserved.</span>
+          <div className="cp-footer-bottom">
+            <div>
+              © {new Date().getFullYear()} {data.displayName || data.institute?.name}. All rights reserved.
+            </div>
             <div style={{ display: 'flex', gap: 20 }}>
-              <Link to="/privacy" style={{ color: '#94a3b8', textDecoration: 'none' }}>Privacy Policy</Link>
-              <Link to="/terms" style={{ color: '#94a3b8', textDecoration: 'none' }}>Terms of Service</Link>
+              <span style={{ color: '#64748b' }}>QuestionsStudio SaaS</span>
+              <span style={{ color: '#64748b' }}>Privacy Policy</span>
+              <span style={{ color: '#64748b' }}>Terms of Service</span>
             </div>
           </div>
         </div>
