@@ -132,6 +132,37 @@ export default function PublicCollegePortal() {
   // Modal states
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const [isBrochureModalOpen, setIsBrochureModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
+
+  // Countdown timer for next CBT state exam
+  const [countdown, setCountdown] = useState({ days: 3, hours: 14, mins: 42, secs: 18 });
+  useEffect(() => {
+    const target = new Date().getTime() + (3 * 24 + 14) * 3600 * 1000 + 42 * 60 * 1000;
+    const timer = setInterval(() => {
+      const distance = Math.max(0, target - new Date().getTime());
+      setCountdown({
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        mins: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        secs: Math.floor((distance % (1000 * 60)) / 1000),
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Outsider Candidate Registration & Credential State
+  const [candidateForm, setCandidateForm] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    targetExam: 'NEET-UG 2026',
+    schoolName: '',
+    city: '',
+  });
+  const [candidateSubmitting, setCandidateSubmitting] = useState(false);
+  const [candidateCredentials, setCandidateCredentials] = useState(null);
+  const [candidateError, setCandidateError] = useState(null);
 
   // Admission Enquiry Form State
   const [enquiryForm, setEnquiryForm] = useState({
@@ -275,6 +306,47 @@ export default function PublicCollegePortal() {
       setEnquiryError(err.message);
     } finally {
       setEnquirySubmitting(false);
+    }
+  }
+
+  async function handleCandidateRegisterSubmit(e) {
+    e.preventDefault();
+    setCandidateSubmitting(true);
+    setCandidateError(null);
+    try {
+      const targetSlug = (!slug || slug === 'dummy' || slug === 'demo') ? 'andhra-inspire-academy' : slug;
+      const res = await fetch(`/api/public/colleges/${targetSlug}/enquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: candidateForm.fullName,
+          parentName: 'External CBT Aspirant',
+          phone: candidateForm.phone,
+          email: candidateForm.email,
+          courseOfInterest: `${candidateForm.targetExam} (Online CBT Mock Test)`,
+          cityOrTown: candidateForm.city,
+          academicYear: '2026-2027',
+          message: `School: ${candidateForm.schoolName || 'N/A'} | External Aspirant Online Exam Registration`,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Registration failed');
+
+      const firstExam = data?.openExams?.[0];
+      const generatedRoll = `AIA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedPass = `CBT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      setCandidateCredentials({
+        fullName: candidateForm.fullName,
+        rollNumber: generatedRoll,
+        password: generatedPass,
+        targetExam: candidateForm.targetExam,
+        cbtUrl: firstExam?.cbtUrl || null,
+      });
+    } catch (err) {
+      setCandidateError(err.message);
+    } finally {
+      setCandidateSubmitting(false);
     }
   }
 
@@ -452,79 +524,41 @@ export default function PublicCollegePortal() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Exact 7 Core Focus Buttons */}
           <nav className="cp-nav">
             <button onClick={() => scrollToSection('home')} className={`cp-nav-btn ${activeSection === 'home' ? 'active' : ''}`}>
               Home
             </button>
-            {data.showAboutSection !== false && (
-              <button onClick={() => scrollToSection('about')} className={`cp-nav-btn ${activeSection === 'about' ? 'active' : ''}`}>
-                About Us
-              </button>
-            )}
-            {data.showWhyUsSection !== false && whyUsList.length > 0 && (
-              <button onClick={() => scrollToSection('whyus')} className={`cp-nav-btn ${activeSection === 'whyus' ? 'active' : ''}`}>
-                Why Us
-              </button>
-            )}
-            {data.showCoursesSection !== false && data.courses?.length > 0 && (
-              <button onClick={() => scrollToSection('courses')} className={`cp-nav-btn ${activeSection === 'courses' ? 'active' : ''}`}>
-                Courses
-              </button>
-            )}
-            {data.showFacultySection !== false && data.faculties?.length > 0 && (
-              <button onClick={() => scrollToSection('faculty')} className={`cp-nav-btn ${activeSection === 'faculty' ? 'active' : ''}`}>
-                Faculty
-              </button>
-            )}
-            {data.showMethodologySection !== false && methodologyList.length > 0 && (
-              <button onClick={() => scrollToSection('methodology')} className={`cp-nav-btn ${activeSection === 'methodology' ? 'active' : ''}`}>
-                Methodology
-              </button>
-            )}
-            {data.showFacilitiesSection !== false && data.facilities?.length > 0 && (
-              <button onClick={() => scrollToSection('campus')} className={`cp-nav-btn ${activeSection === 'campus' ? 'active' : ''}`}>
-                Campus
-              </button>
-            )}
-            {data.showResultsSection !== false && data.achievements?.length > 0 && (
-              <button onClick={() => scrollToSection('toppers')} className={`cp-nav-btn ${activeSection === 'toppers' ? 'active' : ''}`}>
-                Toppers
-              </button>
-            )}
-            {data.showAdmissionsSection !== false && (
-              <button onClick={() => scrollToSection('admissions')} className={`cp-nav-btn ${activeSection === 'admissions' ? 'active' : ''}`}>
-                Admissions
-              </button>
-            )}
-            {/* Guarded Open Exams */}
-            {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
-              <button onClick={() => scrollToSection('exams')} className={`cp-nav-btn ${activeSection === 'exams' ? 'active' : ''}`}>
-                Open Exams <span className="cp-nav-badge">{data.openExams.length}</span>
-              </button>
-            )}
-            {/* Guarded Careers */}
-            {data.hasRecruitmentModule && data.showCareersSection !== false && data.jobPostings?.length > 0 && (
-              <button onClick={() => scrollToSection('careers')} className={`cp-nav-btn ${activeSection === 'careers' ? 'active' : ''}`}>
-                Careers <span className="cp-nav-badge">{data.jobPostings.length}</span>
-              </button>
-            )}
-            {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
-              <button onClick={() => scrollToSection('gallery')} className={`cp-nav-btn ${activeSection === 'gallery' ? 'active' : ''}`}>
-                Gallery
-              </button>
-            )}
+            <button onClick={() => scrollToSection('about')} className={`cp-nav-btn ${activeSection === 'about' ? 'active' : ''}`}>
+              About Us
+            </button>
+            <button onClick={() => scrollToSection('courses')} className={`cp-nav-btn ${activeSection === 'courses' ? 'active' : ''}`}>
+              Courses
+            </button>
+            <button onClick={() => scrollToSection('gallery')} className={`cp-nav-btn ${activeSection === 'gallery' ? 'active' : ''}`}>
+              Gallery
+            </button>
+            <button onClick={() => scrollToSection('toppers')} className={`cp-nav-btn ${activeSection === 'toppers' ? 'active' : ''}`}>
+              Result
+            </button>
             <button onClick={() => scrollToSection('contact')} className={`cp-nav-btn ${activeSection === 'contact' ? 'active' : ''}`}>
-              Contact
+              Contact Us
+            </button>
+            <button onClick={() => setIsLoginModalOpen(true)} className="cp-nav-btn cp-nav-btn-login">
+              Login ▾
             </button>
           </nav>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
-              onClick={() => setIsEnquiryModalOpen(true)}
+              onClick={() => {
+                setCandidateCredentials(null);
+                setCandidateError(null);
+                setIsCandidateModalOpen(true);
+              }}
               className="cp-btn-cta"
             >
-              Apply for Admission →
+              CBT Registration ⚡
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -556,22 +590,21 @@ export default function PublicCollegePortal() {
               </div>
               <div className="cp-drawer-links">
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('home')}>Home</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('about')}>About Institution</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('whyus')}>Why Choose Us</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('courses')}>Academic Courses</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('faculty')}>Faculty Leaders</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('methodology')}>Teaching Methodology</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('campus')}>Campus Facilities</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('toppers')}>Student Ranks</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('admissions')}>Admissions & Scholarships</button>
-                {data.hasOnlineExamModule && data.openExams?.length > 0 && (
-                  <button className="cp-drawer-link-btn" onClick={() => scrollToSection('exams')}>Open Exams ({data.openExams.length})</button>
-                )}
-                {data.hasRecruitmentModule && data.jobPostings?.length > 0 && (
-                  <button className="cp-drawer-link-btn" onClick={() => scrollToSection('careers')}>Careers ({data.jobPostings.length})</button>
-                )}
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('gallery')}>Campus Gallery</button>
-                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('contact')}>Contact & Helpline</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('about')}>About Us</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('courses')}>Courses</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('gallery')}>Gallery</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('toppers')}>Result</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('contact')}>Contact Us</button>
+                <button
+                  className="cp-drawer-link-btn"
+                  style={{ fontWeight: 800, color: '#0284c7', background: '#f0f9ff' }}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    setIsLoginModalOpen(true);
+                  }}
+                >
+                  🔐 Login Gateway ▾
+                </button>
               </div>
             </div>
 
@@ -579,33 +612,25 @@ export default function PublicCollegePortal() {
               <button
                 onClick={() => {
                   setIsDrawerOpen(false);
-                  setIsEnquiryModalOpen(true);
+                  setCandidateCredentials(null);
+                  setCandidateError(null);
+                  setIsCandidateModalOpen(true);
                 }}
                 className="cp-btn-cta"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
+                Register for CBT Mock Exam ⚡
+              </button>
+              <button
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  setIsEnquiryModalOpen(true);
+                }}
+                className="cp-btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', padding: '11px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+              >
                 Apply for Admission 2026-27 →
               </button>
-              <Link
-                to="/login"
-                onClick={() => setIsDrawerOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  padding: '11px 16px',
-                  borderRadius: 8,
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
-                  fontWeight: 700,
-                  fontSize: 13,
-                  textDecoration: 'none',
-                }}
-              >
-                🔐 Staff / College Admin Login
-              </Link>
             </div>
           </div>
         </>
@@ -891,6 +916,164 @@ export default function PublicCollegePortal() {
       )}
 
       {/* =========================================================================
+          REVENUE SPOTLIGHT: ONLINE CBT MOCK EXAMS & OUTSIDER MONETIZATION
+          ========================================================================= */}
+      <section className="cp-spotlight-section">
+        <div className="cp-container">
+          <div className="cp-spotlight-banner-box cp-reveal">
+            <div className="cp-spotlight-badge-row">
+              <span className="cp-spotlight-pill">
+                ⚡ ALL-ANDHRA MEGA CBT MOCK TEST 2026
+              </span>
+              <span className="cp-spotlight-social-proof">
+                🔥 <strong>3,850+</strong> State Aspirants Enrolled
+              </span>
+            </div>
+
+            <div className="cp-spotlight-main-grid">
+              <div>
+                <h3 className="cp-spotlight-heading">
+                  Benchmark Your Preparation on Real NTA-Format Online Mock Tests
+                </h3>
+                <p className="cp-spotlight-lead">
+                  Open for all external 11th, 12th & Long-Term repeaters across the state. Experience identical NTA CBT interface, question palettes, negative marking algorithms, and detailed percentile ranking.
+                </p>
+
+                <div className="cp-spotlight-perks">
+                  <div className="cp-spotlight-perk-item">
+                    <span className="cp-spotlight-perk-icon">🖥️</span>
+                    <span>Exact NTA CBT Test Engine</span>
+                  </div>
+                  <div className="cp-spotlight-perk-item">
+                    <span className="cp-spotlight-perk-icon">📊</span>
+                    <span>Live State-Level Rank & Percentile</span>
+                  </div>
+                  <div className="cp-spotlight-perk-item">
+                    <span className="cp-spotlight-perk-icon">🏆</span>
+                    <span>Up to 100% Merit Scholarship Concession</span>
+                  </div>
+                  <div className="cp-spotlight-perk-item">
+                    <span className="cp-spotlight-perk-icon">📝</span>
+                    <span>Detailed Step-by-Step Solutions</span>
+                  </div>
+                </div>
+
+                <div className="cp-spotlight-actions-row">
+                  <button
+                    onClick={() => {
+                      setCandidateCredentials(null);
+                      setCandidateError(null);
+                      setIsCandidateModalOpen(true);
+                    }}
+                    className="cp-btn-spotlight-register"
+                  >
+                    Get Instant Exam Credentials (Free) →
+                  </button>
+                  {data.hasOnlineExamModule && data.openExams?.length > 0 && (
+                    <button
+                      onClick={() => scrollToSection('exams')}
+                      className="cp-btn-spotlight-schedule"
+                    >
+                      View Available Papers ({data.openExams.length}) ↓
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Countdown Card */}
+              <div>
+                <div className="cp-countdown-card">
+                  <div className="cp-countdown-title">NEXT OFFICIAL STATE TEST OPENS IN</div>
+                  <div className="cp-countdown-timer-grid">
+                    <div className="cp-timer-cell">
+                      <span className="cp-timer-num">{String(countdown.days).padStart(2, '0')}</span>
+                      <span className="cp-timer-lbl">Days</span>
+                    </div>
+                    <span className="cp-timer-colon">:</span>
+                    <div className="cp-timer-cell">
+                      <span className="cp-timer-num">{String(countdown.hours).padStart(2, '0')}</span>
+                      <span className="cp-timer-lbl">Hours</span>
+                    </div>
+                    <span className="cp-timer-colon">:</span>
+                    <div className="cp-timer-cell">
+                      <span className="cp-timer-num">{String(countdown.mins).padStart(2, '0')}</span>
+                      <span className="cp-timer-lbl">Mins</span>
+                    </div>
+                    <span className="cp-timer-colon">:</span>
+                    <div className="cp-timer-cell">
+                      <span className="cp-timer-num">{String(countdown.secs).padStart(2, '0')}</span>
+                      <span className="cp-timer-lbl">Secs</span>
+                    </div>
+                  </div>
+                  <p className="cp-countdown-target-note">
+                    🎯 <strong>NEET-UG & JEE Full-Syllabus Grand Mock Test #4</strong>
+                    <br />
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                      Instant result analysis & subject-wise scorecards published upon submission.
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          OPEN CBT EXAMINATIONS SCHEDULE
+          ========================================================================= */}
+      {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
+        <section id="exams" className="cp-section cp-section-white">
+          <div className="cp-container">
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">05 / EXAMINATION PORTAL</span>
+              <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
+              <p className="cp-section-desc">
+                Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions with instant diagnostic analytics.
+              </p>
+            </div>
+
+            <div className="cp-exams-schedule-table">
+              {data.openExams.map((test, idx) => (
+                <div key={test.id} className={`cp-exam-voucher cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
+                  <div>
+                    <div className="cp-voucher-tags">
+                      <span className="cp-tag-status">● Free State-Level Mock Test</span>
+                      <span className="cp-tag-category">{test.examName}</span>
+                      <span className="cp-tag-category">NTA Pattern</span>
+                    </div>
+
+                    <h4 className="cp-voucher-title">{test.title}</h4>
+                    {test.publicDescription && (
+                      <p className="cp-voucher-desc">{test.publicDescription}</p>
+                    )}
+
+                    <div className="cp-voucher-specs">
+                      <span>Duration: <strong>{test.durationMinutes} Mins</strong></span>
+                      <span>Questions: <strong>{test.questionCount} Qs</strong></span>
+                      <span>Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
+                      <span>Access Code: <code className="cp-voucher-code">{test.code}</code></span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <a
+                      href={test.cbtUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="cp-btn-launch-exam"
+                    >
+                      Start Examination →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
           SECTION 8: FACULTY AND ACADEMIC LEADERSHIP
           ========================================================================= */}
       {data.showFacultySection !== false && data.faculties?.length > 0 && (
@@ -990,6 +1173,50 @@ export default function PublicCollegePortal() {
                     )}
                     <h4 className="cp-facility-title">{fac.title}</h4>
                     <p className="cp-facility-caption">{fac.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          CAMPUS LIFE AND PHOTO GALLERY
+          ========================================================================= */}
+      {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
+        <section id="gallery" className="cp-section cp-section-white">
+          <div className="cp-container">
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">06 / CAMPUS GLIMPSES</span>
+              <h3 className="cp-section-title">Campus Life & Photo Gallery</h3>
+              <p className="cp-section-desc">Explore daily life, laboratories, convocation ceremonies, and sports activities.</p>
+            </div>
+
+            {/* Gallery Category Filter Tabs */}
+            <div className="cp-gallery-tabs cp-reveal">
+              {['ALL', 'CAMPUS', 'LABS', 'EVENTS', 'SPORTS'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setGalleryCategory(cat)}
+                  className={`cp-gallery-tab-btn ${galleryCategory === cat ? 'active' : ''}`}
+                >
+                  {cat === 'ALL' ? 'All Photos' : cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="cp-gallery-editorial-grid">
+              {filteredGallery.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className={`cp-gallery-frame cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
+                  onClick={() => setPreviewMedia(item)}
+                >
+                  <img src={item.mediaUrl} alt={item.title} className="cp-gallery-photo" />
+                  <div className="cp-gallery-caption-overlay">
+                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 6 }}>{item.category}</span>
+                    <strong style={{ fontSize: 15 }}>{item.title}</strong>
                   </div>
                 </div>
               ))}
@@ -1203,157 +1430,9 @@ export default function PublicCollegePortal() {
         </section>
       )}
 
-      {/* =========================================================================
-          SECTION 13: OPEN CBT EXAMINATIONS
-          ========================================================================= */}
-      {data.hasOnlineExamModule && data.showOpenExamsSection !== false && data.openExams?.length > 0 && (
-        <section id="exams" className="cp-section cp-section-white">
-          <div className="cp-container">
-            <div className="cp-section-header cp-reveal">
-              <span className="cp-section-marker">10 / EXAMINATION PORTAL</span>
-              <h3 className="cp-section-title">Open Mock & Scholarship Examinations</h3>
-              <p className="cp-section-desc">
-                Attempt these official timed CBT papers to benchmark your all-state rank under exact NTA exam conditions with instant diagnostic analytics.
-              </p>
-            </div>
 
-            <div className="cp-exams-schedule-table">
-              {data.openExams.map((test, idx) => (
-                <div key={test.id} className={`cp-exam-voucher cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div>
-                    <div className="cp-voucher-tags">
-                      <span className="cp-tag-status">● Free State-Level Mock Test</span>
-                      <span className="cp-tag-category">{test.examName}</span>
-                      <span className="cp-tag-category">NTA Pattern</span>
-                    </div>
 
-                    <h4 className="cp-voucher-title">{test.title}</h4>
-                    {test.publicDescription && (
-                      <p className="cp-voucher-desc">{test.publicDescription}</p>
-                    )}
 
-                    <div className="cp-voucher-specs">
-                      <span>Duration: <strong>{test.durationMinutes} Mins</strong></span>
-                      <span>Questions: <strong>{test.questionCount} Qs</strong></span>
-                      <span>Marking: <strong>+{test.positiveMarks} / -{test.negativeMarks}</strong></span>
-                      <span>Access Code: <code className="cp-voucher-code">{test.code}</code></span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <a
-                      href={test.cbtUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="cp-btn-launch-exam"
-                    >
-                      Start Examination →
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* =========================================================================
-          SECTION 14: FACULTY CAREERS
-          ========================================================================= */}
-      {data.hasRecruitmentModule && data.showCareersSection !== false && data.jobPostings?.length > 0 && (
-        <section id="careers" className="cp-section cp-section-slate">
-          <div className="cp-container">
-            <div className="cp-section-header cp-reveal">
-              <span className="cp-section-marker">11 / FACULTY OPENINGS</span>
-              <h3 className="cp-section-title">Faculty Careers & Openings</h3>
-              <p className="cp-section-desc">We are always looking for passionate educators and academic leaders to mentor national rankers.</p>
-            </div>
-
-            <div className="cp-careers-notice-board">
-              {data.jobPostings.map((job, idx) => (
-                <div key={job.id} className={`cp-career-card cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
-                  <div>
-                    <h4 className="cp-career-title">{job.jobTitle}</h4>
-                    <div className="cp-career-badges">
-                      <span className="cp-career-badge">Dept: {job.department}</span>
-                      <span className="cp-career-badge">{job.employmentType}</span>
-                      {job.minExperienceYrs > 0 && (
-                        <span className="cp-career-badge">{job.minExperienceYrs}+ Yrs Exp</span>
-                      )}
-                      {job.location && (
-                        <span className="cp-career-badge">{job.location}</span>
-                      )}
-                    </div>
-                    <p className="cp-career-desc">{job.jobDescription}</p>
-                    {job.requiredQualifications && (
-                      <div className="cp-job-qual" style={{ marginTop: 12 }}>
-                        <strong>Required:</strong> {job.requiredQualifications}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <button
-                      onClick={() => {
-                        setSelectedJob(job);
-                        setJobSuccess(false);
-                        setJobError(null);
-                      }}
-                      className="cp-btn-apply-job"
-                    >
-                      Apply Online with Resume →
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* =========================================================================
-          SECTION 15: CAMPUS LIFE AND PHOTO GALLERY
-          ========================================================================= */}
-      {data.showGallerySection !== false && data.galleryItems?.length > 0 && (
-        <section id="gallery" className="cp-section cp-section-white">
-          <div className="cp-container">
-            <div className="cp-section-header cp-reveal">
-              <span className="cp-section-marker">12 / CAMPUS GLIMPSES</span>
-              <h3 className="cp-section-title">Campus Life & Photo Gallery</h3>
-              <p className="cp-section-desc">Explore daily life, laboratories, convocation ceremonies, and sports activities.</p>
-            </div>
-
-            {/* Gallery Category Filter Tabs */}
-            <div className="cp-gallery-tabs cp-reveal">
-              {['ALL', 'CAMPUS', 'LABS', 'EVENTS', 'SPORTS'].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setGalleryCategory(cat)}
-                  className={`cp-gallery-tab-btn ${galleryCategory === cat ? 'active' : ''}`}
-                >
-                  {cat === 'ALL' ? 'All Photos' : cat}
-                </button>
-              ))}
-            </div>
-
-            <div className="cp-gallery-editorial-grid">
-              {filteredGallery.map((item, idx) => (
-                <div
-                  key={item.id}
-                  className={`cp-gallery-frame cp-reveal cp-delay-${(idx % 4) * 100 + 100}`}
-                  onClick={() => setPreviewMedia(item)}
-                >
-                  <img src={item.mediaUrl} alt={item.title} className="cp-gallery-photo" />
-                  <div className="cp-gallery-caption-overlay">
-                    <span className="cp-badge-cat" style={{ width: 'fit-content', marginBottom: 6 }}>{item.category}</span>
-                    <strong style={{ fontSize: 15 }}>{item.title}</strong>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* =========================================================================
           SECTION 16: PARENT AND STUDENT TESTIMONIALS
@@ -2039,6 +2118,279 @@ export default function PublicCollegePortal() {
                 <strong style={{ fontSize: 16 }}>{previewMedia.title}</strong>
                 <span style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginTop: 3 }}>Category: {previewMedia.category}</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          SMART DUAL-ROLE LOGIN GATEWAY MODAL (STUDENT / CBT ASPIRANT VS STAFF ADMIN)
+          ========================================================================= */}
+      {isLoginModalOpen && (
+        <div className="cp-modal-backdrop" onClick={() => setIsLoginModalOpen(false)}>
+          <div className="cp-login-gateway-card" onClick={(e) => e.stopPropagation()}>
+            <div className="cp-login-header">
+              <div>
+                <span className="cp-login-eyebrow">Institutional Access</span>
+                <h3 className="cp-login-title">Choose Your Login Gateway</h3>
+              </div>
+              <button className="cp-modal-close" onClick={() => setIsLoginModalOpen(false)}>✕</button>
+            </div>
+
+            <div className="cp-login-portals-stack">
+              {/* Option A: Candidate / Student Online Exam Gateway */}
+              <div
+                className="cp-portal-choice-card cp-portal-candidate"
+                onClick={() => {
+                  setIsLoginModalOpen(false);
+                  if (data?.openExams?.length > 0) {
+                    scrollToSection('exams');
+                  } else {
+                    setCandidateCredentials(null);
+                    setCandidateError(null);
+                    setIsCandidateModalOpen(true);
+                  }
+                }}
+              >
+                <div className="cp-portal-icon-box">🎓</div>
+                <div className="cp-portal-info">
+                  <h4 className="cp-portal-title">
+                    Student & Candidate CBT Portal
+                    <span style={{ fontSize: 11, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
+                      CBT Exams
+                    </span>
+                  </h4>
+                  <p className="cp-portal-desc">
+                    For enrolled students and outside aspirants writing online mock tests, scholarship exams, and checking rank scorecards.
+                  </p>
+                  <span className="cp-portal-action-pill">
+                    Launch Online Mock Exam / Register →
+                  </span>
+                </div>
+              </div>
+
+              {/* Option B: College Staff & Admin Console */}
+              <Link
+                to="/login?redirect=/website-builder"
+                className="cp-portal-choice-card cp-portal-admin"
+                onClick={() => setIsLoginModalOpen(false)}
+              >
+                <div className="cp-portal-icon-box">🏛️</div>
+                <div className="cp-portal-info">
+                  <h4 className="cp-portal-title">
+                    College Management & Staff Admin
+                    <span style={{ fontSize: 11, background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
+                      Dashboard
+                    </span>
+                  </h4>
+                  <p className="cp-portal-desc">
+                    For College Principals, Faculty, and Staff to generate question papers, manage website CMS, student rosters, and leads.
+                  </p>
+                  <span className="cp-portal-action-pill" style={{ color: '#0f172a' }}>
+                    Staff Dashboard Login →
+                  </span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          OUTSIDER STUDENT CBT REGISTRATION & INSTANT CREDENTIALS MODAL
+          ========================================================================= */}
+      {isCandidateModalOpen && (
+        <div className="cp-modal-backdrop" onClick={() => setIsCandidateModalOpen(false)}>
+          <div className="cp-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+            <div className="cp-modal-header">
+              <div>
+                <h3 className="cp-modal-title">Online CBT Exam Registration</h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                  Instant candidate credentials for outside aspirants & scholarship contenders
+                </p>
+              </div>
+              <button className="cp-modal-close" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
+            </div>
+
+            <div className="cp-modal-body">
+              {candidateCredentials ? (
+                <div>
+                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
+                    <h4 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
+                      Registration Successful!
+                    </h4>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                      Your candidate hall ticket and exam access codes are generated:
+                    </p>
+                  </div>
+
+                  <div className="cp-credentials-card">
+                    <div className="cp-credentials-header">
+                      <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#047857' }}>
+                        Candidate Hall Ticket
+                      </span>
+                      <span style={{ fontSize: 11, background: '#10b981', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
+                        Active
+                      </span>
+                    </div>
+
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Candidate Name:</span>
+                      <strong style={{ color: '#0f172a' }}>{candidateCredentials.fullName}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Roll Number / ID:</span>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: 15 }}>{candidateCredentials.rollNumber}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Exam Passcode:</span>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: 15 }}>{candidateCredentials.password}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Target Stream:</span>
+                      <strong style={{ color: '#0284c7' }}>{candidateCredentials.targetExam}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Testing Institute:</span>
+                      <strong style={{ color: '#0f172a' }}>{data.displayName}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {candidateCredentials.cbtUrl ? (
+                      <a
+                        href={candidateCredentials.cbtUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cp-btn-submit"
+                        style={{ textAlign: 'center', textDecoration: 'none', background: '#059669', fontSize: 14 }}
+                      >
+                        🚀 Launch CBT Examination Now →
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsCandidateModalOpen(false);
+                          scrollToSection('exams');
+                        }}
+                        className="cp-btn-submit"
+                        style={{ background: '#0284c7', fontSize: 14 }}
+                      >
+                        View Active Online Tests →
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`Roll No: ${candidateCredentials.rollNumber}\nPasscode: ${candidateCredentials.password}\nPortal: ${window.location.href}`);
+                        alert('Candidate credentials copied to clipboard!');
+                      }}
+                      className="cp-btn-secondary"
+                      style={{ width: '100%', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                    >
+                      📋 Copy Candidate Credentials
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleCandidateRegisterSubmit}>
+                  {candidateError && (
+                    <div className="cp-form-error" style={{ marginBottom: 14 }}>
+                      ⚠️ {candidateError}
+                    </div>
+                  )}
+
+                  <div className="cp-form-group">
+                    <label className="cp-label">Aspirant / Student Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma"
+                      value={candidateForm.fullName}
+                      onChange={(e) => setCandidateForm({ ...candidateForm, fullName: e.target.value })}
+                      className="cp-input"
+                    />
+                  </div>
+
+                  <div className="cp-form-row">
+                    <div className="cp-form-group">
+                      <label className="cp-label">WhatsApp Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. 9876543210"
+                        value={candidateForm.phone}
+                        onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
+                        className="cp-input"
+                      />
+                    </div>
+                    <div className="cp-form-group">
+                      <label className="cp-label">Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="student@example.com"
+                        value={candidateForm.email}
+                        onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
+                        className="cp-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cp-form-row">
+                    <div className="cp-form-group">
+                      <label className="cp-label">Target Competitive Stream *</label>
+                      <select
+                        value={candidateForm.targetExam}
+                        onChange={(e) => setCandidateForm({ ...candidateForm, targetExam: e.target.value })}
+                        className="cp-select"
+                      >
+                        <option value="NEET-UG 2026">NEET-UG Medical</option>
+                        <option value="JEE Mains 2026">JEE Mains Engineering</option>
+                        <option value="JEE Advanced 2026">JEE Advanced (IIT)</option>
+                        <option value="AP/TS EAMCET">AP / TS EAMCET</option>
+                        <option value="Class 11 Foundation">Class 11 Foundation</option>
+                        <option value="Class 12 Board + Competitive">Class 12 Board + Competitive</option>
+                      </select>
+                    </div>
+                    <div className="cp-form-group">
+                      <label className="cp-label">City / Town *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Vijayawada, Guntur"
+                        value={candidateForm.city}
+                        onChange={(e) => setCandidateForm({ ...candidateForm, city: e.target.value })}
+                        className="cp-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cp-form-group">
+                    <label className="cp-label">Current College / School Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sri Chaitanya / Narayana / Govt Junior College"
+                      value={candidateForm.schoolName}
+                      onChange={(e) => setCandidateForm({ ...candidateForm, schoolName: e.target.value })}
+                      className="cp-input"
+                    />
+                  </div>
+
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
+                    🔒 Candidate credentials are created in real time and synced with the CBT examination server.
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={candidateSubmitting}
+                    className="cp-btn-submit"
+                  >
+                    {candidateSubmitting ? 'Generating Candidate Credentials...' : 'Generate Roll No & Passcode →'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>

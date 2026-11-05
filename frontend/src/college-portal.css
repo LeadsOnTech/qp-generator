@@ -3419,3 +3419,414 @@ html {
   margin: 0;
 }
 
+
+
+/* =========================================================================
+   NEW: SMART LOGIN GATEWAY BUTTON & MODAL
+   Dual-role gateway for Students/CBT Candidates vs College Staff/Admin
+   ========================================================================= */
+
+.cp-nav-btn-login {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 8px 18px !important;
+  border-radius: 20px !important;
+  border: none !important;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease !important;
+}
+
+.cp-nav-btn-login:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+}
+
+.cp-login-gateway-card {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 580px;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
+  animation: cpModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cp-login-header {
+  padding: 24px 28px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cp-login-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0284c7;
+  display: block;
+}
+
+.cp-login-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 2px 0 0 0;
+}
+
+.cp-login-portals-stack {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cp-portal-choice-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  text-decoration: none;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cp-portal-choice-card:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.08);
+}
+
+.cp-portal-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.cp-portal-candidate .cp-portal-icon-box {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.cp-portal-admin .cp-portal-icon-box {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.cp-portal-info {
+  flex: 1;
+}
+
+.cp-portal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-portal-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0 10px 0;
+  line-height: 1.45;
+}
+
+.cp-portal-action-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0284c7;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* =========================================================================
+   NEW: HIGH-CONVERTING CBT EXAM REVENUE SPOTLIGHT (OUTSIDER TEST MONETIZATION)
+   ========================================================================= */
+
+.cp-spotlight-section {
+  padding: 70px 0;
+  background: #f8fafc;
+}
+
+.cp-spotlight-banner-box {
+  background: linear-gradient(135deg, #07154A 0%, #0d1e5e 50%, #10247c 100%);
+  border-radius: 24px;
+  padding: 48px 44px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(7, 21, 74, 0.25), 0 0 24px rgba(246, 200, 76, 0.12);
+  border: 1px solid rgba(246, 200, 76, 0.35);
+}
+
+.cp-spotlight-banner-box::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(246, 200, 76, 0.18) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.cp-spotlight-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.cp-spotlight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(246, 200, 76, 0.18);
+  color: #fde047;
+  border: 1px solid rgba(246, 200, 76, 0.4);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cp-spotlight-social-proof {
+  font-size: 12px;
+  font-weight: 600;
+  color: #93c5fd;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-spotlight-main-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 36px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .cp-spotlight-main-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+.cp-spotlight-heading {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+}
+
+.cp-spotlight-lead {
+  font-size: 14px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.cp-spotlight-perks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 600px) {
+  .cp-spotlight-perks {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cp-spotlight-perk-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.cp-spotlight-perk-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cp-spotlight-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cp-btn-spotlight-register {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #07154A;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 13px 26px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+  transition: all 0.2s ease;
+}
+
+.cp-btn-spotlight-register:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.55);
+}
+
+.cp-btn-spotlight-schedule {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 13px 22px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cp-btn-spotlight-schedule:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Countdown Card */
+.cp-countdown-card {
+  background: rgba(16, 31, 102, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(246, 200, 76, 0.3);
+  border-radius: 18px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.cp-countdown-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fde047;
+  margin-bottom: 12px;
+}
+
+.cp-timer-digits-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cp-timer-unit-box {
+  background: #07154A;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 54px;
+}
+
+.cp-timer-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
+
+.cp-timer-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.cp-timer-colon {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fde047;
+  line-height: 1;
+}
+
+.cp-countdown-target-note {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Candidate Credentials Success Card */
+.cp-credentials-card {
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: left;
+  margin-top: 16px;
+}
+
+.cp-credentials-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cp-cred-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed #cbd5e1;
+  font-size: 13px;
+}
+
+.cp-cred-row:last-child {
+  border-bottom: none;
+}
