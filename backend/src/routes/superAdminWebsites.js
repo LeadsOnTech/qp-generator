@@ -12,6 +12,37 @@ router.use(requireAdmin);
  */
 router.get('/', async (req, res) => {
   try {
+    // 1. Auto-bootstrap CollegeWebsite for any registered institute that doesn't have one yet
+    const allInstitutes = await prisma.institute.findMany({
+      select: { id: true, name: true, slug: true, phone: true, address: true, tagline: true },
+    });
+    const existingWebsites = await prisma.collegeWebsite.findMany({ select: { instituteId: true } });
+    const existingIds = new Set(existingWebsites.map((w) => w.instituteId));
+
+    for (const inst of allInstitutes) {
+      if (!existingIds.has(inst.id)) {
+        await prisma.collegeWebsite.create({
+          data: {
+            instituteId: inst.id,
+            slug: inst.slug,
+            displayName: inst.name,
+            mottoTagline: inst.tagline || 'Excellence in Education',
+            contactPhone: inst.phone || '',
+            campusAddress: inst.address || '',
+            aboutTitle: `About ${inst.name}`,
+            aboutText: `${inst.name} is dedicated to fostering academic excellence, holistic character, and competitive leadership. Our students consistently excel in state and national examinations.`,
+            statsCountersJson: JSON.stringify([
+              { label: 'Successful Alumni', value: '10,000+' },
+              { label: 'NEET/JEE Selections', value: '2,500+' },
+              { label: 'Expert Faculty', value: '50+' },
+              { label: 'State Ranks', value: '150+' },
+            ]),
+          },
+        });
+      }
+    }
+
+    // 2. Fetch full website list
     const websites = await prisma.collegeWebsite.findMany({
       include: {
         institute: {

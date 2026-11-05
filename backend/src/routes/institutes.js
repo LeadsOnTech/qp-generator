@@ -146,6 +146,30 @@ router.post('/', requireAdmin, async (req, res) => {
     });
   }
 
+  // Auto-provision College Website record
+  try {
+    await prisma.collegeWebsite.create({
+      data: {
+        instituteId: institute.id,
+        slug: institute.slug,
+        displayName: institute.name,
+        mottoTagline: institute.tagline || 'Excellence in Education',
+        contactPhone: institute.phone || '',
+        campusAddress: institute.address || '',
+        aboutTitle: `About ${institute.name}`,
+        aboutText: `${institute.name} is dedicated to fostering academic excellence, holistic character, and competitive leadership. Our students consistently excel in state and national examinations.`,
+        statsCountersJson: JSON.stringify([
+          { label: 'Successful Alumni', value: '10,000+' },
+          { label: 'NEET/JEE Selections', value: '2,500+' },
+          { label: 'Expert Faculty', value: '50+' },
+          { label: 'State Ranks', value: '150+' },
+        ]),
+      },
+    });
+  } catch (e) {
+    console.error('Failed to auto-create collegeWebsite on institute create:', e);
+  }
+
   res.json({
     id: institute.id,
     name: institute.name,
