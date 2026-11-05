@@ -321,7 +321,7 @@ export const api = {
   sendResultWhatsApp: (resultId, forceRetry = false) => request(`/results/${resultId}/whatsapp-send`, { method: 'POST', body: JSON.stringify({ forceRetry }) }),
   batchSendWhatsApp: (paperId, options = {}) => request(`/results/paper/${paperId}/batch-whatsapp-send`, { method: 'POST', body: JSON.stringify(options) }),
   getWhatsAppLedger: () => request('/results/whatsapp/ledger'),
-  rechargeWhatsAppWallet: (amountRupees) => request('/results/whatsapp/wallet-recharge', { method: 'POST', body: JSON.stringify({ amountRupees }) }),
+  rechargeWhatsAppWallet: (amountRupees, instituteId) => request('/results/whatsapp/wallet-recharge', { method: 'POST', body: JSON.stringify({ amountRupees, instituteId }) }),
   getPublicResult: (token) => request(`/public/results/${token}`),
   updateResultParentPhone: (resultId, parentPhone) => request(`/results/${resultId}/parent-phone`, { method: 'PATCH', body: JSON.stringify({ parentPhone }) }),
 

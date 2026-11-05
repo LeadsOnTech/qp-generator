@@ -32,6 +32,7 @@ function formatInstitute(i) {
     logoFilename: i.logoFilename,
     logoUrl: i.logoFilename ? `/uploads/images/${i.logoFilename}` : null,
     creditBalance: i.creditBalance,
+    whatsAppWalletBalance: i.whatsAppWalletBalance ?? 0.0,
     isTrial: i.isTrial,
     trialPhoneNumber: i.trialPhoneNumber,
   };

@@ -17,6 +17,36 @@ export default function Institutes() {
   const [rechargeReason, setRechargeReason] = useState('');
   const [rechargeBusy, setRechargeBusy] = useState(false);
 
+  // WhatsApp Recharge State
+  const [waRechargeTarget, setWaRechargeTarget] = useState(null);
+  const [waRechargeAmount, setWaRechargeAmount] = useState('500');
+  const [waRechargeBusy, setWaRechargeBusy] = useState(false);
+
+  function openWaRecharge(inst) {
+    setWaRechargeTarget(inst);
+    setWaRechargeAmount('500');
+    setError(null);
+  }
+
+  async function submitWaRecharge() {
+    const amount = parseFloat(waRechargeAmount);
+    if (!amount || amount <= 0) {
+      return setError('Enter a valid positive amount in Rupees.');
+    }
+    setWaRechargeBusy(true);
+    setError(null);
+    try {
+      const res = await api.rechargeWhatsAppWallet(amount, waRechargeTarget.id);
+      setMessage(`Added ₹${amount} to WhatsApp wallet for ${waRechargeTarget.name}. New balance: ₹${res.newBalance.toFixed(2)}`);
+      setWaRechargeTarget(null);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWaRechargeBusy(false);
+    }
+  }
+
   // Login Management State
   const [loginTarget, setLoginTarget] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -271,14 +301,18 @@ export default function Institutes() {
               </div>
               {inst.phone && <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>{inst.phone}</div>}
               {inst.address && <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>{inst.address}</div>}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                <span className="badge badge-gold">{inst.creditBalance ?? 0} credits</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                <span className="badge badge-gold">{inst.creditBalance ?? 0} Credits</span>
+                <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: 11.5, fontWeight: 700 }}>
+                  💬 ₹{(inst.whatsAppWalletBalance ?? 0).toFixed(2)} WA
+                </span>
                 {inst.isTrial && <span className="badge badge-neutral">Trial</span>}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => startEdit(inst)}>Edit</button>
                 <button className="btn-danger-ghost" onClick={() => remove(inst.id, inst.name)}>Delete</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => openRecharge(inst)}>+ Credits</button>
+                <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#047857', fontWeight: 700 }} onClick={() => openWaRecharge(inst)}>💬 + WA ₹</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#2563eb', fontWeight: 600 }} onClick={() => openLoginModal(inst)}>🔑 Login</button>
               </div>
             </div>
@@ -362,6 +396,45 @@ export default function Institutes() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {waRechargeTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(16,29,51,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setWaRechargeTarget(null)}
+        >
+          <div className="card card-pad" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 4 }}>💬 Top-up WhatsApp Messaging Balance</h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 16 }}>
+              {waRechargeTarget.name} — Current balance: <b>₹{(waRechargeTarget.whatsAppWalletBalance ?? 0).toFixed(2)}</b>
+            </p>
+            <div className="field">
+              <label>Recharge Amount (₹ Rupees)</label>
+              <input
+                type="number"
+                min="10"
+                step="50"
+                placeholder="e.g. 500"
+                value={waRechargeAmount}
+                onChange={(e) => setWaRechargeAmount(e.target.value)}
+              />
+              <span style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 4, display: 'block' }}>
+                At ~₹0.30/message, ₹500 provides approximately 1,600 automated WhatsApp messages (result cards, OTPs, hall tickets).
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                className="btn btn-primary"
+                style={{ background: '#059669', borderColor: '#059669' }}
+                onClick={submitWaRecharge}
+                disabled={waRechargeBusy}
+              >
+                {waRechargeBusy ? 'Adding…' : 'Add ₹ to WhatsApp Wallet'}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setWaRechargeTarget(null)}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
