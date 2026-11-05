@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredToken } from '../lib/api';
+import '../college-builder.css';
 
 function getAuthToken() {
   return getStoredToken();

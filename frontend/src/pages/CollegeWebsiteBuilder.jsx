@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredToken } from '../lib/api';
+import '../college-builder.css';
 
 function getAuthToken() {
   return getStoredToken();
@@ -14,6 +15,7 @@ export default function CollegeWebsiteBuilder() {
   const [activeTab, setActiveTab] = useState('overview');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Core Form state for Website record
   const [form, setForm] = useState({});
@@ -32,7 +34,7 @@ export default function CollegeWebsiteBuilder() {
 
   // Modals for creating/editing sub-items
   const [editingItem, setEditingItem] = useState(null);
-  const [modalType, setModalType] = useState(null); // 'course' | 'faculty' | 'facility' | 'achievement' | 'testimonial' | 'gallery' | 'job'
+  const [modalType, setModalType] = useState(null); // 'courses' | 'faculty' | 'facilities' | 'achievements' | 'testimonials' | 'gallery' | 'jobs'
   const [modalForm, setModalForm] = useState({});
 
   // Live preview device view
@@ -99,6 +101,7 @@ export default function CollegeWebsiteBuilder() {
     }
   }
 
+  // Save full website record
   async function handleSaveWebsiteSettings(e) {
     if (e) e.preventDefault();
     setSaving(true);
@@ -118,7 +121,7 @@ export default function CollegeWebsiteBuilder() {
       setWebsite(data.website);
       setForm(data.website);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -246,11 +249,20 @@ export default function CollegeWebsiteBuilder() {
     }
   }
 
+  function handleCopyLink(url) {
+    navigator.clipboard.writeText(url);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2500);
+  }
+
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-500">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-sm font-semibold">Loading College Website Studio...</p>
+      <div className="cwb-studio">
+        <div className="cwb-workspace" style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ width: 44, height: 44, border: '4px solid #1e3a8a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'cwbPulse 1s infinite linear', margin: '0 auto 16px auto' }} />
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>Loading College Website Studio...</h3>
+          <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Retrieving your institutional branding, sections, and academic catalogue</p>
+        </div>
       </div>
     );
   }
@@ -258,27 +270,25 @@ export default function CollegeWebsiteBuilder() {
   if (error || !website) {
     const isSessionExpired = error && (error.toLowerCase().includes('session') || error.toLowerCase().includes('logged in') || error.toLowerCase().includes('token'));
     return (
-      <div className="p-8 max-w-lg mx-auto text-center bg-white rounded-2xl border border-slate-200 shadow-sm mt-8">
-        <span className="text-4xl">{isSessionExpired ? '🔐' : '⚠️'}</span>
-        <h3 className="text-base font-bold text-slate-800 mt-2">
-          {isSessionExpired ? 'Authentication Required' : 'Error Loading Website'}
-        </h3>
-        <p className="text-xs text-slate-600 mt-1">{error || 'College website configuration not found.'}</p>
-        <div className="mt-5 flex items-center justify-center gap-2">
-          {isSessionExpired && (
-            <Link
-              to="/login?redirect=/website-builder"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-            >
-              Sign In Again →
-            </Link>
-          )}
-          <button
-            onClick={fetchWebsite}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
-          >
-            Try Again
-          </button>
+      <div className="cwb-studio">
+        <div className="cwb-workspace" style={{ maxWidth: 520, margin: '40px auto', textAlign: 'center', padding: '40px 30px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>{isSessionExpired ? '🔐' : '⚠️'}</div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            {isSessionExpired ? 'Authentication Required' : 'Error Loading Website Studio'}
+          </h2>
+          <p style={{ fontSize: 13, color: '#64748b', margin: '8px 0 24px 0', lineHeight: 1.5 }}>
+            {error || 'College website configuration not found.'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+            {isSessionExpired && (
+              <Link to="/login?redirect=/website-builder" className="cwb-btn cwb-btn-primary">
+                Sign In Again →
+              </Link>
+            )}
+            <button onClick={fetchWebsite} className="cwb-btn cwb-btn-secondary">
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -287,312 +297,350 @@ export default function CollegeWebsiteBuilder() {
   const publicUrl = `/#/colleges/${website.slug}`;
   const fullLiveUrl = `${window.location.origin}/#/colleges/${website.slug}`;
 
-  const navMenuItems = [
-    { id: 'overview', label: '1. Website Overview', icon: '📊' },
-    { id: 'profile', label: '2. College Profile', icon: '🏛' },
-    { id: 'theme', label: '3. Branding & Theme', icon: '🎨' },
-    { id: 'hero', label: '4. Homepage Hero Banner', icon: '⚡' },
-    { id: 'director', label: '5. Director Profile & Message', icon: '👨‍💼' },
-    { id: 'about', label: '6. About College & Vision', icon: '📖' },
-    { id: 'courses', label: '7. Courses Offered', icon: '🎓', count: courses.length },
-    { id: 'faculty', label: '8. Faculty Directory', icon: '👨‍🏫', count: faculty.length },
-    { id: 'facilities', label: '9. Campus Infrastructure', icon: '🏢', count: facilities.length },
-    { id: 'gallery', label: '10. Photo & Media Gallery', icon: '🖼', count: gallery.length },
-    { id: 'achievements', label: '11. Achievements & Hall of Fame', icon: '🏆', count: achievements.length },
-    { id: 'testimonials', label: '12. Testimonials & Reviews', icon: '💬', count: testimonials.length },
-    { id: 'admissions', label: '13. Admissions & Prospectus', icon: '📜' },
-    { id: 'exams', label: '14. Open Mock Examinations', icon: '📝', count: openExams.filter((e) => e.isPublicWebsiteVisible).length },
-    { id: 'careers', label: '15. Faculty Careers', icon: '💼', count: jobs.length },
-    { id: 'enquiries', label: '16. Enquiries & Leads Inbox', icon: '📥', count: enquiries.length },
-    { id: 'seo', label: '17. SEO & OpenGraph', icon: '🔍' },
-    { id: 'preview', label: '18. Website Interactive Preview', icon: '📱' },
-    { id: 'publish', label: '19. Publish Website', icon: '🚀' },
+  // Categorized Navigation Suite: 5 Logical Pillars
+  const NAV_CATEGORIES = [
+    {
+      title: '01 • Hub & Operations',
+      items: [
+        { id: 'overview', label: 'Dashboard & Health', icon: '📊' },
+        { id: 'enquiries', label: 'Admissions Inbox', icon: '📥', count: enquiries.length },
+        { id: 'publish', label: 'Publish & Status', icon: '🚀' },
+      ],
+    },
+    {
+      title: '02 • Brand & Identity',
+      items: [
+        { id: 'profile', label: 'College Profile', icon: '🏛' },
+        { id: 'theme', label: 'Branding & Theme', icon: '🎨' },
+        { id: 'seo', label: 'SEO & Social Share', icon: '🔍' },
+      ],
+    },
+    {
+      title: '03 • Homepage Content',
+      items: [
+        { id: 'hero', label: 'Hero Showcase', icon: '⚡' },
+        { id: 'director', label: 'Director Message', icon: '👨‍💼' },
+        { id: 'about', label: 'About & Vision', icon: '📖' },
+        { id: 'facilities', label: 'Campus Facilities', icon: '🏢', count: facilities.length },
+        { id: 'gallery', label: 'Photo Gallery', icon: '🖼', count: gallery.length },
+      ],
+    },
+    {
+      title: '04 • Academics & People',
+      items: [
+        { id: 'courses', label: 'Courses Offered', icon: '🎓', count: courses.length },
+        { id: 'faculty', label: 'Faculty Directory', icon: '👨‍🏫', count: faculty.length },
+        { id: 'achievements', label: 'Student Achievements', icon: '🏆', count: achievements.length },
+        { id: 'testimonials', label: 'Testimonials', icon: '💬', count: testimonials.length },
+      ],
+    },
+    {
+      title: '05 • Portals & Outreach',
+      items: [
+        { id: 'admissions', label: 'Admissions & Dates', icon: '📜' },
+        { id: 'exams', label: 'Open CBT Exams', icon: '📝', count: openExams.filter((e) => e.isPublicWebsiteVisible).length },
+        { id: 'careers', label: 'Faculty Careers', icon: '💼', count: jobs.length },
+        { id: 'preview', label: 'Interactive Preview', icon: '📱' },
+      ],
+    },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-md">
-            🌐
+    <div className="cwb-studio">
+      {/* ==================== 1. EXECUTIVE HEADER COMMAND BAR ==================== */}
+      <div className="cwb-header">
+        <div className="cwb-identity-block">
+          <div className="cwb-emblem-avatar">
+            {website.displayName ? website.displayName.charAt(0).toUpperCase() : '🏛'}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+            <div className="cwb-title-row">
+              <h1 className="cwb-college-title">
                 {website.displayName || institute?.name}
               </h1>
               {website.isPublished ? (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span className="cwb-badge-live">
                   LIVE (v{website.publishedVersion})
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                <span className="cwb-badge-draft">
                   DRAFT MODE
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-              <span>Public Link:</span>
-              <a
-                href={publicUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                questionsstudio.in/colleges/{website.slug}
+            <div className="cwb-meta-row">
+              <span>Public Portal:</span>
+              <a href={publicUrl} target="_blank" rel="noreferrer" className="cwb-meta-link">
+                questionstudio.in/colleges/{website.slug}
               </a>
-            </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="cwb-header-actions">
+          <button
+            type="button"
+            onClick={() => handleCopyLink(fullLiveUrl)}
+            className="cwb-btn cwb-btn-secondary"
+            title="Copy portal URL"
+          >
+            <span>{copySuccess ? '✓' : '📋'}</span>
+            <span>{copySuccess ? 'Copied!' : 'Copy Link'}</span>
+          </button>
+
           <a
             href={publicUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition"
+            className="cwb-btn cwb-btn-secondary"
           >
-            <span>↗</span> Open Live Website
+            <span>↗</span>
+            <span>Visit Live</span>
           </a>
 
           <button
+            type="button"
             onClick={() => setActiveTab('preview')}
-            className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition"
+            className={`cwb-btn ${activeTab === 'preview' ? 'cwb-btn-primary' : 'cwb-btn-purple'}`}
           >
-            Preview Layout
+            <span>📱</span>
+            <span>Interactive Preview</span>
           </button>
 
           {website.isPublished ? (
             <button
+              type="button"
               onClick={() => handlePublishToggle(false)}
               disabled={saving}
-              className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition"
+              className="cwb-btn cwb-btn-danger"
             >
               Unpublish
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => handlePublishToggle(true)}
               disabled={saving}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition"
+              className="cwb-btn cwb-btn-emerald"
             >
-              🚀 Publish Website
+              <span>🚀</span>
+              <span>Publish Live</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Main Builder Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Sub-Menu Navigation */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-1">
-          <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Website Studio Menus
-          </div>
-          {navMenuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
-                activeTab === item.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <span className="flex items-center gap-2 truncate">
-                <span>{item.icon}</span>
-                <span className="truncate">{item.label}</span>
-              </span>
-              {item.count !== undefined && item.count > 0 && (
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                    activeTab === item.id ? 'bg-white/30 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
+      {/* ==================== 2. MASTER STUDIO GRID ==================== */}
+      <div className="cwb-studio-grid">
+        {/* Left Categorized Navigation Sidebar */}
+        <aside className="cwb-sidebar">
+          {NAV_CATEGORIES.map((cat, idx) => (
+            <div key={idx} className="cwb-nav-category">
+              <div className="cwb-category-label">{cat.title}</div>
+              {cat.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  className={`cwb-nav-item ${activeTab === item.id ? 'active' : ''}`}
                 >
-                  {item.count}
-                </span>
-              )}
-            </button>
+                  <div className="cwb-nav-item-left">
+                    <span className="cwb-nav-icon">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.count !== undefined && item.count > 0 && (
+                    <span className="cwb-nav-count">{item.count}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           ))}
-        </div>
+        </aside>
 
-        {/* Right Content Panel */}
-        <div className="lg:col-span-9 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        {/* Right Content Workspace */}
+        <main className="cwb-workspace">
           {saveSuccess && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center justify-between">
-              <span>✓ Website changes saved successfully to draft!</span>
+            <div style={{ padding: '12px 16px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, color: '#065f46', fontSize: 13, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>✓</span>
+              <span>Website changes saved successfully to draft!</span>
             </div>
           )}
 
-          {/* ==================== 1. OVERVIEW ==================== */}
+          {/* ==================== TAB 1: OVERVIEW & HEALTH ==================== */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-slate-900">Website Overview & Health Score</h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100 space-y-1">
-                  <span className="text-xs font-bold text-blue-700 uppercase">Admission Leads</span>
-                  <div className="text-2xl font-black text-blue-900">{enquiries.length}</div>
-                  <p className="text-[11px] text-blue-600">Prospective student inquiries</p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-teal-50 border border-teal-100 space-y-1">
-                  <span className="text-xs font-bold text-teal-700 uppercase">Courses Published</span>
-                  <div className="text-2xl font-black text-teal-900">{courses.length}</div>
-                  <p className="text-[11px] text-teal-600">Competitive academic streams</p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-purple-50 border border-purple-100 space-y-1">
-                  <span className="text-xs font-bold text-purple-700 uppercase">Open CBT Exams</span>
-                  <div className="text-2xl font-black text-purple-900">
-                    {openExams.filter((e) => e.isPublicWebsiteVisible).length}
-                  </div>
-                  <p className="text-[11px] text-purple-600">Tests open for public practice</p>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Website Overview & Institutional Health</h2>
+                  <p className="cwb-section-desc">Live performance metrics, modular subscription status, and homepage section controls.</p>
                 </div>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Quick Share & Outreach
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Share your public portal URL on official brochures, hoardings, and WhatsApp messages:
+              {/* Metric Cards Grid */}
+              <div className="cwb-stat-grid">
+                <div className="cwb-stat-card blue">
+                  <span className="cwb-stat-label">Admission Leads</span>
+                  <span className="cwb-stat-val">{enquiries.length}</span>
+                  <span className="cwb-stat-sub">Prospective student inquiries</span>
+                </div>
+
+                <div className="cwb-stat-card emerald">
+                  <span className="cwb-stat-label">Courses Published</span>
+                  <span className="cwb-stat-val">{courses.length}</span>
+                  <span className="cwb-stat-sub">Competitive academic streams</span>
+                </div>
+
+                <div className="cwb-stat-card purple">
+                  <span className="cwb-stat-label">Faculty Directory</span>
+                  <span className="cwb-stat-val">{faculty.length}</span>
+                  <span className="cwb-stat-sub">Academic mentors & HODs</span>
+                </div>
+
+                <div className="cwb-stat-card amber">
+                  <span className="cwb-stat-label">Open CBT Exams</span>
+                  <span className="cwb-stat-val">
+                    {openExams.filter((e) => e.isPublicWebsiteVisible).length}
+                  </span>
+                  <span className="cwb-stat-sub">Tests open for public practice</span>
+                </div>
+              </div>
+
+              {/* Quick Share Banner */}
+              <div className="cwb-share-box">
+                <h3 className="cwb-share-title">Quick Share & Digital Outreach</h3>
+                <p className="cwb-share-desc">
+                  Share your public portal link on WhatsApp admission groups, hoardings, print prospectus, and SMS notifications:
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="cwb-share-input-row">
                   <input
                     type="text"
                     readOnly
                     value={fullLiveUrl}
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-700 select-all"
+                    className="cwb-share-input"
                   />
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(fullLiveUrl);
-                      alert('URL copied to clipboard!');
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition"
+                    type="button"
+                    onClick={() => handleCopyLink(fullLiveUrl)}
+                    className="cwb-btn cwb-btn-primary"
                   >
-                    Copy Link
+                    <span>{copySuccess ? '✓ Copied' : 'Copy Public URL'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Modular SaaS Subscriptions */}
-              <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              {/* Modular SaaS Facilities & Subscriptions */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 20, marginBottom: 24, background: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <h3 style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: '#1e293b', margin: 0 }}>
                     Modular SaaS Facilities & Subscriptions
                   </h3>
-                  <span className="text-[11px] font-bold text-slate-400">QuestionsStudio Multi-Tenant Engine</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>QuestionsStudio Multi-Tenant Engine</span>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 16px 0' }}>
                   Colleges can independently purchase modules. Inactive modules are gracefully hidden from the public portal without broken layouts.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+
+                <div className="cwb-form-grid-2">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">📄 Question Paper Generation</div>
-                      <div className="text-[11px] text-slate-500">Centralized question bank & auto blueprint generator</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>📄 Question Paper Generation</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Centralized question bank & auto blueprint generator</div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">INCLUDED</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 9999, background: '#ecfdf5', color: '#065f46' }}>INCLUDED</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">🌐 Public College Website</div>
-                      <div className="text-[11px] text-slate-500">17-section longform institutional homepage</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>🌐 Public College Website</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>17-section longform institutional homepage</div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">ACTIVE</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 9999, background: '#ecfdf5', color: '#065f46' }}>ACTIVE</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">💻 Online Examination System (CBT)</div>
-                      <div className="text-[11px] text-slate-500">Public mock test discovery & timed CBT test engine</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>💻 Online Examination System (CBT)</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Public mock test discovery & timed CBT test engine</div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="checkbox"
                         checked={form.hasOnlineExamModule ?? true}
                         onChange={(e) => setForm({ ...form, hasOnlineExamModule: e.target.checked })}
-                        className="sr-only peer"
+                        style={{ width: 18, height: 18, accentColor: '#2563eb' }}
                       />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">💼 Faculty Recruitment Portal</div>
-                      <div className="text-[11px] text-slate-500">Job vacancy management & resume applications</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>💼 Faculty Recruitment Portal</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Job vacancy management & resume applications</div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="checkbox"
                         checked={form.hasRecruitmentModule ?? true}
                         onChange={(e) => setForm({ ...form, hasRecruitmentModule: e.target.checked })}
-                        className="sr-only peer"
+                        style={{ width: 18, height: 18, accentColor: '#2563eb' }}
                       />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">📥 Student Leads & Admissions CRM</div>
-                      <div className="text-[11px] text-slate-500">Online lead capture & WhatsApp counseling links</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>📥 Student Leads & Admissions CRM</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Online lead capture & WhatsApp counseling links</div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="checkbox"
                         checked={form.hasCrmModule ?? true}
                         onChange={(e) => setForm({ ...form, hasCrmModule: e.target.checked })}
-                        className="sr-only peer"
+                        style={{ width: 18, height: 18, accentColor: '#2563eb' }}
                       />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div className="text-xs font-bold text-slate-800">📢 College Advertising & Promotion</div>
-                      <div className="text-[11px] text-slate-500">Sponsored examination placement on portal</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>📢 College Advertising & Promotion</div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Sponsored examination placement on portal</div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <input
                         type="checkbox"
                         checked={form.hasAdvertisingModule ?? false}
                         onChange={(e) => setForm({ ...form, hasAdvertisingModule: e.target.checked })}
-                        className="sr-only peer"
+                        style={{ width: 18, height: 18, accentColor: '#2563eb' }}
                       />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                 </div>
               </div>
 
-              {/* 16-Section Visibility Toggles */}
-              <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    17-Section Homepage Visibility Toggles
-                  </h3>
+              {/* 17-Section Homepage Visibility Toggles */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 20, background: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div>
+                    <h3 style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: '#1e293b', margin: 0 }}>
+                      17-Section Homepage Visibility Toggles
+                    </h3>
+                    <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0 0' }}>
+                      Selectively show or hide sections from your public college website homepage without losing any configured content.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={handleSaveWebsiteSettings}
                     disabled={saving}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition"
+                    className="cwb-btn cwb-btn-primary"
                   >
                     {saving ? 'Saving...' : 'Save Toggles'}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Selectively show or hide sections from your public college website homepage without deleting content.
-                </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                <div className="cwb-toggles-grid">
                   {[
                     { key: 'showStatsSection', label: '3. Stats & Counters' },
                     { key: 'showAboutSection', label: '4. About Us & Heritage' },
@@ -609,194 +657,219 @@ export default function CollegeWebsiteBuilder() {
                     { key: 'showGallerySection', label: '15. Photo Gallery' },
                     { key: 'showTestimonialsSection', label: '16. Testimonials' },
                     { key: 'showFaqSection', label: '17. FAQs Accordion' },
-                    { key: 'showContactFormSection', label: '17. Admission Enquiry Form' },
-                  ].map((sec) => (
-                    <label key={sec.key} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={form[sec.key] ?? true}
-                        onChange={(e) => setForm({ ...form, [sec.key]: e.target.checked })}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>{sec.label}</span>
-                    </label>
-                  ))}
+                    { key: 'showContactFormSection', label: '18. Admission Enquiry Form' },
+                  ].map((sec) => {
+                    const isChecked = form[sec.key] ?? true;
+                    return (
+                      <label key={sec.key} className={`cwb-toggle-card ${isChecked ? 'active' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => setForm({ ...form, [sec.key]: e.target.checked })}
+                          className="cwb-toggle-checkbox"
+                        />
+                        <span className="cwb-toggle-label">{sec.label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
 
-          {/* ==================== 2. COLLEGE PROFILE ==================== */}
+          {/* ==================== TAB 2: COLLEGE PROFILE ==================== */}
           {activeTab === 'profile' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">College Profile & Identity</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Display College Name</label>
+                  <h2 className="cwb-section-title">College Profile & Institutional Identity</h2>
+                  <p className="cwb-section-desc">Manage primary college name, accreditations, contact helpline numbers, and location map.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Profile Changes'}
+                </button>
+              </div>
+
+              <div className="cwb-form-grid-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Display College Name *</label>
                   <input
                     type="text"
                     value={form.displayName || ''}
                     onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="e.g. Andhra Inspire Academy of Science & Technology"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Motto / Tagline</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Motto / Tagline</label>
                   <input
                     type="text"
                     value={form.mottoTagline || ''}
                     onChange={(e) => setForm({ ...form, mottoTagline: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="e.g. Nurturing Scholarly Excellence & Ethical Character"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Establishment Year</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Establishment Year</label>
                   <input
                     type="number"
                     value={form.estYear || ''}
                     onChange={(e) => setForm({ ...form, estYear: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="e.g. 2008"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Accreditation / Affiliation</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Accreditation & Affiliations</label>
                   <input
                     type="text"
-                    placeholder="e.g. CBSE Affiliated / NAAC A+"
+                    placeholder="e.g. Board of Intermediate Education AP (BIEAP) & CBSE"
                     value={form.accreditation || ''}
                     onChange={(e) => setForm({ ...form, accreditation: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Official Telephone</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Official Telephone *</label>
                   <input
                     type="tel"
                     value={form.contactPhone || ''}
                     onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="+91 866 245 8899"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Official Email</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Official Admissions Email *</label>
                   <input
                     type="email"
                     value={form.contactEmail || ''}
                     onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="admissions@inspireacademy.edu.in"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">WhatsApp Helpline Number</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">WhatsApp Helpline Number (10 digits)</label>
                   <input
                     type="tel"
-                    placeholder="10-digit number for WhatsApp button"
+                    placeholder="9848012345 (used for student instant chat)"
                     value={form.whatsappNumber || ''}
                     onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Google Maps Embed URL</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Google Maps Embed URL</label>
                   <input
                     type="url"
                     placeholder="https://maps.google.com/..."
                     value={form.googleMapEmbedUrl || ''}
                     onChange={(e) => setForm({ ...form, googleMapEmbedUrl: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus Full Address</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Campus Physical Address</label>
                 <textarea
                   rows={2}
                   value={form.campusAddress || ''}
                   onChange={(e) => setForm({ ...form, campusAddress: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-textarea"
+                  placeholder="Plot 14-B, Academic Enclave, Near Benz Circle, Vijayawada, AP - 520010"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                {saving ? 'Saving...' : 'Save Profile Changes'}
-              </button>
+              <div className="cwb-save-bar">
+                <span className="cwb-hint">Remember to publish to live when you are ready to update the public portal.</span>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Profile Changes'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 3. BRANDING & THEME ==================== */}
+          {/* ==================== TAB 3: BRANDING & THEME ==================== */}
           {activeTab === 'theme' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-6">
-              <h2 className="text-lg font-bold text-slate-900">Branding, Colors & Design Palettes</h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Primary Brand Color</label>
-                  <div className="flex items-center gap-2">
+                  <h2 className="cwb-section-title">Branding, Colors & Institutional Palettes</h2>
+                  <p className="cwb-section-desc">Customize primary and accent colors to match your college crest and identity guidelines.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Theme Colors'}
+                </button>
+              </div>
+
+              <div className="cwb-form-grid-3">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Primary Brand Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input
                       type="color"
-                      value={form.primaryColor || '#1e40af'}
+                      value={form.primaryColor || '#0b1a30'}
                       onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
                     />
                     <input
                       type="text"
-                      value={form.primaryColor || '#1e40af'}
+                      value={form.primaryColor || '#0b1a30'}
                       onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-slate-200 text-xs rounded-xl font-mono"
+                      className="cwb-input"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Secondary Tone Color</label>
-                  <div className="flex items-center gap-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Secondary Tone Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input
                       type="color"
                       value={form.secondaryColor || '#0f766e'}
                       onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
-                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
                     />
                     <input
                       type="text"
                       value={form.secondaryColor || '#0f766e'}
                       onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-slate-200 text-xs rounded-xl font-mono"
+                      className="cwb-input"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Accent Highlight Color</label>
-                  <div className="flex items-center gap-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Accent Highlight Color</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input
                       type="color"
-                      value={form.accentColor || '#f59e0b'}
+                      value={form.accentColor || '#b45309'}
                       onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                      className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
                     />
                     <input
                       type="text"
-                      value={form.accentColor || '#f59e0b'}
+                      value={form.accentColor || '#b45309'}
                       onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                      className="flex-1 px-3 py-2 border border-slate-200 text-xs rounded-xl font-mono"
+                      className="cwb-input"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Curated Theme Presets */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">Recommended Institutional Palettes</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div style={{ marginTop: 24 }}>
+                <label className="cwb-label" style={{ marginBottom: 10 }}>Recommended Curated Academic Palettes</label>
+                <div className="cwb-form-grid-3">
                   {[
+                    { name: 'Heritage Navy & Bronze', p: '#0b1a30', s: '#0f766e', a: '#b45309' },
                     { name: 'Oxford Royal Blue', p: '#1e3a8a', s: '#0369a1', a: '#f59e0b' },
-                    { name: 'Emerald Ivy League', p: '#064e3b', s: '#0f766e', a: '#eab308' },
-                    { name: 'Burgundy Excellence', p: '#831843', s: '#9f1239', a: '#f97316' },
+                    { name: 'Imperial Crimson', p: '#831843', s: '#9f1239', a: '#ea580c' },
                   ].map((preset, idx) => (
                     <button
                       key={idx}
@@ -807,266 +880,328 @@ export default function CollegeWebsiteBuilder() {
                         secondaryColor: preset.s,
                         accentColor: preset.a,
                       })}
-                      className="p-3 border border-slate-200 rounded-xl flex items-center justify-between hover:border-blue-500 transition"
+                      style={{
+                        padding: '14px 16px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.15s ease',
+                      }}
                     >
-                      <span className="text-xs font-semibold text-slate-800">{preset.name}</span>
-                      <div className="flex items-center gap-1">
-                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: preset.p }} />
-                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: preset.s }} />
-                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: preset.a }} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{preset.name}</span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.p }} />
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.s }} />
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.a }} />
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Save Theme Colors
-              </button>
+              <div className="cwb-save-bar">
+                <span className="cwb-hint">Color changes take effect immediately across hero, buttons, and badges.</span>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Theme Colors'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 4. HERO BANNER ==================== */}
+          {/* ==================== TAB 4: HERO BANNER ==================== */}
           {activeTab === 'hero' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">Homepage Hero Section Management</h2>
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Homepage Hero Section Management</h2>
+                  <p className="cwb-section-desc">Design your primary institutional showcase, top announcement banner, and campus photography.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Hero Section'}
+                </button>
+              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  🔥 Promotional Announcement Ticker (Top Red Banner)
-                </label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">🔥 Top Announcement Ticker (Urgent Header Banner)</label>
                 <input
                   type="text"
                   value={form.promotionalBannerText || ''}
                   onChange={(e) => setForm({ ...form, promotionalBannerText: e.target.value })}
                   placeholder="e.g. 🔥 Admissions Open for Academic Year 2026-27 | Scholarship Test this Sunday | Call: +91 98480 12345"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-input"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Leave blank if you do not want to display an urgent top announcement ticker.</p>
+                <p className="cwb-hint">Leave blank if you prefer not to display an urgent header marquee.</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Hero Main Headline</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Hero Main Headline *</label>
                 <input
                   type="text"
                   value={form.heroTitle || ''}
                   onChange={(e) => setForm({ ...form, heroTitle: e.target.value })}
-                  placeholder="e.g. Empowering Future Doctors & Engineers"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  placeholder="e.g. Empowering Future Doctors & Engineers with Academic Rigor"
+                  className="cwb-input"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Hero Subtitle</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Hero Subtitle & Vision Summary</label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={form.heroSubtitle || ''}
                   onChange={(e) => setForm({ ...form, heroSubtitle: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-textarea"
+                  placeholder="Comprehensive coaching for NEET, JEE Main & Advanced alongside accredited intermediate education."
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Upload Hero Banner Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const url = await handleFileUpload(file, 'heroBannerUrl');
-                      if (url) setForm({ ...form, heroBannerUrl: url });
-                    }
-                  }}
-                  className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700"
-                />
-                {form.heroBannerUrl && (
-                  <div className="mt-2 w-48 h-28 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                    <img src={form.heroBannerUrl} alt="Hero Preview" className="w-full h-full object-cover" />
+              <div className="cwb-form-group">
+                <label className="cwb-label">Campus Hero Photography Banner</label>
+                <div className="cwb-upload-box">
+                  {form.heroBannerUrl ? (
+                    <img src={form.heroBannerUrl} alt="Hero Preview" className="cwb-upload-preview" style={{ width: 120, height: 80 }} />
+                  ) : (
+                    <div className="cwb-upload-preview" style={{ width: 120, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#94a3b8' }}>
+                      🏛
+                    </div>
+                  )}
+                  <div className="cwb-upload-meta">
+                    <label className="cwb-upload-btn-label">
+                      <span>📸</span>
+                      <span>Upload Campus Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const url = await handleFileUpload(file, 'heroBannerUrl');
+                            if (url) setForm({ ...form, heroBannerUrl: url });
+                          }
+                        }}
+                      />
+                    </label>
+                    <p className="cwb-hint">Recommended resolution: 1920x1080px or higher for crisp desktop display.</p>
                   </div>
-                )}
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Save Hero Section
-              </button>
+              <div className="cwb-save-bar">
+                <span className="cwb-hint">Changes to hero headline and imagery will update Section 1 of the public site.</span>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Hero Section'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 5. DIRECTOR PROFILE ==================== */}
+          {/* ==================== TAB 5: DIRECTOR PROFILE ==================== */}
           {activeTab === 'director' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">Director / Leadership Profile</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Director Name</label>
+                  <h2 className="cwb-section-title">Director & Leadership Profile</h2>
+                  <p className="cwb-section-desc">Showcase the visionary educator leading your institution with their credentials, photo, and student address.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Director Profile'}
+                </button>
+              </div>
+
+              <div className="cwb-form-grid-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Director / Principal Name *</label>
                   <input
                     type="text"
                     value={form.directorName || ''}
                     onChange={(e) => setForm({ ...form, directorName: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
+                    placeholder="e.g. Dr. K. V. Ramanjaneyulu"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Designation</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Designation / Title</label>
                   <input
                     type="text"
-                    value={form.directorTitle || 'Director / Chairman'}
+                    value={form.directorTitle || 'Founder & Academic Director'}
                     onChange={(e) => setForm({ ...form, directorTitle: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-input"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Qualifications & Experience</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Qualifications & Experience Credentials</label>
                 <input
                   type="text"
-                  placeholder="e.g. M.Sc. Physics (IIT Madras), 25+ Years Mentoring"
+                  placeholder="e.g. M.Sc. Physics (IIT Madras), Ph.D., 25+ Years Mentoring Toppers"
                   value={form.directorQualifications || ''}
                   onChange={(e) => setForm({ ...form, directorQualifications: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-input"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Director's Message to Students</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Director's Message to Students & Parents</label>
                 <textarea
-                  rows={4}
+                  rows={5}
                   value={form.directorMessage || ''}
                   onChange={(e) => setForm({ ...form, directorMessage: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-textarea"
+                  placeholder="Welcome to our institution. Our goal is to build genuine intellectual clarity and discipline..."
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Director Photo</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const url = await handleFileUpload(file, 'directorPhotoUrl');
-                      if (url) setForm({ ...form, directorPhotoUrl: url });
-                    }
-                  }}
-                  className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700"
-                />
-                {form.directorPhotoUrl && (
-                  <div className="mt-2 w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                    <img src={form.directorPhotoUrl} alt="Director" className="w-full h-full object-cover" />
+              <div className="cwb-form-group">
+                <label className="cwb-label">Director Photograph</label>
+                <div className="cwb-upload-box">
+                  {form.directorPhotoUrl ? (
+                    <img src={form.directorPhotoUrl} alt="Director" className="cwb-upload-preview" />
+                  ) : (
+                    <div className="cwb-upload-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, color: '#94a3b8' }}>
+                      👨‍💼
+                    </div>
+                  )}
+                  <div className="cwb-upload-meta">
+                    <label className="cwb-upload-btn-label">
+                      <span>📷</span>
+                      <span>Upload Portrait Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const url = await handleFileUpload(file, 'directorPhotoUrl');
+                            if (url) setForm({ ...form, directorPhotoUrl: url });
+                          }
+                        }}
+                      />
+                    </label>
+                    <p className="cwb-hint">Professional formal photograph with natural lighting recommended.</p>
                   </div>
-                )}
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Save Director Profile
-              </button>
+              <div className="cwb-save-bar">
+                <span className="cwb-hint">Renders with high editorial elegance on Section 5 of your homepage.</span>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Director Profile'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 6. ABOUT COLLEGE ==================== */}
+          {/* ==================== TAB 6: ABOUT COLLEGE & VISION ==================== */}
           {activeTab === 'about' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">About College, Vision & Mission</h2>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">About Section Headline</label>
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">About College, Vision & Mission</h2>
+                  <p className="cwb-section-desc">Institutional background, scholarly heritage, educational philosophy, and core objectives.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save About Details'}
+                </button>
+              </div>
+
+              <div className="cwb-form-group">
+                <label className="cwb-label">About Section Headline</label>
                 <input
                   type="text"
                   value={form.aboutTitle || ''}
                   onChange={(e) => setForm({ ...form, aboutTitle: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-input"
+                  placeholder="e.g. A Legacy of Uncompromising Academic Excellence"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">About College Narrative</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">About College Narrative</label>
                 <textarea
                   rows={4}
                   value={form.aboutText || ''}
                   onChange={(e) => setForm({ ...form, aboutText: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-textarea"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Vision Statement</label>
+              <div className="cwb-form-grid-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Vision Statement</label>
                   <textarea
                     rows={3}
                     value={form.visionText || ''}
                     onChange={(e) => setForm({ ...form, visionText: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-textarea"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Mission Statement</label>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Mission Statement</label>
                   <textarea
                     rows={3}
                     value={form.missionText || ''}
                     onChange={(e) => setForm({ ...form, missionText: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                    className="cwb-textarea"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Why Choose Us Advantages (JSON Array: [{'{'} title, description, icon {'}'}])
+              <div className="cwb-form-group">
+                <label className="cwb-label">
+                  Why Choose Us Advantages (JSON Array: [{'{'} icon, title, description {'}'}])
                 </label>
                 <textarea
                   rows={4}
                   value={form.whyChooseUsJson || ''}
                   onChange={(e) => setForm({ ...form, whyChooseUsJson: e.target.value })}
-                  placeholder='[{"icon":"academic-cap","title":"IITian Faculty","description":"Learn from master teachers."}]'
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                  placeholder='[{"icon":"academic-cap","title":"IITian Faculty","description":"Learn directly from master educators."}]'
+                  className="cwb-textarea"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Configures the 6 institutional advantage cards on Section 6 of your homepage.</p>
+                <p className="cwb-hint">Configures the 6 institutional advantage cards on Section 6 of your homepage.</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+              <div className="cwb-form-group">
+                <label className="cwb-label">
                   Teaching Methodology Steps (JSON Array: [{'{'} stepNumber, badge, title, description {'}'}])
                 </label>
                 <textarea
                   rows={4}
                   value={form.methodologyStepsJson || ''}
                   onChange={(e) => setForm({ ...form, methodologyStepsJson: e.target.value })}
-                  placeholder='[{"stepNumber":"01","badge":"FOUNDATION","title":"Classroom Mastery","description":"Concept clarity."}]'
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                  placeholder='[{"stepNumber":"01","badge":"FOUNDATION","title":"Classroom Mastery","description":"Concept clarity first."}]'
+                  className="cwb-textarea"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Configures the 5-step learning workflow on Section 9 of your homepage.</p>
+                <p className="cwb-hint">Configures the 5-step learning workflow on Section 9 of your homepage.</p>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Save About Details
-              </button>
+              <div className="cwb-save-bar">
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save About Details'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 7. COURSES OFFERED ==================== */}
+          {/* ==================== TAB 7: COURSES OFFERED ==================== */}
           {activeTab === 'courses' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Courses Offered ({courses.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Academic Courses & Competitive Programs ({courses.length})</h2>
+                  <p className="cwb-section-desc">Manage streams, eligibility, target exams (NEET / JEE / Foundation), and program durations.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('courses');
@@ -1079,60 +1214,95 @@ export default function CollegeWebsiteBuilder() {
                       description: '',
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Add New Course
+                  <span>+</span>
+                  <span>Add New Course</span>
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {courses.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-4 rounded-xl border border-slate-200 flex items-center justify-between gap-4"
+              {courses.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">🎓</span>
+                  <h3 className="cwb-empty-title">No Courses Added Yet</h3>
+                  <p className="cwb-empty-desc">Add competitive exam streams like NEET, JEE Main & Advanced, or Intermediate programs.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingItem(null);
+                      setModalType('courses');
+                      setModalForm({ courseName: '', category: 'MEDICAL', targetExam: 'NEET', duration: '2 Years' });
+                    }}
+                    className="cwb-btn cwb-btn-primary"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-slate-900">{c.courseName}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
-                          {c.category}
-                        </span>
+                    + Add Your First Course
+                  </button>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {courses.map((c) => (
+                    <div key={c.id} className="cwb-item-card">
+                      <div>
+                        <div className="cwb-item-card-top">
+                          <div style={{ width: 44, height: 44, borderRadius: 10, background: '#eff6ff', color: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                            🎓
+                          </div>
+                          <div>
+                            <h3 className="cwb-item-card-title">{c.courseName}</h3>
+                            <div className="cwb-item-card-meta">
+                              <span className="cwb-item-pill" style={{ background: '#dbeafe', color: '#1e40af' }}>{c.category}</span>
+                              <span className="cwb-item-pill">🎯 {c.targetExam || 'General'}</span>
+                              <span className="cwb-item-pill">⏱ {c.duration || 'Flexible'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {c.eligibility && (
+                          <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0' }}>
+                            <strong>Eligibility:</strong> {c.eligibility}
+                          </p>
+                        )}
+                        {c.description && <p className="cwb-item-card-desc">{c.description}</p>}
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        🎯 {c.targetExam || 'General'} • ⏱ {c.duration || 'Flexible'}
-                      </p>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingItem(c);
-                          setModalType('courses');
-                          setModalForm(c);
-                        }}
-                        className="px-3 py-1.5 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSubItem('courses', c.id)}
-                        className="px-3 py-1.5 text-rose-600 rounded-lg text-xs font-semibold hover:bg-rose-50"
-                      >
-                        Delete
-                      </button>
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingItem(c);
+                            setModalType('courses');
+                            setModalForm(c);
+                          }}
+                          className="cwb-btn cwb-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('courses', c.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 8. FACULTY DIRECTORY ==================== */}
+          {/* ==================== TAB 8: FACULTY DIRECTORY ==================== */}
           {activeTab === 'faculty' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Faculty Profiles ({faculty.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Faculty Directory & Mentors ({faculty.length})</h2>
+                  <p className="cwb-section-desc">Showcase experienced professors, subject specialists, and master educators.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('faculty');
@@ -1145,53 +1315,88 @@ export default function CollegeWebsiteBuilder() {
                       bio: '',
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Add Faculty Member
+                  <span>+</span>
+                  <span>Add Faculty Member</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {faculty.map((f) => (
-                  <div key={f.id} className="p-4 rounded-xl border border-slate-200 flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                      {f.photoUrl ? <img src={f.photoUrl} alt={f.name} className="w-full h-full object-cover" /> : '👨‍🏫'}
+              {faculty.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">👨‍🏫</span>
+                  <h3 className="cwb-empty-title">No Faculty Members Added Yet</h3>
+                  <p className="cwb-empty-desc">Highlight senior faculty, subject heads, and IIT/AIIMS alumni educators.</p>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {faculty.map((f) => (
+                    <div key={f.id} className="cwb-item-card">
+                      <div>
+                        <div className="cwb-item-card-top">
+                          {f.photoUrl ? (
+                            <img src={f.photoUrl} alt={f.name} className="cwb-item-card-thumb" />
+                          ) : (
+                            <div className="cwb-item-card-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#94a3b8' }}>
+                              👨‍🏫
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h3 className="cwb-item-card-title truncate">{f.name}</h3>
+                            <p className="cwb-item-card-subtitle">{f.designation}</p>
+                            <div className="cwb-item-card-meta">
+                              <span className="cwb-item-pill" style={{ background: '#f1f5f9', color: '#1e3a8a' }}>{f.department}</span>
+                              {f.experienceYrs && <span className="cwb-item-pill">{f.experienceYrs} Yrs Exp</span>}
+                            </div>
+                          </div>
+                        </div>
+                        {f.qualification && (
+                          <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0' }}>
+                            🎓 {f.qualification}
+                          </p>
+                        )}
+                        {f.bio && <p className="cwb-item-card-desc">{f.bio}</p>}
+                      </div>
+
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingItem(f);
+                            setModalType('faculty');
+                            setModalForm(f);
+                          }}
+                          className="cwb-btn cwb-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('faculty', f.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-xs text-slate-900 truncate">{f.name}</h4>
-                      <p className="text-[11px] text-blue-700 font-semibold">{f.designation}</p>
-                      <p className="text-[10px] text-slate-400">{f.department}</p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingItem(f);
-                          setModalType('faculty');
-                          setModalForm(f);
-                        }}
-                        className="text-xs text-slate-600 hover:text-blue-600"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSubItem('faculty', f.id)}
-                        className="text-xs text-rose-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 9. CAMPUS INFRASTRUCTURE ==================== */}
+          {/* ==================== TAB 9: CAMPUS FACILITIES ==================== */}
           {activeTab === 'facilities' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Campus Facilities ({facilities.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Campus Infrastructure & Facilities ({facilities.length})</h2>
+                  <p className="cwb-section-desc">Laboratories, digital libraries, air-conditioned classrooms, hostel, and sports arenas.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('facilities');
@@ -1201,57 +1406,74 @@ export default function CollegeWebsiteBuilder() {
                       description: '',
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Add Facility
+                  <span>+</span>
+                  <span>Add Facility</span>
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {facilities.map((fc) => (
-                  <div key={fc.id} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
-                    <div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700">
-                        {fc.category}
-                      </span>
-                      <h4 className="font-bold text-sm text-slate-900 mt-1">{fc.title}</h4>
-                      <p className="text-xs text-slate-500">{fc.description}</p>
+              {facilities.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">🏢</span>
+                  <h3 className="cwb-empty-title">No Campus Facilities Configured</h3>
+                  <p className="cwb-empty-desc">Showcase modern science laboratories, computerized library, and residential amenities.</p>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {facilities.map((fc) => (
+                    <div key={fc.id} className="cwb-item-card">
+                      <div>
+                        <div className="cwb-item-card-meta">
+                          <span className="cwb-item-pill" style={{ background: '#ccfbf1', color: '#0f766e' }}>{fc.category}</span>
+                        </div>
+                        <h3 className="cwb-item-card-title">{fc.title}</h3>
+                        <p className="cwb-item-card-desc" style={{ marginTop: 8 }}>{fc.description}</p>
+                      </div>
+
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingItem(fc);
+                            setModalType('facilities');
+                            setModalForm(fc);
+                          }}
+                          className="cwb-btn cwb-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('facilities', fc.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingItem(fc);
-                          setModalType('facilities');
-                          setModalForm(fc);
-                        }}
-                        className="text-xs text-slate-600 hover:text-blue-600"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSubItem('facilities', fc.id)}
-                        className="text-xs text-rose-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 10. PHOTO GALLERY ==================== */}
+          {/* ==================== TAB 10: PHOTO GALLERY ==================== */}
           {activeTab === 'gallery' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Campus Photo Gallery ({gallery.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Campus Photo Gallery ({gallery.length})</h2>
+                  <p className="cwb-section-desc">Authentic photographs of laboratory sessions, campus life, awards, and sports events.</p>
+                </div>
                 <div>
                   <input
                     type="file"
                     id="gallery-file-upload"
                     accept="image/*"
-                    className="hidden"
+                    style={{ display: 'none' }}
                     onChange={async (e) => {
                       const file = e.target.files[0];
                       if (file) {
@@ -1275,37 +1497,65 @@ export default function CollegeWebsiteBuilder() {
                       }
                     }}
                   />
-                  <label
-                    htmlFor="gallery-file-upload"
-                    className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition cursor-pointer"
-                  >
-                    + Upload Photo
+                  <label htmlFor="gallery-file-upload" className="cwb-btn cwb-btn-primary" style={{ cursor: 'pointer' }}>
+                    <span>📸</span>
+                    <span>Upload New Photograph</span>
                   </label>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {gallery.map((g) => (
-                  <div key={g.id} className="relative rounded-xl overflow-hidden aspect-square border border-slate-200 group">
-                    <img src={g.mediaUrl} alt={g.title} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => handleDeleteSubItem('gallery', g.id)}
-                      className="absolute top-2 right-2 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition shadow"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {gallery.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">🖼</span>
+                  <h3 className="cwb-empty-title">Gallery is Empty</h3>
+                  <p className="cwb-empty-desc">Upload real campus and student activity photographs to showcase institutional vitality.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+                  {gallery.map((g) => (
+                    <div key={g.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', aspectRatio: '1/1', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <img src={g.mediaUrl} alt={g.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSubItem('gallery', g.id)}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          background: 'rgba(225, 29, 72, 0.9)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 26,
+                          height: 26,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        }}
+                        title="Delete photo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 11. ACHIEVEMENTS ==================== */}
+          {/* ==================== TAB 11: ACHIEVEMENTS ==================== */}
           {activeTab === 'achievements' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Student Achievements & Hall of Fame ({achievements.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Student Achievements & Hall of Fame ({achievements.length})</h2>
+                  <p className="cwb-section-desc">Record verifiable national competitive ranks in NEET, JEE, and Olympiads.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('achievements');
@@ -1317,39 +1567,60 @@ export default function CollegeWebsiteBuilder() {
                       category: 'COMPETITIVE_EXAM',
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Add Achiever
+                  <span>+</span>
+                  <span>Add Achiever</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {achievements.map((a) => (
-                  <div key={a.id} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-900">{a.studentName}</h4>
-                      <p className="text-xs font-bold text-blue-700">{a.examOrAward}</p>
-                      <p className="text-[11px] text-amber-700 font-semibold">{a.rankOrScore}</p>
-                      <span className="text-[10px] text-slate-400">Batch {a.year}</span>
+              {achievements.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">🏆</span>
+                  <h3 className="cwb-empty-title">No Achievers Listed Yet</h3>
+                  <p className="cwb-empty-desc">Highlight genuine student accomplishments to build trust with visiting parents.</p>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {achievements.map((a) => (
+                    <div key={a.id} className="cwb-item-card">
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 16 }}>🏅</span>
+                          <span className="cwb-item-pill" style={{ background: '#fef3c7', color: '#92400e' }}>Batch {a.year}</span>
+                        </div>
+                        <h3 className="cwb-item-card-title">{a.studentName}</h3>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: '#1e40af', margin: '4px 0 2px 0' }}>{a.examOrAward}</p>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: '#b45309', margin: 0 }}>{a.rankOrScore}</p>
+                      </div>
+
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('achievements', a.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteSubItem('achievements', a.id)}
-                      className="text-xs text-rose-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 12. TESTIMONIALS ==================== */}
+          {/* ==================== TAB 12: TESTIMONIALS ==================== */}
           {activeTab === 'testimonials' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Student & Parent Testimonials ({testimonials.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Student & Parent Testimonials ({testimonials.length})</h2>
+                  <p className="cwb-section-desc">Authentic student reviews, parent feedback, and alumni endorsements.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('testimonials');
@@ -1360,79 +1631,175 @@ export default function CollegeWebsiteBuilder() {
                       rating: 5,
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Add Testimonial
+                  <span>+</span>
+                  <span>Add Testimonial</span>
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {testimonials.map((t) => (
-                  <div key={t.id} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <div className="text-amber-400 text-xs">{'★'.repeat(t.rating)}</div>
-                      <p className="text-xs text-slate-700 italic mt-1">"{t.quote}"</p>
-                      <h5 className="text-xs font-bold text-slate-900 mt-2">— {t.authorName} ({t.authorRole})</h5>
+              {testimonials.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">💬</span>
+                  <h3 className="cwb-empty-title">No Testimonials Added</h3>
+                  <p className="cwb-empty-desc">Share inspiring reviews from students and parents regarding academic guidance.</p>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {testimonials.map((t) => (
+                    <div key={t.id} className="cwb-item-card">
+                      <div>
+                        <div style={{ color: '#f59e0b', fontSize: 14, marginBottom: 6 }}>{'★'.repeat(t.rating || 5)}</div>
+                        <p style={{ fontSize: 12, color: '#334155', fontStyle: 'italic', lineHeight: 1.5, margin: 0 }}>
+                          "{t.quote}"
+                        </p>
+                        <h4 style={{ fontSize: 12, fontWeight: 800, color: '#0f172a', marginTop: 10 }}>
+                          — {t.authorName} ({t.authorRole})
+                        </h4>
+                      </div>
+
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('testimonials', t.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteSubItem('testimonials', t.id)}
-                      className="text-xs text-rose-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== 14. OPEN CBT EXAMINATIONS ==================== */}
-          {activeTab === 'exams' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          {/* ==================== TAB 13: ADMISSIONS & DATES ==================== */}
+          {activeTab === 'admissions' && (
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">Open CBT Examinations Showcase</h2>
-                  <p className="text-xs text-slate-500">
-                    Enable existing online tests so prospective students can attempt them on your website
-                  </p>
+                  <h2 className="cwb-section-title">Admissions, Scholarships & Important Dates</h2>
+                  <p className="cwb-section-desc">Configure academic calendar, scholarship criteria, and application procedure.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Admissions Details'}
+                </button>
+              </div>
+
+              <div className="cwb-form-grid-2">
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Current Academic Intake Year</label>
+                  <input
+                    type="text"
+                    value={form.admissionYear || '2026 - 2027'}
+                    onChange={(e) => setForm({ ...form, admissionYear: e.target.value })}
+                    className="cwb-input"
+                    placeholder="2026 - 2027"
+                  />
+                </div>
+                <div className="cwb-form-group">
+                  <label className="cwb-label">Admission Helpline Mobile / Phone</label>
+                  <input
+                    type="tel"
+                    value={form.contactPhone || ''}
+                    onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+                    className="cwb-input"
+                  />
+                </div>
+              </div>
+
+              <div className="cwb-form-group">
+                <label className="cwb-label">
+                  Admission Process Steps (JSON Array: [{'{'} step, title, desc {'}'}])
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.admissionProcessJson || ''}
+                  onChange={(e) => setForm({ ...form, admissionProcessJson: e.target.value })}
+                  placeholder='[{"step":"01","title":"Submit Enquiry Form","desc":"Fill out student details online."},{"step":"02","title":"Counseling & Aptitude Evaluation","desc":"Attend academic discussion."}]'
+                  className="cwb-textarea"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+                />
+              </div>
+
+              <div className="cwb-form-group">
+                <label className="cwb-label">
+                  Scholarship & Concession Criteria (JSON Array: [{'{'} bracket, scholarship, criteria {'}'}])
+                </label>
+                <textarea
+                  rows={4}
+                  value={form.scholarshipDetailsJson || ''}
+                  onChange={(e) => setForm({ ...form, scholarshipDetailsJson: e.target.value })}
+                  placeholder='[{"bracket":"Tier 1","scholarship":"100% Tuition Fee Waiver","criteria":"Top 100 in State Talent Search"}]'
+                  className="cwb-textarea"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+                />
+              </div>
+
+              <div className="cwb-save-bar">
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Admissions Details'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ==================== TAB 14: OPEN CBT EXAMINATIONS ==================== */}
+          {activeTab === 'exams' && (
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Open CBT Examinations Showcase</h2>
+                  <p className="cwb-section-desc">Enable online tests so prospective students can attempt mock practice tests directly from your portal.</p>
                 </div>
               </div>
 
               {openExams.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-3xl">📝</span>
-                  <p className="text-xs text-slate-600 mt-2">
-                    No CBT tests found for your college. Generate a paper and launch a CBT test first!
-                  </p>
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">📝</span>
+                  <h3 className="cwb-empty-title">No CBT Exams Available Yet</h3>
+                  <p className="cwb-empty-desc">Generate a question paper in your QuestionStudio dashboard and launch a CBT exam to feature it here.</p>
+                  <Link to="/generate" className="cwb-btn cwb-btn-primary">
+                    Go to Paper Generator →
+                  </Link>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {openExams.map((exam) => (
                     <div
                       key={exam.id}
-                      className="p-4 rounded-xl border border-slate-200 flex items-center justify-between gap-4"
+                      style={{
+                        padding: 18,
+                        borderRadius: 14,
+                        border: '1px solid #e2e8f0',
+                        background: '#ffffff',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 14,
+                      }}
                     >
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xs text-slate-900">{exam.title}</h4>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: 0 }}>{exam.title}</h4>
+                          <span className="cwb-item-pill" style={{ background: '#eff6ff', color: '#1e40af' }}>
                             {exam.examName} • {exam.durationMinutes} mins
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Access Code: <code className="font-mono text-blue-700">{exam.code}</code>
+                        <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0 0' }}>
+                          Access Code: <code style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, color: '#2563eb' }}>{exam.code}</code>
                         </p>
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => handleToggleExamVisible(exam.id, exam.isPublicWebsiteVisible)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-                          exam.isPublicWebsiteVisible
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        className={`cwb-btn ${exam.isPublicWebsiteVisible ? 'cwb-btn-emerald' : 'cwb-btn-secondary'}`}
                       >
-                        {exam.isPublicWebsiteVisible ? '✓ Visible on Website' : '+ Make Visible'}
+                        {exam.isPublicWebsiteVisible ? '✓ Visible on Portal' : '+ Feature on Website'}
                       </button>
                     </div>
                   ))}
@@ -1441,12 +1808,16 @@ export default function CollegeWebsiteBuilder() {
             </div>
           )}
 
-          {/* ==================== 15. CAREERS ==================== */}
+          {/* ==================== TAB 15: FACULTY CAREERS ==================== */}
           {activeTab === 'careers' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Faculty Careers & Vacancies ({jobs.length})</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Faculty Recruitment & Job Vacancies ({jobs.length})</h2>
+                  <p className="cwb-section-desc">Manage teacher recruitment posts and inspect submitted candidate resumes.</p>
+                </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingItem(null);
                     setModalType('jobs');
@@ -1461,57 +1832,76 @@ export default function CollegeWebsiteBuilder() {
                       isActive: true,
                     });
                   }}
-                  className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  className="cwb-btn cwb-btn-primary"
                 >
-                  + Post Job Vacancy
+                  <span>+</span>
+                  <span>Post Job Vacancy</span>
                 </button>
               </div>
 
               {/* Jobs list */}
-              <div className="space-y-3">
-                {jobs.map((j) => (
-                  <div key={j.id} className="p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-xs text-slate-900">{j.jobTitle}</h4>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
-                          {j.department}
-                        </span>
+              {jobs.length === 0 ? (
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">💼</span>
+                  <h3 className="cwb-empty-title">No Active Vacancies</h3>
+                  <p className="cwb-empty-desc">Advertise faculty positions for NEET/JEE lecturers and senior teachers.</p>
+                </div>
+              ) : (
+                <div className="cwb-items-grid">
+                  {jobs.map((j) => (
+                    <div key={j.id} className="cwb-item-card">
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                          <span className="cwb-item-pill" style={{ background: '#dbeafe', color: '#1e40af' }}>{j.department}</span>
+                          <span className="cwb-item-pill">{j.employmentType || 'FULL TIME'}</span>
+                        </div>
+                        <h3 className="cwb-item-card-title">{j.jobTitle}</h3>
+                        <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0 0' }}>
+                          Applications received: <strong>{j._count?.applications || 0}</strong>
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Applications received: <strong>{j._count?.applications || 0}</strong>
-                      </p>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleDeleteSubItem('jobs', j.id)}
-                        className="text-xs text-rose-600 hover:underline"
-                      >
-                        Delete
-                      </button>
+                      <div className="cwb-item-card-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubItem('jobs', j.id)}
+                          className="cwb-btn cwb-btn-danger"
+                          style={{ padding: '4px 10px', fontSize: 11 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {/* Received Applications */}
-              <div className="pt-4 border-t border-slate-200 space-y-3">
-                <h3 className="text-sm font-bold text-slate-800">
-                  Received Job Applications ({applications.length})
+              <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 14px 0' }}>
+                  Received Candidate Applications ({applications.length})
                 </h3>
                 {applications.length === 0 ? (
-                  <p className="text-xs text-slate-400">No candidate applications received yet.</p>
+                  <p style={{ fontSize: 12, color: '#94a3b8' }}>No resumes received yet from website applicants.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {applications.map((app) => (
                       <div
                         key={app.id}
-                        className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs"
+                        style={{
+                          padding: 14,
+                          background: '#f8fafc',
+                          borderRadius: 12,
+                          border: '1px solid #e2e8f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                        }}
                       >
                         <div>
-                          <strong className="block text-slate-900">{app.applicantName}</strong>
-                          <span className="text-slate-500">
+                          <strong style={{ fontSize: 13, color: '#0f172a', display: 'block' }}>{app.applicantName}</strong>
+                          <span style={{ fontSize: 11, color: '#64748b' }}>
                             {app.email} • {app.phone} • {app.experienceYrs} yrs exp
                           </span>
                         </div>
@@ -1519,7 +1909,8 @@ export default function CollegeWebsiteBuilder() {
                           href={`/uploads/resumes/${app.resumeFilename}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700"
+                          className="cwb-btn cwb-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: 11 }}
                         >
                           📄 Download Resume
                         </a>
@@ -1531,225 +1922,241 @@ export default function CollegeWebsiteBuilder() {
             </div>
           )}
 
-          {/* ==================== 16. ENQUIRIES ==================== */}
+          {/* ==================== TAB 16: ADMISSIONS INBOX ==================== */}
           {activeTab === 'enquiries' && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">
-                Admission Enquiries & Leads Inbox ({enquiries.length})
-              </h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Admissions & Student Leads Inbox ({enquiries.length})</h2>
+                  <p className="cwb-section-desc">Manage prospective student inquiries, track counseling status, and chat directly on WhatsApp.</p>
+                </div>
+              </div>
 
               {enquiries.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="text-3xl">📬</span>
-                  <p className="text-xs text-slate-500 mt-2">
-                    No admission leads received yet. Once students submit enquiries on your website, they appear here instantly!
-                  </p>
+                <div className="cwb-empty-state">
+                  <span className="cwb-empty-icon">📬</span>
+                  <h3 className="cwb-empty-title">No Admission Enquiries Yet</h3>
+                  <p className="cwb-empty-desc">Inquiries submitted by parents and students on your website contact form appear here in real time.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {enquiries.map((enq) => (
-                    <div
-                      key={enq.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xs text-slate-900">{enq.studentName}</h4>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              enq.status === 'NEW'
-                                ? 'bg-amber-100 text-amber-800'
-                                : enq.status === 'CONTACTED'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-emerald-100 text-emerald-800'
-                            }`}
-                          >
-                            {enq.status}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600">
-                          📞 <strong>{enq.phone}</strong> {enq.email && `• ✉ ${enq.email}`}
-                        </p>
-                        {enq.courseOfInterest && (
-                          <p className="text-[11px] text-blue-700 font-semibold">
-                            Target Course: {enq.courseOfInterest} {enq.cityOrTown && `(${enq.cityOrTown})`}
-                          </p>
-                        )}
-                        {enq.message && <p className="text-xs text-slate-500 italic">"{enq.message}"</p>}
-                        <span className="text-[10px] text-slate-400 block">
-                          Submitted on {new Date(enq.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={enq.status}
-                          onChange={(e) => handleUpdateEnquiryStatus(enq.id, e.target.value)}
-                          className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-medium"
-                        >
-                          <option value="NEW">New</option>
-                          <option value="CONTACTED">Contacted</option>
-                          <option value="COUNSELED">Counseled</option>
-                          <option value="ENROLLED">Enrolled</option>
-                          <option value="CLOSED">Closed</option>
-                        </select>
-                        <a
-                          href={`https://wa.me/${enq.phone.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 flex items-center gap-1"
-                        >
-                          <span>💬</span> WhatsApp
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                <div className="cwb-table-wrapper">
+                  <table className="cwb-table">
+                    <thead>
+                      <tr>
+                        <th>Student / Parent</th>
+                        <th>Contact Phone</th>
+                        <th>Target Stream</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enquiries.map((enq) => (
+                        <tr key={enq.id}>
+                          <td>
+                            <strong style={{ display: 'block', color: '#0f172a' }}>{enq.studentName}</strong>
+                            {enq.email && <span style={{ fontSize: 11, color: '#64748b' }}>{enq.email}</span>}
+                          </td>
+                          <td>
+                            <strong style={{ fontFamily: 'var(--font-mono, monospace)', color: '#0f172a' }}>{enq.phone}</strong>
+                          </td>
+                          <td>
+                            <span className="cwb-item-pill" style={{ background: '#eff6ff', color: '#1e40af' }}>
+                              {enq.courseOfInterest || 'General'}
+                            </span>
+                            {enq.cityOrTown && <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>({enq.cityOrTown})</span>}
+                          </td>
+                          <td>
+                            <select
+                              value={enq.status}
+                              onChange={(e) => handleUpdateEnquiryStatus(enq.id, e.target.value)}
+                              className="cwb-select"
+                              style={{ width: 'auto', padding: '4px 8px', fontSize: 11, fontWeight: 700 }}
+                            >
+                              <option value="NEW">NEW</option>
+                              <option value="CONTACTED">CONTACTED</option>
+                              <option value="COUNSELED">COUNSELED</option>
+                              <option value="ENROLLED">ENROLLED</option>
+                              <option value="CLOSED">CLOSED</option>
+                            </select>
+                          </td>
+                          <td style={{ fontSize: 11, color: '#64748b' }}>
+                            {new Date(enq.createdAt).toLocaleDateString()}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <a
+                              href={`https://wa.me/${enq.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="cwb-btn cwb-btn-emerald"
+                              style={{ padding: '4px 10px', fontSize: 11 }}
+                            >
+                              💬 WhatsApp
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           )}
 
-          {/* ==================== 17. SEO ==================== */}
+          {/* ==================== TAB 17: SEO & OPENGRAPH ==================== */}
           {activeTab === 'seo' && (
-            <form onSubmit={handleSaveWebsiteSettings} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900">Search Engine Optimization (SEO) & Social Meta</h2>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Page Meta Title</label>
+            <form onSubmit={handleSaveWebsiteSettings}>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Search Engine Optimization (SEO) & Social Meta</h2>
+                  <p className="cwb-section-desc">Rank on Google for local coaching searches and control rich previews on WhatsApp / LinkedIn.</p>
+                </div>
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save SEO Settings'}
+                </button>
+              </div>
+
+              <div className="cwb-form-group">
+                <label className="cwb-label">Google Meta Title (Max 60 chars)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Best NEET & IIT-JEE Coaching College in Vijayawada"
+                  placeholder="e.g. Best NEET & IIT-JEE Coaching College in Vijayawada | Inspire Academy"
                   value={form.metaTitle || ''}
                   onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-input"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Meta Description</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Google Meta Description (150-160 characters)</label>
                 <textarea
                   rows={3}
-                  placeholder="Summary shown in Google search results (150-160 characters)"
+                  placeholder="Summary snippet displayed in search engine results and social preview cards."
                   value={form.metaDescription || ''}
                   onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-textarea"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Search Keywords</label>
+              <div className="cwb-form-group">
+                <label className="cwb-label">Search Keywords (Comma separated)</label>
                 <input
                   type="text"
-                  placeholder="NEET coaching, JEE Main, IIT preparation, best junior college"
+                  placeholder="NEET coaching, JEE Main, best junior college, Vijayawada coaching"
                   value={form.metaKeywords || ''}
                   onChange={(e) => setForm({ ...form, metaKeywords: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium"
+                  className="cwb-input"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Frequently Asked Questions (JSON Array: [{'{'} question, answer, category {'}'}])
+              <div className="cwb-form-group">
+                <label className="cwb-label">
+                  Frequently Asked Questions (JSON Array: [{'{'} question, answer {'}'}])
                 </label>
                 <textarea
                   rows={5}
                   value={form.faqsJson || ''}
                   onChange={(e) => setForm({ ...form, faqsJson: e.target.value })}
-                  placeholder='[{"question":"What board is affiliated?","answer":"BIEAP & CBSE."}]'
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-[11px]"
+                  placeholder='[{"question":"What board is followed?","answer":"BIEAP along with intensive NEET/JEE curriculum."}]'
+                  className="cwb-textarea"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Configures the FAQ accordion in Section 17 above the contact form.</p>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow transition"
-              >
-                Save SEO Settings
-              </button>
+              <div className="cwb-save-bar">
+                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save SEO Settings'}
+                </button>
+              </div>
             </form>
           )}
 
-          {/* ==================== 18. PREVIEW ==================== */}
+          {/* ==================== TAB 18: INTERACTIVE PREVIEW ==================== */}
           {activeTab === 'preview' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Interactive Website Preview</h2>
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Interactive Responsive Website Preview</h2>
+                  <p className="cwb-section-desc">Experience your public institutional website across desktop, tablet, and mobile screens.</p>
+                </div>
+                <div className="cwb-preview-controls">
                   {['desktop', 'tablet', 'mobile'].map((d) => (
                     <button
                       key={d}
+                      type="button"
                       onClick={() => setPreviewDevice(d)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${
-                        previewDevice === d ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-                      }`}
+                      className={`cwb-preview-device-btn ${previewDevice === d ? 'active' : ''}`}
                     >
-                      {d}
+                      {d === 'desktop' ? '🖥 Desktop' : d === 'tablet' ? '📱 Tablet (768px)' : '📱 Mobile (390px)'}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-center bg-slate-200/80 p-4 rounded-2xl overflow-hidden">
-                <div
-                  className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 border-4 border-slate-800 ${
-                    previewDevice === 'mobile'
-                      ? 'w-[375px] h-[640px]'
-                      : previewDevice === 'tablet'
-                      ? 'w-[768px] h-[700px]'
-                      : 'w-full h-[700px]'
-                  }`}
-                >
-                  <iframe
-                    src={publicUrl}
-                    title="Website Preview"
-                    className="w-full h-full border-0"
-                  />
-                </div>
+              <div className="cwb-preview-viewport-container">
+                <iframe
+                  src={publicUrl}
+                  title="Website Preview"
+                  className={`cwb-preview-frame ${previewDevice}`}
+                />
               </div>
             </div>
           )}
 
-          {/* ==================== 19. PUBLISH ==================== */}
+          {/* ==================== TAB 19: PUBLISH & STATUS ==================== */}
           {activeTab === 'publish' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-slate-900">Publish Website & Version Management</h2>
+            <div>
+              <div className="cwb-section-header">
+                <div>
+                  <h2 className="cwb-section-title">Publish Website & Version Management</h2>
+                  <p className="cwb-section-desc">Control public deployment, review publish version timestamps, and test live availability.</p>
+                </div>
+              </div>
 
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-                <div className="flex items-center justify-between">
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 24, background: '#f8fafc' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 14 }}>
                   <div>
-                    <span className="text-xs font-bold text-slate-400 uppercase">Current Status</span>
-                    <h3 className="text-base font-bold text-slate-800">
-                      {website.isPublished ? 'Published & Live to World' : 'Draft / Unpublished'}
+                    <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      Current Live Status: {website.isPublished ? '🟢 ONLINE' : '🟡 DRAFT MODE'}
                     </h3>
+                    <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0 0' }}>
+                      {website.isPublished
+                        ? 'Your website is actively accessible worldwide at your unique institutional URL.'
+                        : 'Your website is in draft mode. Visitors will see a maintenance notice until you publish.'}
+                    </p>
                   </div>
+
                   {website.isPublished ? (
                     <button
+                      type="button"
                       onClick={() => handlePublishToggle(false)}
                       disabled={saving}
-                      className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700"
+                      className="cwb-btn cwb-btn-danger"
                     >
-                      Take Website Offline
+                      Unpublish Website
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => handlePublishToggle(true)}
                       disabled={saving}
-                      className="px-6 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow hover:bg-emerald-700"
+                      className="cwb-btn cwb-btn-emerald"
+                      style={{ padding: '10px 22px', fontSize: 13 }}
                     >
-                      🚀 Publish to Live URL
+                      🚀 Publish to Live Web
                     </button>
                   )}
                 </div>
 
-                <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-200">
-                  <p>Published Version: <strong>v{website.publishedVersion}</strong></p>
+                <div style={{ paddingTop: 16, borderTop: '1px solid #e2e8f0', fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p style={{ margin: 0 }}>Published Version: <strong>v{website.publishedVersion}</strong></p>
                   {website.publishedAt && (
-                    <p>Last Published: <strong>{new Date(website.publishedAt).toLocaleString()}</strong></p>
+                    <p style={{ margin: 0 }}>Last Published At: <strong>{new Date(website.publishedAt).toLocaleString()}</strong></p>
                   )}
-                  <p>
+                  <p style={{ margin: 0 }}>
                     Target Live URL:{' '}
-                    <a href={publicUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                    <a href={publicUrl} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}>
                       {fullLiveUrl}
                     </a>
                   </p>
@@ -1757,241 +2164,354 @@ export default function CollegeWebsiteBuilder() {
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
 
-      {/* Sub-item Create / Edit Modal */}
+      {/* ==================== 3. UNIVERSAL CREATE / EDIT MODAL ==================== */}
       {modalType && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 uppercase">
+        <div className="cwb-modal-backdrop" onClick={() => setModalType(null)}>
+          <div className="cwb-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cwb-modal-header">
+              <h3 className="cwb-modal-title">
                 {editingItem ? 'Edit Item' : 'Add New Item'}
               </h3>
-              <button onClick={() => setModalType(null)} className="text-slate-400 font-bold">✕</button>
-            </div>
-
-            {/* Courses Modal Form */}
-            {modalType === 'courses' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Course Name *</label>
-                  <input
-                    type="text"
-                    value={modalForm.courseName || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, courseName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
-                  <select
-                    value={modalForm.category || 'MEDICAL'}
-                    onChange={(e) => setModalForm({ ...modalForm, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  >
-                    <option value="MEDICAL">Medical (NEET)</option>
-                    <option value="ENGINEERING">Engineering (JEE)</option>
-                    <option value="FOUNDATION">Foundation</option>
-                    <option value="DEGREE">Degree / Intermediate</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Duration</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 2 Academic Years"
-                    value={modalForm.duration || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, duration: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Eligibility Criteria</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Class 10th with 60% marks"
-                    value={modalForm.eligibility || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, eligibility: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
-                  <textarea
-                    rows={3}
-                    value={modalForm.description || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Faculty Modal Form */}
-            {modalType === 'faculty' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    value={modalForm.name || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Designation *</label>
-                  <input
-                    type="text"
-                    value={modalForm.designation || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, designation: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
-                  <input
-                    type="text"
-                    value={modalForm.department || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Qualification</label>
-                  <input
-                    type="text"
-                    value={modalForm.qualification || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, qualification: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Experience (Years)</label>
-                  <input
-                    type="number"
-                    value={modalForm.experienceYrs || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, experienceYrs: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Photo</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const url = await handleFileUpload(file, 'faculty');
-                        if (url) setModalForm({ ...modalForm, photoUrl: url });
-                      }
-                    }}
-                    className="w-full text-xs"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Achievements Modal Form */}
-            {modalType === 'achievements' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Student Name *</label>
-                  <input
-                    type="text"
-                    value={modalForm.studentName || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, studentName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Exam / Award *</label>
-                  <input
-                    type="text"
-                    value={modalForm.examOrAward || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, examOrAward: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Rank or Score</label>
-                  <input
-                    type="text"
-                    value={modalForm.rankOrScore || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, rankOrScore: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Year</label>
-                  <input
-                    type="number"
-                    value={modalForm.year || 2025}
-                    onChange={(e) => setModalForm({ ...modalForm, year: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Jobs Modal Form */}
-            {modalType === 'jobs' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Job Title *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Senior NEET Biology Lecturer"
-                    value={modalForm.jobTitle || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, jobTitle: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Zoology / Mathematics"
-                    value={modalForm.department || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Required Qualifications</label>
-                  <input
-                    type="text"
-                    value={modalForm.requiredQualifications || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, requiredQualifications: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Job Description *</label>
-                  <textarea
-                    rows={3}
-                    value={modalForm.jobDescription || ''}
-                    onChange={(e) => setModalForm({ ...modalForm, jobDescription: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setModalType(null)}
-                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold"
+                className="cwb-modal-close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="cwb-modal-body">
+              {/* Courses Form */}
+              {modalType === 'courses' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Course Name *</label>
+                    <input
+                      type="text"
+                      value={modalForm.courseName || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, courseName: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. NEET 2-Year Intensive Medical Batch"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Category</label>
+                    <select
+                      value={modalForm.category || 'MEDICAL'}
+                      onChange={(e) => setModalForm({ ...modalForm, category: e.target.value })}
+                      className="cwb-select"
+                    >
+                      <option value="MEDICAL">Medical (NEET)</option>
+                      <option value="ENGINEERING">Engineering (JEE Main & Adv)</option>
+                      <option value="FOUNDATION">Foundation (Class 8-10)</option>
+                      <option value="DEGREE">Intermediate (MPC / BiPC)</option>
+                    </select>
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Target Exam</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. NEET UG / IIT JEE"
+                      value={modalForm.targetExam || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, targetExam: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Duration</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2 Academic Years"
+                      value={modalForm.duration || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, duration: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Eligibility Criteria</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Class 10th with minimum 60% marks"
+                      value={modalForm.eligibility || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, eligibility: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Brief Description</label>
+                    <textarea
+                      rows={3}
+                      value={modalForm.description || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, description: e.target.value })}
+                      className="cwb-textarea"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Faculty Form */}
+              {modalType === 'faculty' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Full Name *</label>
+                    <input
+                      type="text"
+                      value={modalForm.name || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, name: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Prof. S. N. Murthy"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Designation *</label>
+                    <input
+                      type="text"
+                      value={modalForm.designation || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, designation: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Senior HOD Physics"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Department *</label>
+                    <input
+                      type="text"
+                      value={modalForm.department || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, department: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Physics / Chemistry / Zoology"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Academic Qualification</label>
+                    <input
+                      type="text"
+                      value={modalForm.qualification || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, qualification: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. M.Sc. Physics (IIT Kharagpur)"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Experience (Years)</label>
+                    <input
+                      type="number"
+                      value={modalForm.experienceYrs || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, experienceYrs: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Faculty Photo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const url = await handleFileUpload(file, 'faculty');
+                          if (url) setModalForm({ ...modalForm, photoUrl: url });
+                        }
+                      }}
+                      className="cwb-input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Facilities Form */}
+              {modalType === 'facilities' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Facility Title *</label>
+                    <input
+                      type="text"
+                      value={modalForm.title || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, title: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Advanced Digital Physics Laboratory"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Category</label>
+                    <select
+                      value={modalForm.category || 'LAB'}
+                      onChange={(e) => setModalForm({ ...modalForm, category: e.target.value })}
+                      className="cwb-select"
+                    >
+                      <option value="LAB">Science Laboratory</option>
+                      <option value="LIBRARY">Library & Reading Room</option>
+                      <option value="HOSTEL">Hostel & Dining</option>
+                      <option value="SPORTS">Sports & Recreation</option>
+                      <option value="CLASSROOM">Digital Smart Classrooms</option>
+                    </select>
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Description</label>
+                    <textarea
+                      rows={3}
+                      value={modalForm.description || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, description: e.target.value })}
+                      className="cwb-textarea"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Achievements Form */}
+              {modalType === 'achievements' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Student Name *</label>
+                    <input
+                      type="text"
+                      value={modalForm.studentName || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, studentName: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. K. Sai Teja"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Exam / Distinction *</label>
+                    <input
+                      type="text"
+                      value={modalForm.examOrAward || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, examOrAward: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. NEET AIR 42 / JEE Advanced AIR 118"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Score / Rank</label>
+                    <input
+                      type="text"
+                      value={modalForm.rankOrScore || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, rankOrScore: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Score: 710/720"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Academic Year</label>
+                    <input
+                      type="number"
+                      value={modalForm.year || 2025}
+                      onChange={(e) => setModalForm({ ...modalForm, year: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Testimonials Form */}
+              {modalType === 'testimonials' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Author Name *</label>
+                    <input
+                      type="text"
+                      value={modalForm.authorName || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, authorName: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. P. Harika"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Author Designation / Role</label>
+                    <input
+                      type="text"
+                      value={modalForm.authorRole || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, authorRole: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. Alumni (AIIMS New Delhi) / Parent"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Rating (1 to 5 Stars)</label>
+                    <select
+                      value={modalForm.rating || 5}
+                      onChange={(e) => setModalForm({ ...modalForm, rating: parseInt(e.target.value, 10) })}
+                      className="cwb-select"
+                    >
+                      <option value={5}>★★★★★ (5 Stars)</option>
+                      <option value={4}>★★★★☆ (4 Stars)</option>
+                      <option value={3}>★★★☆☆ (3 Stars)</option>
+                    </select>
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Quote / Review *</label>
+                    <textarea
+                      rows={3}
+                      value={modalForm.quote || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, quote: e.target.value })}
+                      className="cwb-textarea"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Jobs Form */}
+              {modalType === 'jobs' && (
+                <div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Job Title *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Senior NEET Biology Faculty"
+                      value={modalForm.jobTitle || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, jobTitle: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Department *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Zoology / Botany / Mathematics"
+                      value={modalForm.department || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, department: e.target.value })}
+                      className="cwb-input"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Required Qualifications</label>
+                    <input
+                      type="text"
+                      value={modalForm.requiredQualifications || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, requiredQualifications: e.target.value })}
+                      className="cwb-input"
+                      placeholder="e.g. M.Sc. with minimum 5 years competitive coaching experience"
+                    />
+                  </div>
+                  <div className="cwb-form-group">
+                    <label className="cwb-label">Job Description *</label>
+                    <textarea
+                      rows={3}
+                      value={modalForm.jobDescription || ''}
+                      onChange={(e) => setModalForm({ ...modalForm, jobDescription: e.target.value })}
+                      className="cwb-textarea"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="cwb-modal-footer">
+              <button
+                type="button"
+                onClick={() => setModalType(null)}
+                className="cwb-btn cwb-btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveSubItem}
-                className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                className="cwb-btn cwb-btn-primary"
               >
                 Save Item
               </button>
