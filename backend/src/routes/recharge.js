@@ -193,16 +193,78 @@ router.get('/revenue', requireAdmin, async (req, res) => {
  * GET /api/recharge/pending  (admin) — all pending requests to review,
  * with the institute name and its current balance for context.
  */
+
+/**
+ * GET /api/recharge/admin-overview (admin)
+ * Comprehensive audit of institutional balances, paper credit usage, and WhatsApp wallets.
+ */
+router.get('/admin-overview', requireAdmin, async (req, res) => {
+  try {
+    const institutes = await prisma.institute.findMany({
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        creditBalance: true,
+        whatsAppWalletBalance: true,
+        isTrial: true,
+        createdAt: true,
+        _count: {
+          select: {
+            papers: true,
+            rechargeRequests: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalPaperCredits = institutes.reduce((acc, i) => acc + (i.creditBalance || 0), 0);
+    const totalWhatsAppBalance = institutes.reduce((acc, i) => acc + (i.whatsAppWalletBalance || 0), 0);
+
+    // Recent Question Paper Generation credit deductions (amount < 0)
+    const recentPaperUsage = await prisma.creditTransaction.findMany({
+      where: { amount: { lt: 0 } },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      include: {
+        institute: { select: { name: true } },
+      },
+    });
+
+    // Recent WhatsApp Usage Ledgers
+    const recentWhatsAppUsage = await prisma.whatsAppUsageLedger.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      include: {
+        institute: { select: { name: true } },
+      },
+    });
+
+    res.json({
+      institutes,
+      totalPaperCredits,
+      totalWhatsAppBalance: Math.round(totalWhatsAppBalance * 100) / 100,
+      recentPaperUsage,
+      recentWhatsAppUsage,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/pending', requireAdmin, async (req, res) => {
   const rows = await prisma.rechargeRequest.findMany({
     where: { status: 'PENDING' },
     orderBy: { createdAt: 'asc' },
-    include: { institute: { select: { name: true, creditBalance: true } } },
+    include: { institute: { select: { id: true, name: true, creditBalance: true, whatsAppWalletBalance: true } } },
   });
   res.json(rows.map((r) => ({
     id: r.id,
     institute: r.institute?.name || '—',
     currentBalance: r.institute?.creditBalance ?? 0,
+    whatsAppBalance: r.institute?.whatsAppWalletBalance ?? 0.0,
+    instituteId: r.instituteId,
     amountRupees: r.amountRupees,
     creditsAsked: r.creditsAsked,
     upiReference: r.upiReference,
@@ -226,6 +288,7 @@ router.get('/all', requireAdmin, async (req, res) => {
     amountRupees: r.amountRupees,
     creditsAsked: r.creditsAsked,
     upiReference: r.upiReference,
+    note: r.note,
     status: r.status,
     reviewedByEmail: r.reviewedByEmail,
     reviewNote: r.reviewNote,
@@ -245,6 +308,45 @@ router.post('/:id/approve', requireAdmin, async (req, res) => {
   if (!request) return res.status(404).json({ error: 'Request not found.' });
   if (request.status !== 'PENDING') {
     return res.status(409).json({ error: `This request was already ${request.status.toLowerCase()}.` });
+  }
+
+  const isWhatsApp = Boolean(request.note && request.note.toLowerCase().includes('whatsapp'));
+
+  if (isWhatsApp) {
+    const inst = await prisma.institute.findUnique({ where: { id: request.instituteId } });
+    const currentWa = inst?.whatsAppWalletBalance || 0.0;
+    const newWa = Math.round((currentWa + request.amountRupees) * 100) / 100;
+
+    await prisma.$transaction([
+      prisma.whatsAppUsageLedger.create({
+        data: {
+          instituteId: request.instituteId,
+          amountRupees: request.amountRupees,
+          balanceAfter: newWa,
+          messageCount: 0,
+          description: `UPI WhatsApp Recharge Approved (+₹${request.amountRupees}, ref ${request.upiReference})`,
+        },
+      }),
+      prisma.institute.update({
+        where: { id: request.instituteId },
+        data: { whatsAppWalletBalance: newWa },
+      }),
+      prisma.rechargeRequest.update({
+        where: { id: request.id },
+        data: {
+          status: 'APPROVED',
+          reviewedByEmail: req.user.email || null,
+          reviewedAt: new Date(),
+        },
+      }),
+    ]);
+
+    return res.json({
+      ok: true,
+      isWhatsApp: true,
+      creditsAdded: request.amountRupees,
+      newBalance: newWa,
+    });
   }
 
   const bonusAmount = request.creditsAsked - request.amountRupees;
@@ -268,7 +370,7 @@ router.post('/:id/approve', requireAdmin, async (req, res) => {
     },
   });
 
-  res.json({ ok: true, creditsAdded: request.creditsAsked, newBalance: institute.creditBalance });
+  res.json({ ok: true, isWhatsApp: false, creditsAdded: request.creditsAsked, newBalance: institute.creditBalance });
 });
 
 /**

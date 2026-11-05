@@ -252,6 +252,7 @@ export const api = {
   pendingRecharges: () => request('/recharge/pending'),
   allRecharges: () => request('/recharge/all'),
   getRevenue: () => request('/recharge/revenue'),
+  getRechargeAdminOverview: () => request('/recharge/admin-overview'),
   approveRecharge: (id) => request(`/recharge/${id}/approve`, { method: 'POST' }),
   rejectRecharge: (id, reason) => request(`/recharge/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
