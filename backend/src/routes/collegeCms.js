@@ -45,6 +45,33 @@ const upload = multer({
 });
 
 /**
+ * Resolves instituteId for the request.
+ * If user is a college institute, returns their own instituteId.
+ * If user is a Super Admin, allows targeting any institute via query/body/header,
+ * defaulting to the latest active institute if none specified.
+ */
+async function resolveInstituteId(req) {
+  if (req.user?.instituteId) {
+    return req.user.instituteId;
+  }
+  if (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN') {
+    const targetId =
+      req.query?.instituteId ||
+      req.body?.instituteId ||
+      req.headers['x-institute-id'];
+    if (targetId) {
+      const inst = await prisma.institute.findUnique({ where: { id: targetId } });
+      if (inst) return inst.id;
+    }
+    const latest = await prisma.institute.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+    if (latest) return latest.id;
+  }
+  return null;
+}
+
+/**
  * Helper to get the college's website or bootstrap an initial one
  */
 async function getOrCreateWebsite(instituteId) {
@@ -110,7 +137,7 @@ async function getOrCreateWebsite(instituteId) {
 
 router.get('/website', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     if (!instituteId) {
       return res.status(403).json({ error: 'Only institute accounts have college websites.' });
     }
@@ -119,7 +146,21 @@ router.get('/website', async (req, res) => {
       where: { id: instituteId },
       select: { id: true, name: true, slug: true, logoFilename: true },
     });
-    res.json({ website, institute });
+
+    let allInstitutes = [];
+    if (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN') {
+      allInstitutes = await prisma.institute.findMany({
+        select: { id: true, name: true, slug: true },
+        orderBy: { name: 'asc' },
+      });
+    }
+
+    res.json({
+      website,
+      institute,
+      allInstitutes,
+      isSuperAdmin: Boolean(req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN'),
+    });
   } catch (err) {
     console.error('Error fetching college website:', err);
     res.status(500).json({ error: err.message });
@@ -128,7 +169,7 @@ router.get('/website', async (req, res) => {
 
 router.patch('/website', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     if (!instituteId) return res.status(403).json({ error: 'Unauthorized.' });
 
     const allowed = [
@@ -176,7 +217,7 @@ router.patch('/website', async (req, res) => {
 
 router.post('/publish', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     if (!instituteId) return res.status(403).json({ error: 'Unauthorized.' });
 
     const website = await prisma.collegeWebsite.update({
@@ -197,7 +238,7 @@ router.post('/publish', async (req, res) => {
 
 router.post('/unpublish', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     if (!instituteId) return res.status(403).json({ error: 'Unauthorized.' });
 
     const website = await prisma.collegeWebsite.update({
@@ -218,7 +259,7 @@ router.post('/unpublish', async (req, res) => {
 
 router.post('/courses', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const {
       courseName, category = 'FOUNDATION', targetExam, duration,
@@ -256,7 +297,7 @@ router.post('/courses', async (req, res) => {
 
 router.patch('/courses/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -296,7 +337,7 @@ router.patch('/courses/:id', async (req, res) => {
 
 router.delete('/courses/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -316,7 +357,7 @@ router.delete('/courses/:id', async (req, res) => {
 
 router.post('/faculty', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { name, designation, department, qualification, experienceYrs, photoUrl, bio, displayOrder = 0 } = req.body;
 
@@ -346,7 +387,7 @@ router.post('/faculty', async (req, res) => {
 
 router.patch('/faculty/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -373,7 +414,7 @@ router.patch('/faculty/:id', async (req, res) => {
 
 router.delete('/faculty/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -393,7 +434,7 @@ router.delete('/faculty/:id', async (req, res) => {
 
 router.post('/facilities', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { title, category = 'LAB', description, photoUrl, displayOrder = 0 } = req.body;
 
@@ -418,7 +459,7 @@ router.post('/facilities', async (req, res) => {
 
 router.patch('/facilities/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -444,7 +485,7 @@ router.patch('/facilities/:id', async (req, res) => {
 
 router.delete('/facilities/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -464,7 +505,7 @@ router.delete('/facilities/:id', async (req, res) => {
 
 router.post('/achievements', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { studentName, examOrAward, rankOrScore, year = 2025, category = 'COMPETITIVE_EXAM', description, photoUrl, displayOrder = 0 } = req.body;
 
@@ -515,7 +556,7 @@ router.patch('/achievements/:id', async (req, res) => {
 
 router.delete('/achievements/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -535,7 +576,7 @@ router.delete('/achievements/:id', async (req, res) => {
 
 router.post('/testimonials', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { authorName, authorRole, quote, rating = 5, avatarUrl, displayOrder = 0 } = req.body;
 
@@ -584,7 +625,7 @@ router.patch('/testimonials/:id', async (req, res) => {
 
 router.delete('/testimonials/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -604,7 +645,7 @@ router.delete('/testimonials/:id', async (req, res) => {
 
 router.post('/gallery', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { title, category = 'CAMPUS', mediaUrl, mediaType = 'IMAGE', displayOrder = 0 } = req.body;
 
@@ -652,7 +693,7 @@ router.patch('/gallery/:id', async (req, res) => {
 
 router.delete('/gallery/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -672,7 +713,7 @@ router.delete('/gallery/:id', async (req, res) => {
 
 router.get('/enquiries', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
 
     const enquiries = await prisma.collegeEnquiry.findMany({
@@ -708,7 +749,7 @@ router.patch('/enquiries/:id', async (req, res) => {
 
 router.delete('/enquiries/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -728,7 +769,7 @@ router.delete('/enquiries/:id', async (req, res) => {
 
 router.get('/jobs', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
 
     const jobs = await prisma.collegeJobPosting.findMany({
@@ -747,7 +788,7 @@ router.get('/jobs', async (req, res) => {
 
 router.post('/jobs', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const {
       jobTitle, department, employmentType = 'FULL_TIME',
@@ -813,7 +854,7 @@ router.patch('/jobs/:id', async (req, res) => {
 
 router.delete('/jobs/:id', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
     const { id } = req.params;
 
@@ -842,7 +883,7 @@ router.get('/jobs/:jobId/applications', async (req, res) => {
 
 router.get('/applications', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     const website = await getOrCreateWebsite(instituteId);
 
     const applications = await prisma.collegeJobApplication.findMany({
@@ -887,7 +928,7 @@ router.patch('/applications/:id', async (req, res) => {
 
 router.get('/exams', async (req, res) => {
   try {
-    const instituteId = req.user.instituteId;
+    const instituteId = await resolveInstituteId(req);
     // Find all CBT tests owned by this institute
     const cbtTests = await prisma.cbtTest.findMany({
       where: {

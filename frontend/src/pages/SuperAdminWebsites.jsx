@@ -554,6 +554,14 @@ export default function SuperAdminWebsites() {
                             <span>⚙️ Features & Access</span>
                           </button>
 
+                          <Link
+                            to={`/website-builder?instituteId=${w.instituteId || w.id}`}
+                            className="sag-btn-action"
+                            style={{ textDecoration: 'none' }}
+                          >
+                            <span>✏️ Studio CMS</span>
+                          </Link>
+
                           <button
                             onClick={() => handleToggleStatus(w.id, w.status)}
                             className={`sag-btn-action ${
@@ -811,14 +819,22 @@ export default function SuperAdminWebsites() {
 
             {/* Modal Footer */}
             <div className="sag-modal-footer">
-              <a
-                href={`/#/colleges/${selectedWebsite.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: '#0284c7', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
-              >
-                🌐 View Public College Website ↗
-              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <a
+                  href={`/#/colleges/${selectedWebsite.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: '#0284c7', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                >
+                  🌐 View Public Portal ↗
+                </a>
+                <Link
+                  to={`/website-builder?instituteId=${selectedWebsite.instituteId || selectedWebsite.id}`}
+                  style={{ color: '#059669', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                >
+                  ✏️ Edit in Website Studio →
+                </Link>
+              </div>
               <button onClick={() => setSelectedWebsite(null)} className="sag-btn sag-btn-secondary">
                 Close Panel
               </button>

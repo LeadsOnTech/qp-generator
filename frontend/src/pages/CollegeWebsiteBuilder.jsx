@@ -1247,17 +1247,33 @@ export default function CollegeWebsiteBuilder() {
   // Live preview device view
   const [previewDevice, setPreviewDevice] = useState('desktop'); // desktop | tablet | mobile
 
+  // Super Admin switchboard state
+  const [allInstitutes, setAllInstitutes] = useState([]);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentInstituteId, setCurrentInstituteId] = useState(null);
+
   useEffect(() => {
     fetchWebsite();
   }, []);
 
-  async function fetchWebsite() {
+  async function fetchWebsite(forcedId) {
     setLoading(true);
     setError(null);
     try {
       const token = getAuthToken();
-      const res = await fetch('/api/college-cms/website', {
-        headers: { Authorization: `Bearer ${token}` },
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+      const params = new URLSearchParams(hashQuery || window.location.search);
+      const targetId = forcedId || params.get('instituteId') || currentInstituteId;
+
+      const url = targetId
+        ? `/api/college-cms/website?instituteId=${encodeURIComponent(targetId)}`
+        : '/api/college-cms/website';
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load college website configuration');
@@ -1274,9 +1290,13 @@ export default function CollegeWebsiteBuilder() {
       setEnquiries(data.website.enquiries || []);
       setJobs(data.website.jobPostings || []);
 
+      if (data.allInstitutes) setAllInstitutes(data.allInstitutes);
+      if (data.isSuperAdmin) setIsSuperAdmin(true);
+      if (data.institute?.id) setCurrentInstituteId(data.institute.id);
+
       // Fetch exams & applications
-      fetchExams(token);
-      fetchApplications(token);
+      fetchExams(token, targetId || data.institute?.id);
+      fetchApplications(token, targetId || data.institute?.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1284,10 +1304,15 @@ export default function CollegeWebsiteBuilder() {
     }
   }
 
-  async function fetchExams(token) {
+  async function fetchExams(token, instId) {
     try {
-      const res = await fetch('/api/college-cms/exams', {
-        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      const targetId = instId || currentInstituteId;
+      const url = targetId ? `/api/college-cms/exams?instituteId=${encodeURIComponent(targetId)}` : '/api/college-cms/exams';
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
       });
       const data = await res.json();
       if (res.ok) setOpenExams(data.exams || []);
@@ -1296,10 +1321,15 @@ export default function CollegeWebsiteBuilder() {
     }
   }
 
-  async function fetchApplications(token) {
+  async function fetchApplications(token, instId) {
     try {
-      const res = await fetch('/api/college-cms/applications', {
-        headers: { Authorization: `Bearer ${getAuthToken()}` },
+      const targetId = instId || currentInstituteId;
+      const url = targetId ? `/api/college-cms/applications?instituteId=${encodeURIComponent(targetId)}` : '/api/college-cms/applications';
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
       });
       const data = await res.json();
       if (res.ok) setApplications(data.applications || []);
@@ -1315,13 +1345,15 @@ export default function CollegeWebsiteBuilder() {
     setSaveSuccess(false);
     try {
       const token = getAuthToken();
+      const targetId = currentInstituteId || institute?.id;
       const res = await fetch('/api/college-cms/website', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...(targetId ? { instituteId: targetId } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save changes');
@@ -1476,23 +1508,25 @@ export default function CollegeWebsiteBuilder() {
 
   if (error || !website) {
     const isSessionExpired = error && (error.toLowerCase().includes('session') || error.toLowerCase().includes('logged in') || error.toLowerCase().includes('token'));
+    const isInstituteError = error && error.includes('Only institute accounts');
+
     return (
       <div className="cwb-studio">
-        <div className="cwb-workspace" style={{ maxWidth: 520, margin: '40px auto', textAlign: 'center', padding: '40px 30px' }}>
+        <div className="cwb-workspace" style={{ maxWidth: 540, margin: '40px auto', textAlign: 'center', padding: '40px 30px' }}>
           <div style={{ fontSize: 44, marginBottom: 12 }}>{isSessionExpired ? '🔐' : '⚠️'}</div>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            {isSessionExpired ? 'Authentication Required' : 'Error Loading Website Studio'}
+            {isSessionExpired ? 'Authentication Required' : 'Website Studio Access'}
           </h2>
           <p style={{ fontSize: 13, color: '#64748b', margin: '8px 0 24px 0', lineHeight: 1.5 }}>
-            {error || 'College website configuration not found.'}
+            {isInstituteError
+              ? 'You are currently logged in with a Super Admin account. Select a college from the Super Admin Console or log in with the college admin credentials.'
+              : error || 'College website configuration not found.'}
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
-            {isSessionExpired && (
-              <Link to="/login?redirect=/website-builder" className="cwb-btn cwb-btn-primary">
-                Sign In Again →
-              </Link>
-            )}
-            <button onClick={fetchWebsite} className="cwb-btn cwb-btn-secondary">
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Link to="/admin/websites" className="cwb-btn cwb-btn-primary">
+              🏛️ Open Super Admin Websites Console →
+            </Link>
+            <button onClick={() => fetchWebsite()} className="cwb-btn cwb-btn-secondary">
               Try Again
             </button>
           </div>
@@ -1585,6 +1619,28 @@ export default function CollegeWebsiteBuilder() {
         </div>
 
         <div className="cwb-header-actions">
+          {isSuperAdmin && allInstitutes.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '6px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', textTransform: 'uppercase' }}>🛡️ Super Admin:</span>
+              <select
+                value={institute?.id || currentInstituteId || ''}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setCurrentInstituteId(newId);
+                  window.location.hash = `#/website-builder?instituteId=${newId}`;
+                  fetchWebsite(newId);
+                }}
+                style={{ fontSize: 12, fontWeight: 700, border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', color: '#0f172a' }}
+              >
+                {allInstitutes.map((inst) => (
+                  <option key={inst.id} value={inst.id}>
+                    {inst.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => handleCopyLink(fullLiveUrl)}
