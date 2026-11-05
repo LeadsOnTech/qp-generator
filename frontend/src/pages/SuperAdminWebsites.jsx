@@ -12,6 +12,11 @@ export default function SuperAdminWebsites() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [moduleFilter, setModuleFilter] = useState('ALL');
+
+  // Copy feedback state
+  const [copyFeedback, setCopyFeedback] = useState(null);
 
   // Modal State for Feature Licensing & Credentials
   const [selectedWebsite, setSelectedWebsite] = useState(null);
@@ -40,6 +45,13 @@ export default function SuperAdminWebsites() {
       setLoading(false);
     }
   }
+
+  const handleCopy = (text, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopyFeedback(label);
+    setTimeout(() => setCopyFeedback(null), 2500);
+  };
 
   async function handleToggleStatus(websiteId, currentStatus) {
     const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
@@ -114,310 +126,545 @@ export default function SuperAdminWebsites() {
     }
   }
 
+  // Calculate executive KPI metrics
+  const totalColleges = websites.length;
+  const publishedCount = websites.filter((w) => w.isPublished).length;
+  const cbtActiveCount = websites.filter((w) => w.hasOnlineExamModule).length;
+  const totalLeads = websites.reduce((acc, w) => acc + (w._count?.enquiries || 0), 0);
+
+  // Filtered dataset
   const filtered = websites.filter((w) => {
     const term = searchTerm.toLowerCase();
     const name = (w.displayName || w.institute?.name || '').toLowerCase();
     const slug = (w.slug || '').toLowerCase();
     const email = (w.institute?.users?.[0]?.email || '').toLowerCase();
-    return name.includes(term) || slug.includes(term) || email.includes(term);
+    const matchesTerm = name.includes(term) || slug.includes(term) || email.includes(term);
+
+    const matchesStatus = statusFilter === 'ALL' || w.status === statusFilter;
+    const matchesModule = moduleFilter === 'ALL' || Boolean(w[moduleFilter]);
+
+    return matchesTerm && matchesStatus && matchesModule;
   });
 
-  const isSessionExpired = error && (error.toLowerCase().includes('session') || error.toLowerCase().includes('logged in') || error.toLowerCase().includes('expired'));
+  const isSessionExpired =
+    error &&
+    (error.toLowerCase().includes('session') ||
+      error.toLowerCase().includes('logged in') ||
+      error.toLowerCase().includes('expired'));
 
   if (loading) {
     return (
-      <div className="p-12 text-center text-slate-500">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-sm font-semibold">Loading College Websites & Feature Modules...</p>
+      <div className="sag-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            border: '4px solid #0284c7',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto 16px',
+          }}
+        />
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Loading Platform Governance Console...</h3>
+        <p style={{ fontSize: 13, color: '#64748b' }}>Fetching registered institutions, licensed modules & admin credentials.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Platform Governance & Licensing</span>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">College Websites & Features Management</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Supervise institutional portals, inspect admin credentials, and toggle modular features (CBT, CRM, Recruitment, Ads).
-          </p>
+    <div className="sag-container">
+      {/* Toast Feedback for Copy */}
+      {copyFeedback && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            background: '#0f172a',
+            color: '#ffffff',
+            padding: '10px 18px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 700,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>✓</span>
+          <span>Copied {copyFeedback} to clipboard!</span>
+        </div>
+      )}
+
+      {/* Header Banner */}
+      <div className="sag-header-card">
+        <div className="sag-header-row">
+          <div>
+            <div className="sag-eyebrow">
+              <span className="sag-eyebrow-dot" />
+              <span>Platform Governance & Modular SaaS Licensing</span>
+            </div>
+            <h1 className="sag-title">College Websites & Features Management</h1>
+            <p className="sag-desc">
+              Supervise all multi-tenant college portals, inspect institute admin credentials, reset passwords, and toggle product modules (CBT, CRM, Recruitment, Ads).
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link to="/website-builder" className="sag-btn sag-btn-secondary">
+              <span>🏛️ Launch Website Builder Studio</span>
+            </Link>
+            <button onClick={fetchWebsites} className="sag-btn sag-btn-primary">
+              <span>🔄 Refresh Data</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search by college, slug, or admin email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-medium w-72"
-          />
-          <button
-            onClick={fetchWebsites}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+        {/* Search & Filter Toolbar */}
+        <div className="sag-toolbar">
+          <div className="sag-search-box">
+            <span className="sag-search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by college name, slug, or admin email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="sag-search-input"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="sag-select"
           >
-            Refresh
-          </button>
+            <option value="ALL">All Account Statuses</option>
+            <option value="ACTIVE">● Active Institutions</option>
+            <option value="SUSPENDED">✕ Suspended Accounts</option>
+          </select>
+
+          <select
+            value={moduleFilter}
+            onChange={(e) => setModuleFilter(e.target.value)}
+            className="sag-select"
+          >
+            <option value="ALL">All Modular Subscriptions</option>
+            <option value="hasOnlineExamModule">💻 CBT Online Exams Active</option>
+            <option value="hasCrmModule">👥 Student CRM Leads Active</option>
+            <option value="hasRecruitmentModule">👔 Faculty Recruitment Active</option>
+            <option value="hasAdvertisingModule">📢 College Advertising Active</option>
+          </select>
+
+          {(searchTerm || statusFilter !== 'ALL' || moduleFilter !== 'ALL') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('ALL');
+                setModuleFilter('ALL');
+              }}
+              className="sag-btn sag-btn-secondary"
+              style={{ padding: '8px 12px', fontSize: 12 }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* KPI Metrics Ribbon */}
+      <div className="sag-kpi-grid">
+        <div className="sag-kpi-card">
+          <div className="sag-kpi-icon-frame" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+            🏛️
+          </div>
+          <div>
+            <div className="sag-kpi-val">{totalColleges}</div>
+            <div className="sag-kpi-label">Registered Colleges</div>
+          </div>
+        </div>
+
+        <div className="sag-kpi-card">
+          <div className="sag-kpi-icon-frame" style={{ background: '#ecfdf5', color: '#059669' }}>
+            🌐
+          </div>
+          <div>
+            <div className="sag-kpi-val">{publishedCount}</div>
+            <div className="sag-kpi-label">Live Published Portals</div>
+          </div>
+        </div>
+
+        <div className="sag-kpi-card">
+          <div className="sag-kpi-icon-frame" style={{ background: '#faf5ff', color: '#7c3aed' }}>
+            💻
+          </div>
+          <div>
+            <div className="sag-kpi-val">{cbtActiveCount}</div>
+            <div className="sag-kpi-label">Active CBT Exam Engines</div>
+          </div>
+        </div>
+
+        <div className="sag-kpi-card">
+          <div className="sag-kpi-icon-frame" style={{ background: '#fef3c7', color: '#d97706' }}>
+            🎯
+          </div>
+          <div>
+            <div className="sag-kpi-val">{totalLeads}</div>
+            <div className="sag-kpi-label">Total Student Admission Leads</div>
+          </div>
         </div>
       </div>
 
       {/* Session Expired / Error Banner */}
       {isSessionExpired ? (
-        <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 14,
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 16,
+          }}
+        >
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🔐</span>
-              <h3 className="text-sm font-bold text-amber-900">Platform Administrator Session Expired</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>🔐</span>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#78350f', margin: 0 }}>
+                Super Administrator Session Expired
+              </h3>
             </div>
-            <p className="text-xs text-amber-800 mt-1">
-              Your Super Admin session has expired. Sign in with your platform administrator credentials to manage college websites and feature modules.
+            <p style={{ fontSize: 13, color: '#92400e', margin: '4px 0 0 0' }}>
+              Your platform admin authorization token has expired. Please sign in again with your super admin credentials to inspect colleges and manage subscriptions.
             </p>
-            <p className="text-[11px] text-slate-500 mt-2">
-              Admin Account: <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-mono font-bold">admin@questionstudio.local</code>
+            <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0 0 0' }}>
+              Default Super Admin: <code style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>admin@questionstudio.local</code>
             </p>
           </div>
           <Link
             to="/login?redirect=/admin/websites"
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs whitespace-nowrap shadow-sm transition"
+            className="sag-btn sag-btn-primary"
+            style={{ padding: '10px 18px' }}
           >
             Sign In as Super Admin →
           </Link>
         </div>
       ) : error ? (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+        <div
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: 12,
+            padding: '14px 18px',
+            color: '#dc2626',
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
           {error}
         </div>
       ) : null}
 
       {/* College Websites Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-600">
-          <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-400 border-b border-slate-200">
-            <tr>
-              <th className="py-3.5 px-4">College / Institute</th>
-              <th className="py-3.5 px-4">Admin Login</th>
-              <th className="py-3.5 px-4">Public URL</th>
-              <th className="py-3.5 px-4">Licensed Features / Modules</th>
-              <th className="py-3.5 px-4 text-center">Data Scale</th>
-              <th className="py-3.5 px-4 text-center">Status</th>
-              <th className="py-3.5 px-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.length === 0 ? (
+      <div className="sag-table-card">
+        <div className="sag-table-responsive">
+          <table className="sag-table">
+            <thead>
               <tr>
-                <td colSpan={7} className="py-12 text-center text-slate-400">
-                  {isSessionExpired
-                    ? 'Please log in to view registered college websites.'
-                    : 'No college websites found matching your search.'}
-                </td>
+                <th>College / Institute</th>
+                <th>Admin Credentials</th>
+                <th>Public Portal URL</th>
+                <th>Licensed Product Modules</th>
+                <th style={{ textAlign: 'center' }}>Data Scale</th>
+                <th style={{ textAlign: 'center' }}>Account Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ) : (
-              filtered.map((w) => {
-                const adminUser = w.institute?.users?.[0];
-                return (
-                  <tr key={w.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 text-sm">
-                        {w.displayName || w.institute?.name}
-                      </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span>Slug: <strong className="text-slate-600">{w.slug}</strong></span>
-                        <span>•</span>
-                        {w.isPublished ? (
-                          <span className="text-emerald-700 font-semibold">● Published v{w.publishedVersion}</span>
-                        ) : (
-                          <span className="text-slate-500 font-medium">○ Draft</span>
-                        )}
-                      </div>
-                    </td>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748b' }}>
+                    {isSessionExpired
+                      ? 'Please sign in to view registered college websites.'
+                      : 'No college institutions found matching your search or filters.'}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((w) => {
+                  const adminUser = w.institute?.users?.[0];
+                  const collegeName = w.displayName || w.institute?.name || 'Unnamed Institution';
+                  const initials = collegeName
+                    .split(' ')
+                    .slice(0, 2)
+                    .map((word) => word[0])
+                    .join('')
+                    .toUpperCase() || 'CI';
 
-                    <td className="py-3.5 px-4">
-                      {adminUser ? (
-                        <div>
-                          <div className="font-mono text-xs font-bold text-slate-800">{adminUser.email}</div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                            Role: {adminUser.role}
-                          </span>
+                  return (
+                    <tr key={w.id}>
+                      {/* College / Institution Cell */}
+                      <td>
+                        <div className="sag-college-cell">
+                          <div className="sag-college-avatar">{initials}</div>
+                          <div>
+                            <div className="sag-college-name">{collegeName}</div>
+                            <div className="sag-college-meta">
+                              <span className="sag-slug-tag">slug: {w.slug}</span>
+                              {w.isPublished ? (
+                                <span className="sag-pill-published">
+                                  <span className="dot" />
+                                  <span>Published v{w.publishedVersion || 1}</span>
+                                </span>
+                              ) : (
+                                <span className="sag-pill-draft">
+                                  <span>○ Draft</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-slate-400 italic">No admin assigned</span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="py-3.5 px-4 font-mono text-blue-600">
-                      <a
-                        href={`/#/colleges/${w.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        /colleges/{w.slug} ↗
-                      </a>
-                    </td>
+                      {/* Admin Credentials Cell */}
+                      <td>
+                        <div className="sag-admin-cell">
+                          {adminUser ? (
+                            <>
+                              <div className="sag-admin-email-row">
+                                <span className="sag-admin-email">{adminUser.email}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(adminUser.email, 'Admin Email')}
+                                  className="sag-copy-btn"
+                                  title="Copy Email"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                              <span className="sag-admin-role">Role: {adminUser.role || 'INSTITUTE'}</span>
+                            </>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>
+                              No admin user attached
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    {/* Active Licensed Modules */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                          Website
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            w.hasOnlineExamModule
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-slate-100 text-slate-400 border-slate-200 line-through'
-                          }`}
-                        >
-                          CBT Exams
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            w.hasCrmModule
-                              ? 'bg-purple-50 text-purple-700 border-purple-200'
-                              : 'bg-slate-100 text-slate-400 border-slate-200 line-through'
-                          }`}
-                        >
-                          CRM Leads
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            w.hasRecruitmentModule
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-slate-100 text-slate-400 border-slate-200 line-through'
-                          }`}
-                        >
-                          Hiring
-                        </span>
-                        {w.hasAdvertisingModule && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            Ads
+                      {/* Public Portal URL */}
+                      <td>
+                        <div className="sag-url-cell">
+                          <a
+                            href={`/#/colleges/${w.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="sag-url-link"
+                          >
+                            <span>🌐 /colleges/{w.slug}</span>
+                            <span>↗</span>
+                          </a>
+                        </div>
+                      </td>
+
+                      {/* Licensed Product Modules Matrix */}
+                      <td>
+                        <div className="sag-modules-matrix">
+                          <span className="sag-mod-pill sag-mod-blue" title="Product 2: Public College Website">
+                            🌐 Website
+                          </span>
+
+                          <span
+                            className={`sag-mod-pill ${
+                              w.hasOnlineExamModule ? 'sag-mod-emerald' : 'sag-mod-disabled'
+                            }`}
+                            title="Product 3: Online CBT Examination Engine"
+                          >
+                            💻 CBT Exams
+                          </span>
+
+                          <span
+                            className={`sag-mod-pill ${
+                              w.hasCrmModule ? 'sag-mod-purple' : 'sag-mod-disabled'
+                            }`}
+                            title="Product 4: Student Acquisition CRM"
+                          >
+                            👥 CRM Leads
+                          </span>
+
+                          <span
+                            className={`sag-mod-pill ${
+                              w.hasRecruitmentModule ? 'sag-mod-amber' : 'sag-mod-disabled'
+                            }`}
+                            title="Product 5: Faculty Recruitment Portal"
+                          >
+                            👔 Careers
+                          </span>
+
+                          {w.hasAdvertisingModule && (
+                            <span className="sag-mod-pill sag-mod-indigo" title="Product 6: Sponsored College Ads">
+                              📢 Ads
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Data Scale Cell */}
+                      <td>
+                        <div className="sag-scale-cell">
+                          <div className="sag-scale-row">
+                            <strong>{w._count?.courses || 0}</strong> Courses • <strong>{w._count?.faculties || 0}</strong> Faculty
+                          </div>
+                          <div className="sag-scale-leads">
+                            🎯 {w._count?.enquiries || 0} Leads
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Account Status Pill */}
+                      <td style={{ textAlign: 'center' }}>
+                        {w.status === 'ACTIVE' ? (
+                          <span className="sag-status-active">
+                            <span>●</span>
+                            <span>ACTIVE</span>
+                          </span>
+                        ) : (
+                          <span className="sag-status-suspended">
+                            <span>✕</span>
+                            <span>SUSPENDED</span>
                           </span>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-3.5 px-4 text-center">
-                      <div className="text-[11px] font-medium text-slate-600">
-                        <span>{w._count?.courses || 0} Courses</span> • <span>{w._count?.faculties || 0} Faculty</span>
-                      </div>
-                      <div className="text-[11px] font-bold text-blue-700 mt-0.5">
-                        {w._count?.enquiries || 0} Student Leads
-                      </div>
-                    </td>
+                      {/* Actions */}
+                      <td>
+                        <div className="sag-actions-cell">
+                          <button
+                            onClick={() => {
+                              setSelectedWebsite(w);
+                              setPasswordMsg(null);
+                              setNewPassword('');
+                            }}
+                            className="sag-btn-action sag-btn-action-primary"
+                          >
+                            <span>⚙️ Features & Access</span>
+                          </button>
 
-                    <td className="py-3.5 px-4 text-center">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          w.status === 'ACTIVE'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-100 text-rose-800 border border-rose-200'
-                        }`}
-                      >
-                        {w.status}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                      <button
-                        onClick={() => {
-                          setSelectedWebsite(w);
-                          setPasswordMsg(null);
-                          setNewPassword('');
-                        }}
-                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition"
-                      >
-                        ⚙ Features & Access
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(w.id, w.status)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                          w.status === 'ACTIVE'
-                            ? 'bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700'
-                            : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        }`}
-                      >
-                        {w.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          <button
+                            onClick={() => handleToggleStatus(w.id, w.status)}
+                            className={`sag-btn-action ${
+                              w.status === 'ACTIVE' ? 'sag-btn-action-danger' : 'sag-btn-action-success'
+                            }`}
+                          >
+                            {w.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Feature Licensing & Credentials Modal */}
       {selectedWebsite && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="sag-modal-backdrop">
+          <div className="sag-modal">
+            {/* Modal Header */}
+            <div className="sag-modal-header">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Institutional Governance</span>
-                <h3 className="text-lg font-black text-slate-900">
+                <span className="sag-eyebrow">Institutional SaaS Governance</span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
                   {selectedWebsite.displayName || selectedWebsite.institute?.name}
                 </h3>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                <p style={{ fontSize: 12, color: '#64748b', fontFamily: 'var(--font-mono, monospace)', margin: '2px 0 0 0' }}>
                   Slug: /colleges/{selectedWebsite.slug}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedWebsite(null)}
-                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-600 font-bold"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: '#e2e8f0',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                  color: '#475569',
+                }}
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 text-xs">
+            {/* Modal Body */}
+            <div className="sag-modal-body">
               {/* Product Modules Switchboard */}
               <div>
-                <h4 className="font-bold text-sm text-slate-900 mb-1">Modular SaaS Product Subscriptions</h4>
-                <p className="text-slate-500 mb-4">
-                  Select which modules this institution has purchased. Enabling a module activates its controls on both their public website and private portal.
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
+                  Modular SaaS Product Subscriptions
+                </h4>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px 0' }}>
+                  Choose which modules this college is licensed to use. Enabling a module unlocks its admin management tools and public sections.
                 </p>
 
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {/* Product 1: Question Paper Generation */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                  <div className="sag-mod-card" style={{ background: '#f8fafc' }}>
                     <div>
-                      <div className="font-bold text-slate-900 flex items-center gap-2">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#0f172a' }}>
                         <span>Product 1: Question Paper Generation Engine</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800">CORE</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4 }}>
+                          CORE
+                        </span>
                       </div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">Central Question Bank, Blueprint Generator, ABCD Sets, Solutions & OMR</p>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        Central Question Bank, Blueprint Generator, ABCD Sets, Answer Keys, OMR & Homework Sheets.
+                      </p>
                     </div>
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg font-bold text-[10px]">
-                      Always Included
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: 6 }}>
+                      Included
                     </span>
                   </div>
 
                   {/* Product 2: College Public Website */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div className="sag-mod-card">
                     <div>
-                      <div className="font-bold text-slate-900">Product 2: Public College Website Portal</div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">Branded public portal, courses, faculty, results, and director spread</p>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        Product 2: Public College Website Portal
+                      </div>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        Branded 17-section institutional website, faculty directory, courses, results & director spread.
+                      </p>
                     </div>
-                    <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-[10px]">
-                      Active ({selectedWebsite.isPublished ? 'Published' : 'Draft'})
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', background: '#f0f9ff', padding: '4px 10px', borderRadius: 6 }}>
+                      Active ({selectedWebsite.isPublished ? 'Live' : 'Draft'})
                     </span>
                   </div>
 
                   {/* Product 3: Online CBT Examination System */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div className="sag-mod-card">
                     <div>
-                      <div className="font-bold text-slate-900">Product 3: Online CBT Examination System</div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">NTA-style online exam engine, open mock tests, instant scorecards & percentiles</p>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        Product 3: Online CBT Examination System
+                      </div>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        NTA-pattern online exam engine, timed tests, instant results, analytics & percentiles.
+                      </p>
                     </div>
                     <button
                       disabled={moduleUpdating}
                       onClick={() => handleToggleModule('hasOnlineExamModule', selectedWebsite.hasOnlineExamModule)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition ${
-                        selectedWebsite.hasOnlineExamModule
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      className={`sag-mod-toggle-btn ${
+                        selectedWebsite.hasOnlineExamModule ? 'sag-mod-toggle-on' : 'sag-mod-toggle-off'
                       }`}
                     >
                       {selectedWebsite.hasOnlineExamModule ? '✓ Enabled' : 'Disabled'}
@@ -425,18 +672,20 @@ export default function SuperAdminWebsites() {
                   </div>
 
                   {/* Product 4: Student Acquisition CRM */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div className="sag-mod-card">
                     <div>
-                      <div className="font-bold text-slate-900">Product 4: Student Acquisition CRM</div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">Admission enquiries capture, talent exam lead funnel, counseling tracking</p>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        Product 4: Student Acquisition CRM
+                      </div>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        Direct admission inquiries desk, talent search exam leads, WhatsApp counseling tracking.
+                      </p>
                     </div>
                     <button
                       disabled={moduleUpdating}
                       onClick={() => handleToggleModule('hasCrmModule', selectedWebsite.hasCrmModule)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition ${
-                        selectedWebsite.hasCrmModule
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      className={`sag-mod-toggle-btn ${
+                        selectedWebsite.hasCrmModule ? 'sag-mod-toggle-on' : 'sag-mod-toggle-off'
                       }`}
                     >
                       {selectedWebsite.hasCrmModule ? '✓ Enabled' : 'Disabled'}
@@ -444,18 +693,20 @@ export default function SuperAdminWebsites() {
                   </div>
 
                   {/* Product 5: Faculty Recruitment */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div className="sag-mod-card">
                     <div>
-                      <div className="font-bold text-slate-900">Product 5: Faculty Recruitment Portal</div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">Public careers noticeboard, resume collection, and applicant database</p>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        Product 5: Faculty Recruitment Portal
+                      </div>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        Institutional careers noticeboard, resume applications collection, candidate shortlisting.
+                      </p>
                     </div>
                     <button
                       disabled={moduleUpdating}
                       onClick={() => handleToggleModule('hasRecruitmentModule', selectedWebsite.hasRecruitmentModule)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition ${
-                        selectedWebsite.hasRecruitmentModule
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      className={`sag-mod-toggle-btn ${
+                        selectedWebsite.hasRecruitmentModule ? 'sag-mod-toggle-on' : 'sag-mod-toggle-off'
                       }`}
                     >
                       {selectedWebsite.hasRecruitmentModule ? '✓ Enabled' : 'Disabled'}
@@ -463,18 +714,20 @@ export default function SuperAdminWebsites() {
                   </div>
 
                   {/* Product 6: College Advertising */}
-                  <div className="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div className="sag-mod-card">
                     <div>
-                      <div className="font-bold text-slate-900">Product 6: College Advertising & Promotion</div>
-                      <p className="text-slate-500 text-[11px] mt-0.5">Featured listings, sponsored promotion banners, and campaign alerts</p>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                        Product 6: College Advertising & Promotion
+                      </div>
+                      <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0 0' }}>
+                        Sponsored admission banners, featured exam promotions, and campaign analytics.
+                      </p>
                     </div>
                     <button
                       disabled={moduleUpdating}
                       onClick={() => handleToggleModule('hasAdvertisingModule', selectedWebsite.hasAdvertisingModule)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition ${
-                        selectedWebsite.hasAdvertisingModule
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      className={`sag-mod-toggle-btn ${
+                        selectedWebsite.hasAdvertisingModule ? 'sag-mod-toggle-on' : 'sag-mod-toggle-off'
                       }`}
                     >
                       {selectedWebsite.hasAdvertisingModule ? '✓ Enabled' : 'Disabled'}
@@ -484,47 +737,71 @@ export default function SuperAdminWebsites() {
               </div>
 
               {/* Administrator Login Credentials */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <h4 className="font-bold text-sm text-slate-900">Institutional Administrator Account</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
+                  College Administrator Credentials
+                </h4>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                   <div>
-                    <span className="text-slate-400 block font-semibold text-[10px] uppercase">Admin Email:</span>
-                    <strong className="text-slate-900 font-mono text-xs">
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block' }}>
+                      Admin Account Email
+                    </span>
+                    <strong style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, color: '#0f172a' }}>
                       {selectedWebsite.institute?.users?.[0]?.email || 'None'}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block font-semibold text-[10px] uppercase">Login URL:</span>
-                    <a href="/#/login" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-mono">
-                      /#/login ↗
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block' }}>
+                      College Login URL
+                    </span>
+                    <a
+                      href="/#/login"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#0284c7', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}
+                    >
+                      questionstudio.in/#/login ↗
                     </a>
                   </div>
                 </div>
 
                 {/* Reset Password Form */}
-                <form onSubmit={handleResetPassword} className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-2">
+                <form
+                  onSubmit={handleResetPassword}
+                  style={{ display: 'flex', gap: 8, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}
+                >
                   <input
                     type="password"
-                    placeholder="Enter new password (min 6 chars)..."
+                    placeholder="Enter new password (minimum 6 characters)..."
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="px-3 py-2 border border-slate-200 rounded-lg text-xs w-full sm:flex-1"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      outline: 'none',
+                    }}
                   />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs whitespace-nowrap transition"
-                  >
+                  <button type="submit" className="sag-btn sag-btn-primary" style={{ padding: '8px 16px', fontSize: 12 }}>
                     Reset Password
                   </button>
                 </form>
 
                 {passwordMsg && (
                   <div
-                    className={`p-2.5 rounded-lg text-[11px] font-semibold ${
-                      passwordMsg.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                    }`}
+                    style={{
+                      marginTop: 10,
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: passwordMsg.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                      color: passwordMsg.type === 'success' ? '#065f46' : '#991b1b',
+                      border: passwordMsg.type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                    }}
                   >
                     {passwordMsg.text}
                   </div>
@@ -532,20 +809,18 @@ export default function SuperAdminWebsites() {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+            {/* Modal Footer */}
+            <div className="sag-modal-footer">
               <a
                 href={`/#/colleges/${selectedWebsite.slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-blue-600 hover:underline font-bold text-xs"
+                style={{ color: '#0284c7', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
               >
-                View Public Website ↗
+                🌐 View Public College Website ↗
               </a>
-              <button
-                onClick={() => setSelectedWebsite(null)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition"
-              >
-                Close
+              <button onClick={() => setSelectedWebsite(null)} className="sag-btn sag-btn-secondary">
+                Close Panel
               </button>
             </div>
           </div>
