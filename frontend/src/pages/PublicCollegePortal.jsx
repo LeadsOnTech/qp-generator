@@ -811,12 +811,12 @@ export default function PublicCollegePortal() {
               {whyUsList.map((item, idx) => (
                 <div key={idx} className={`cp-whyus-cell cp-reveal cp-delay-${(idx % 3) * 100 + 100}`}>
                   <div className="cp-whyus-icon-frame">
-                    {idx === 0 && <IconGraduationCap />}
-                    {idx === 1 && <IconDocument />}
-                    {idx === 2 && <IconComputer />}
-                    {idx === 3 && <IconChat />}
-                    {idx === 4 && <IconDeviceMobile />}
-                    {idx >= 5 && <IconShield />}
+                    {(item.icon === 'academic-cap' || (!item.icon && idx === 0)) && <IconGraduationCap />}
+                    {(item.icon === 'document-text' || (!item.icon && idx === 1)) && <IconDocument />}
+                    {(item.icon === 'desktop-computer' || (!item.icon && idx === 2)) && <IconComputer />}
+                    {(item.icon === 'chat-bubble' || (!item.icon && idx === 3)) && <IconChat />}
+                    {(item.icon === 'device-mobile' || (!item.icon && idx === 4)) && <IconDeviceMobile />}
+                    {(item.icon === 'shield-check' || (!item.icon && idx >= 5) || (item.icon && !['academic-cap','document-text','desktop-computer','chat-bubble','device-mobile'].includes(item.icon))) && <IconShield />}
                   </div>
                   <h4 className="cp-whyus-title">{item.title}</h4>
                   <p className="cp-whyus-desc">{item.description}</p>
@@ -947,12 +947,12 @@ export default function PublicCollegePortal() {
             <div className="cp-methodology-timeline">
               {methodologyList.map((step, idx) => (
                 <div key={idx} className={`cp-timeline-node cp-reveal cp-delay-${idx * 100 + 100}`}>
-                  <div className="cp-timeline-step-index">{step.stepNumber || `0${idx + 1}`}</div>
+                  <div className="cp-timeline-step-index">{step.stepNumber || (idx < 9 ? `0${idx + 1}` : `${idx + 1}`)}</div>
                   {step.badge && (
                     <div className="cp-timeline-badge">{step.badge}</div>
                   )}
                   <h4 className="cp-timeline-title">{step.title}</h4>
-                  <p className="cp-timeline-text">{step.description}</p>
+                  <p className="cp-timeline-text">{step.description || step.desc}</p>
                 </div>
               ))}
             </div>
@@ -1128,10 +1128,10 @@ export default function PublicCollegePortal() {
                   { step: '04', title: 'Seat Allotment & Enrollment', description: 'Finalize document verification, collect curriculum kit, and attend the student induction program.' },
                 ]).map((st, idx) => (
                   <div key={idx} className="cp-stage-item">
-                    <div className="cp-stage-num">{st.step}</div>
+                    <div className="cp-stage-num">{st.step || (idx < 9 ? `0${idx + 1}` : `${idx + 1}`)}</div>
                     <div>
                       <h4 className="cp-stage-title">{st.title}</h4>
-                      <p className="cp-stage-desc">{st.description}</p>
+                      <p className="cp-stage-desc">{st.description || st.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -1154,10 +1154,10 @@ export default function PublicCollegePortal() {
                   ]).map((sc, idx) => (
                     <div key={idx} className="cp-tier-row">
                       <div>
-                        <div className="cp-tier-name">{sc.name}</div>
+                        <div className="cp-tier-name">{sc.name || sc.bracket || 'Merit Bracket'}</div>
                         <div className="cp-tier-criteria">{sc.criteria}</div>
                       </div>
-                      <div className="cp-tier-benefit">{sc.benefit}</div>
+                      <div className="cp-tier-benefit">{sc.benefit || sc.scholarship || 'Tuition Concession'}</div>
                     </div>
                   ))}
                 </div>

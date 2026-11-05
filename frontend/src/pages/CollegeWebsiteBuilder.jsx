@@ -7,6 +7,1213 @@ function getAuthToken() {
   return getStoredToken();
 }
 
+// =========================================================================
+// STANDARD INSTITUTIONAL CONTENT PRESETS (AUTO-CONFORMING TO TEMPLATE)
+// =========================================================================
+
+const DEFAULT_WHY_CHOOSE_US = [
+  {
+    icon: 'academic-cap',
+    title: 'IITian & Doctor Faculty Pool',
+    description: 'Learn directly from seasoned master teachers with 15+ years of track record producing Top 100 AIRs in NEET & JEE Advanced.'
+  },
+  {
+    icon: 'document-text',
+    title: 'Daily Practice Problem (DPP) Sheets',
+    description: 'Every lecture is reinforced with graded homework problem sheets (Level 1 Foundation, Level 2 Standard, Level 3 Challenger).'
+  },
+  {
+    icon: 'desktop-computer',
+    title: 'NTA-Pattern Computer CBT Labs',
+    description: 'State-of-the-art air-conditioned computer terminals replicating official JEE Main & CUET exam interfaces with full analytics.'
+  },
+  {
+    icon: 'chat-bubble',
+    title: '1-on-1 Personalized Mentorship',
+    description: 'Dedicated subject deans review weekly error logs, rectify silly mistakes, and provide targeted stress counseling.'
+  },
+  {
+    icon: 'device-mobile',
+    title: 'Parent Mobile App & Daily SMS',
+    description: 'Real-time biometric attendance alerts, weekly exam performance cards, and automated marks progress reports.'
+  },
+  {
+    icon: 'shield-check',
+    title: 'Disciplined & Safe Campus',
+    description: 'CCTV-secured campus with separate modern residential hostels, hygienic dining, and continuous academic vigil.'
+  }
+];
+
+const DEFAULT_METHODOLOGY_STEPS = [
+  {
+    stepNumber: '01',
+    badge: 'FOUNDATION',
+    title: 'First-Principles Concept Mastery',
+    description: 'Deep theoretical grounding without rote memorization. Visual simulations and interactive problem derivations by senior faculty.'
+  },
+  {
+    stepNumber: '02',
+    badge: 'APPLICATION',
+    title: 'Daily Graded Worksheets (DPPs)',
+    description: 'Immediate reinforcement of concepts through timed practice sets covering single-choice, numerical, and assertion-reason questions.'
+  },
+  {
+    stepNumber: '03',
+    badge: 'TESTING',
+    title: 'Weekly All-India Benchmark Mocks',
+    description: 'Standardized weekend exams benchmarking student performance across state and national peers with negative-marking analysis.'
+  },
+  {
+    stepNumber: '04',
+    badge: 'ANALYSIS',
+    title: 'Diagnostic Error-Log Correction',
+    description: 'Every mock exam is followed by micro-level error tracing to classify mistakes into conceptual gaps, speed issues, or misreads.'
+  },
+  {
+    stepNumber: '05',
+    badge: 'RANK ACCELERATION',
+    title: 'Super-30 Intensive Final Sprint',
+    description: 'High-intensity revision capsules, previous 15-year chapter-wise PYQ marathons, and psychological confidence conditioning.'
+  }
+];
+
+const DEFAULT_STATS_COUNTERS = [
+  { value: '15,000+', label: 'Students Mentored' },
+  { value: '2,500+', label: 'NEET & JEE Selections' },
+  { value: '50+', label: 'Master Faculty Members' },
+  { value: '99.8%', label: 'Highest State Percentile' }
+];
+
+const DEFAULT_ADMISSION_PROCESS = [
+  {
+    step: '01',
+    title: 'Submit Online Enquiry',
+    description: 'Complete our quick online registration form with student academic marks and stream preference.'
+  },
+  {
+    step: '02',
+    title: 'Diagnostic Talent & Scholarship Test',
+    description: 'Appear for the Annual Scholarship Test (AITSE) to evaluate baseline readiness and qualify for fee waivers.'
+  },
+  {
+    step: '03',
+    title: 'Personal Academic Counseling',
+    description: 'Meet with senior academic deans to map individual career targets and batch allocation.'
+  },
+  {
+    step: '04',
+    title: 'Seat Allotment & Enrollment',
+    description: 'Finalize document verification, collect curriculum kit, and attend the student induction program.'
+  }
+];
+
+const DEFAULT_SCHOLARSHIP_DETAILS = [
+  {
+    name: 'State Ranker Scholarship',
+    criteria: 'Top 50 Ranks in AITSE or 98%+ in 10th Board Exams',
+    benefit: '100% Full Tuition Waiver for 2 Years'
+  },
+  {
+    name: 'Merit Excellence Scholarship',
+    criteria: 'Ranks 51 - 150 in AITSE or 95% - 97.9% in 10th Board Exams',
+    benefit: '75% Tuition Fee Waiver'
+  },
+  {
+    name: 'Academic Achiever Concession',
+    criteria: 'Ranks 151 - 500 in AITSE or 90% - 94.9% in 10th Board Exams',
+    benefit: '50% Tuition Fee Waiver'
+  },
+  {
+    name: 'Defense & Social Quota',
+    criteria: 'Wards of Armed Forces / Police & Single Parent Girls',
+    benefit: 'Special 25% Institutional Grant'
+  }
+];
+
+const DEFAULT_FAQS = [
+  {
+    question: 'What is the admission procedure for intermediate MPC & BiPC courses?',
+    answer: 'Admissions are based on 10th standard board exam scores and our annual talent screening test. Parents can register online or visit our campus for direct academic counseling.'
+  },
+  {
+    question: 'What competitive exams do you prepare students for?',
+    answer: 'We provide dedicated coaching for NEET (Medical), JEE Main & JEE Advanced (Engineering), CUET, and state EAPCET, fully integrated with the Intermediate Board syllabus.'
+  },
+  {
+    question: 'Are residential hostel facilities available for outstation students?',
+    answer: 'Yes, we provide separate, fully secure air-cooled residential hostels for boys and girls with 24x7 warden supervision, hygienic vegetarian dining, and evening doubt-clearing sessions.'
+  },
+  {
+    question: 'How do parents track student test performance and attendance?',
+    answer: 'Parents receive automated daily SMS alerts for attendance and can access our mobile app to view detailed weekly mock test scorecards, ranks, and teacher remarks.'
+  },
+  {
+    question: 'What scholarships or fee concessions are available?',
+    answer: 'Merit scholarships up to 100% tuition fee waiver are awarded based on our Scholarship Talent Search Exam and exceptional 10th board CGPA scores.'
+  }
+];
+
+function safeParseArray(raw, fallback = []) {
+  if (!raw) return fallback;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+// 1. Visual Why Choose Us Editor
+function WhyChooseUsVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_WHY_CHOOSE_US));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const newItem = {
+      icon: 'academic-cap',
+      title: 'New Institutional Advantage',
+      description: 'Highlight what makes this program or campus feature uniquely valuable for students.'
+    };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    if (items.length <= 1) {
+      if (!confirm('Are you sure you want to remove this pillar?')) return;
+    }
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleMove = (index, dir) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+    const copy = [...items];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    updateItems(copy);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset Why Choose Us pillars to the standard recommended 6 institutional pillars?')) {
+      updateItems(DEFAULT_WHY_CHOOSE_US);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>🏛️ Why Choose Our College ({items.length} Pillars)</span>
+            <span className="cwb-item-pill">Section 06</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Natural visual editor: define the key reasons students choose your college. Changes auto-adapt cleanly to the website template cards.
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Pillar
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={6}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+          <p className="cwb-hint">Advanced: raw JSON format. Click '✓ Visual Cards' to switch back to friendly form inputs.</p>
+        </div>
+      ) : (
+        <div className="cwb-vcard-stack">
+          {items.map((item, idx) => (
+            <div key={idx} className="cwb-vcard">
+              <div className="cwb-vcard-header">
+                <span className="cwb-vcard-pill">
+                  Pillar #{idx + 1}
+                </span>
+                <div className="cwb-vcard-actions">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMove(idx, -1)}
+                    className="cwb-btn-chip"
+                    title="Move Up"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === items.length - 1}
+                    onClick={() => handleMove(idx, 1)}
+                    className="cwb-btn-chip"
+                    title="Move Down"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                    title="Delete Pillar"
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="cwb-grid-fields">
+                <div className="cwb-col-4">
+                  <label className="cwb-label">Pillar Icon</label>
+                  <select
+                    value={item.icon || 'academic-cap'}
+                    onChange={(e) => handleChange(idx, 'icon', e.target.value)}
+                    className="cwb-select"
+                  >
+                    <option value="academic-cap">🎓 Faculty / Academics</option>
+                    <option value="document-text">📄 DPP / Practice Sheets</option>
+                    <option value="desktop-computer">💻 CBT Computer Labs</option>
+                    <option value="chat-bubble">💬 1-on-1 Mentorship</option>
+                    <option value="device-mobile">📱 Parent Mobile App</option>
+                    <option value="shield-check">🛡️ Campus Safety & Vigil</option>
+                    <option value="star">⭐ Ranks & Excellence</option>
+                    <option value="beaker">🔬 Modern Science Labs</option>
+                  </select>
+                </div>
+
+                <div className="cwb-col-8">
+                  <label className="cwb-label">Card Heading / Advantage Title</label>
+                  <input
+                    type="text"
+                    value={item.title || ''}
+                    onChange={(e) => handleChange(idx, 'title', e.target.value)}
+                    placeholder="e.g. IITian & Doctor Faculty Pool"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Sub-heading / Description</label>
+                  <textarea
+                    rows={2}
+                    value={item.description || ''}
+                    onChange={(e) => handleChange(idx, 'description', e.target.value)}
+                    placeholder="Explain this institutional pillar in 1-2 compelling sentences..."
+                    className="cwb-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Advantage Pillar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 2. Visual Methodology Steps Editor
+function MethodologyStepsVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_METHODOLOGY_STEPS));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const nextNum = items.length < 9 ? `0${items.length + 1}` : `${items.length + 1}`;
+    const newItem = {
+      stepNumber: nextNum,
+      badge: 'MASTERY',
+      title: 'Advanced Practice & Problem Solving',
+      description: 'Intensive practice sessions targeting tricky problems and multi-concept questions.'
+    };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    if (items.length <= 1) {
+      if (!confirm('Are you sure you want to remove this stage?')) return;
+    }
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleMove = (index, dir) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+    const copy = [...items];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    updateItems(copy);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset teaching methodology to the standard 5-step framework?')) {
+      updateItems(DEFAULT_METHODOLOGY_STEPS);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>🎯 Teaching Methodology & Rigour ({items.length} Stages)</span>
+            <span className="cwb-item-pill">Section 09</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Natural visual editor: define the learning workflow from fundamental theory to rank acceleration.
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Stage
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={6}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+          <p className="cwb-hint">Advanced: raw JSON format.</p>
+        </div>
+      ) : (
+        <div className="cwb-vcard-stack">
+          {items.map((step, idx) => (
+            <div key={idx} className="cwb-vcard">
+              <div className="cwb-vcard-header">
+                <span className="cwb-vcard-pill">
+                  Stage {step.stepNumber || idx + 1}: {step.badge || 'STEP'}
+                </span>
+                <div className="cwb-vcard-actions">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMove(idx, -1)}
+                    className="cwb-btn-chip"
+                    title="Move Up"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === items.length - 1}
+                    onClick={() => handleMove(idx, 1)}
+                    className="cwb-btn-chip"
+                    title="Move Down"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                    title="Delete Stage"
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="cwb-grid-fields">
+                <div className="cwb-col-2">
+                  <label className="cwb-label">Step #</label>
+                  <input
+                    type="text"
+                    value={step.stepNumber || ''}
+                    onChange={(e) => handleChange(idx, 'stepNumber', e.target.value)}
+                    placeholder="01"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-3">
+                  <label className="cwb-label">Stage Badge</label>
+                  <input
+                    type="text"
+                    value={step.badge || ''}
+                    onChange={(e) => handleChange(idx, 'badge', e.target.value)}
+                    placeholder="e.g. FOUNDATION"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-7">
+                  <label className="cwb-label">Stage Title / Heading</label>
+                  <input
+                    type="text"
+                    value={step.title || ''}
+                    onChange={(e) => handleChange(idx, 'title', e.target.value)}
+                    placeholder="e.g. First-Principles Concept Mastery"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Pedagogical Description / Explanation</label>
+                  <textarea
+                    rows={2}
+                    value={step.description || ''}
+                    onChange={(e) => handleChange(idx, 'description', e.target.value)}
+                    placeholder="Explain what the student accomplishes in this learning stage..."
+                    className="cwb-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Methodology Stage
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 3. Visual Stats & Counters Editor
+function StatsCountersVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_STATS_COUNTERS));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const newItem = { value: '100+', label: 'New Metric Label' };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset institutional stats to default metrics?')) {
+      updateItems(DEFAULT_STATS_COUNTERS);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>📊 Key Institutional Metrics & Counters ({items.length})</span>
+            <span className="cwb-item-pill">Section 03</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Animated numbers displayed directly below your hero banner (e.g., student selections, faculty count, alumni base).
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Metric
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={5}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+        </div>
+      ) : (
+        <div>
+          <div className="cwb-stat-grid-editor">
+            {items.map((stat, idx) => (
+              <div key={idx} className="cwb-stat-cell-editor">
+                <div className="cwb-stat-cell-top">
+                  <span className="cwb-card-badge">Metric #{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                    title="Remove Metric"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div>
+                  <label className="cwb-label">Number / Value (with +, %)</label>
+                  <input
+                    type="text"
+                    value={stat.value || ''}
+                    onChange={(e) => handleChange(idx, 'value', e.target.value)}
+                    placeholder="e.g. 15,000+"
+                    className="cwb-input"
+                  />
+                </div>
+                <div>
+                  <label className="cwb-label">Metric Label</label>
+                  <input
+                    type="text"
+                    value={stat.label || ''}
+                    onChange={(e) => handleChange(idx, 'label', e.target.value)}
+                    placeholder="e.g. Students Mentored"
+                    className="cwb-input"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Metric Counter
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 4. Visual Admission Roadmap Editor
+function AdmissionRoadmapVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_ADMISSION_PROCESS));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const nextStep = items.length < 9 ? `0${items.length + 1}` : `${items.length + 1}`;
+    const newItem = {
+      step: nextStep,
+      title: 'New Admission Step',
+      description: 'Describe what the applicant needs to complete at this stage.'
+    };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleMove = (index, dir) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+    const copy = [...items];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    updateItems(copy);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset to the standard 4-step admission roadmap?')) {
+      updateItems(DEFAULT_ADMISSION_PROCESS);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>🗺️ Admission Process Roadmap ({items.length} Steps)</span>
+            <span className="cwb-item-pill">Section 12 / 13</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Natural visual editor: clear sequential steps guiding prospective students from online inquiry to final enrollment.
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Step
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={5}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+        </div>
+      ) : (
+        <div className="cwb-vcard-stack">
+          {items.map((st, idx) => (
+            <div key={idx} className="cwb-vcard">
+              <div className="cwb-vcard-header">
+                <span className="cwb-vcard-pill">
+                  Step {st.step || idx + 1}
+                </span>
+                <div className="cwb-vcard-actions">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMove(idx, -1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === items.length - 1}
+                    onClick={() => handleMove(idx, 1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="cwb-grid-fields">
+                <div className="cwb-col-2">
+                  <label className="cwb-label">Step #</label>
+                  <input
+                    type="text"
+                    value={st.step || ''}
+                    onChange={(e) => handleChange(idx, 'step', e.target.value)}
+                    placeholder="01"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-10">
+                  <label className="cwb-label">Step Heading / Action Title</label>
+                  <input
+                    type="text"
+                    value={st.title || ''}
+                    onChange={(e) => handleChange(idx, 'title', e.target.value)}
+                    placeholder="e.g. Submit Online Enquiry"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Step Description & Guidance</label>
+                  <textarea
+                    rows={2}
+                    value={st.description || st.desc || ''}
+                    onChange={(e) => handleChange(idx, 'description', e.target.value)}
+                    placeholder="Complete our quick online registration form..."
+                    className="cwb-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Admission Step
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 5. Visual Scholarship Tiers Editor
+function ScholarshipTiersVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_SCHOLARSHIP_DETAILS));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const newItem = {
+      name: 'Special Merit Concession',
+      criteria: 'Top percentile in screening test',
+      benefit: '50% Tuition Fee Waiver'
+    };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleMove = (index, dir) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+    const copy = [...items];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    updateItems(copy);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset to the standard scholarship concession tiers?')) {
+      updateItems(DEFAULT_SCHOLARSHIP_DETAILS);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>🏆 Scholarship & Concession Tiers ({items.length} Tiers)</span>
+            <span className="cwb-item-pill">Section 12 / 13</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Natural visual editor: define transparent merit fee waivers to motivate top academic talent.
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Tier
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={5}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+        </div>
+      ) : (
+        <div className="cwb-vcard-stack">
+          {items.map((sc, idx) => (
+            <div key={idx} className="cwb-vcard">
+              <div className="cwb-vcard-header">
+                <span className="cwb-vcard-pill">
+                  Tier #{idx + 1}: {sc.name || sc.bracket || 'Scholarship'}
+                </span>
+                <div className="cwb-vcard-actions">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMove(idx, -1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === items.length - 1}
+                    onClick={() => handleMove(idx, 1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="cwb-grid-fields">
+                <div className="cwb-col-6">
+                  <label className="cwb-label">Scholarship / Tier Name</label>
+                  <input
+                    type="text"
+                    value={sc.name || sc.bracket || ''}
+                    onChange={(e) => handleChange(idx, 'name', e.target.value)}
+                    placeholder="e.g. State Ranker Scholarship"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-6">
+                  <label className="cwb-label">Fee Concession Benefit</label>
+                  <input
+                    type="text"
+                    value={sc.benefit || sc.scholarship || ''}
+                    onChange={(e) => handleChange(idx, 'benefit', e.target.value)}
+                    placeholder="e.g. 100% Full Tuition Waiver for 2 Years"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Qualifying Eligibility Criteria</label>
+                  <input
+                    type="text"
+                    value={sc.criteria || ''}
+                    onChange={(e) => handleChange(idx, 'criteria', e.target.value)}
+                    placeholder="e.g. Top 50 Ranks in AITSE or 98%+ in 10th Board Exams"
+                    className="cwb-input"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Scholarship Tier
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 6. Visual FAQs Editor
+function FaqsVisualEditor({ value, onChange }) {
+  const [items, setItems] = useState(() => safeParseArray(value, DEFAULT_FAQS));
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = safeParseArray(value, null);
+      if (parsed) setItems(parsed);
+    }
+  }, [value]);
+
+  const updateItems = (newItems) => {
+    setItems(newItems);
+    onChange(JSON.stringify(newItems));
+  };
+
+  const handleChange = (index, field, val) => {
+    const copy = [...items];
+    copy[index] = { ...copy[index], [field]: val };
+    updateItems(copy);
+  };
+
+  const handleAdd = () => {
+    const newItem = {
+      question: 'New Question: What support is provided for board vs competitive exams?',
+      answer: 'Explain clearly how the college supports student success with balanced scheduling.'
+    };
+    updateItems([...items, newItem]);
+  };
+
+  const handleDelete = (index) => {
+    const filtered = items.filter((_, idx) => idx !== index);
+    updateItems(filtered);
+  };
+
+  const handleMove = (index, dir) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+    const copy = [...items];
+    const temp = copy[index];
+    copy[index] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    updateItems(copy);
+  };
+
+  const handleReset = () => {
+    if (confirm('Reset to the standard college FAQs?')) {
+      updateItems(DEFAULT_FAQS);
+    }
+  };
+
+  return (
+    <div className="cwb-structured-box">
+      <div className="cwb-structured-top">
+        <div className="cwb-structured-title-group">
+          <div className="cwb-structured-title">
+            <span>❓ Frequently Asked Questions (FAQ Accordion, {items.length} Q&As)</span>
+            <span className="cwb-item-pill">Section 14</span>
+          </div>
+          <p className="cwb-structured-desc">
+            Natural visual editor: answer common parent questions directly on your public website contact desk.
+          </p>
+        </div>
+        <div className="cwb-structured-toolbar">
+          <button type="button" onClick={handleReset} className="cwb-btn-chip">
+            ↺ Reset Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw(!showRaw)}
+            className={`cwb-btn-chip ${showRaw ? 'cwb-btn-chip-primary' : ''}`}
+          >
+            {showRaw ? '✓ Visual Cards' : '⚡ Advanced JSON'}
+          </button>
+          <button type="button" onClick={handleAdd} className="cwb-btn-chip cwb-btn-chip-primary">
+            + Add Question
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div>
+          <textarea
+            rows={6}
+            value={value || ''}
+            onChange={(e) => {
+              onChange(e.target.value);
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) setItems(parsed);
+              } catch (_) {}
+            }}
+            className="cwb-textarea"
+            style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
+          />
+        </div>
+      ) : (
+        <div className="cwb-vcard-stack">
+          {items.map((faq, idx) => (
+            <div key={idx} className="cwb-vcard">
+              <div className="cwb-vcard-header">
+                <span className="cwb-vcard-pill">
+                  Q#{idx + 1}
+                </span>
+                <div className="cwb-vcard-actions">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMove(idx, -1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === items.length - 1}
+                    onClick={() => handleMove(idx, 1)}
+                    className="cwb-btn-chip"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(idx)}
+                    className="cwb-btn-chip cwb-btn-chip-danger"
+                  >
+                    ✕ Delete
+                  </button>
+                </div>
+              </div>
+
+              <div className="cwb-grid-fields">
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Question (Heading)</label>
+                  <input
+                    type="text"
+                    value={faq.question || ''}
+                    onChange={(e) => handleChange(idx, 'question', e.target.value)}
+                    placeholder="e.g. What is the admission procedure for intermediate MPC & BiPC courses?"
+                    className="cwb-input"
+                  />
+                </div>
+
+                <div className="cwb-col-12">
+                  <label className="cwb-label">Answer (Detailed Explanation / Sub-heading)</label>
+                  <textarea
+                    rows={3}
+                    value={faq.answer || ''}
+                    onChange={(e) => handleChange(idx, 'answer', e.target.value)}
+                    placeholder="Provide a reassuring, comprehensive explanation for parents and students..."
+                    className="cwb-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button type="button" onClick={handleAdd} className="cwb-btn-dashed">
+            + Add Another Question
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CollegeWebsiteBuilder() {
   const [website, setWebsite] = useState(null);
   const [institute, setInstitute] = useState(null);
@@ -1154,35 +2361,23 @@ export default function CollegeWebsiteBuilder() {
                 </div>
               </div>
 
-              <div className="cwb-form-group">
-                <label className="cwb-label">
-                  Why Choose Us Advantages (JSON Array: [{'{'} icon, title, description {'}'}])
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.whyChooseUsJson || ''}
-                  onChange={(e) => setForm({ ...form, whyChooseUsJson: e.target.value })}
-                  placeholder='[{"icon":"academic-cap","title":"IITian Faculty","description":"Learn directly from master educators."}]'
-                  className="cwb-textarea"
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
-                />
-                <p className="cwb-hint">Configures the 6 institutional advantage cards on Section 6 of your homepage.</p>
-              </div>
+              {/* Section 03: Key Stats & Metric Counters */}
+              <StatsCountersVisualEditor
+                value={form.statsCountersJson}
+                onChange={(json) => setForm({ ...form, statsCountersJson: json })}
+              />
 
-              <div className="cwb-form-group">
-                <label className="cwb-label">
-                  Teaching Methodology Steps (JSON Array: [{'{'} stepNumber, badge, title, description {'}'}])
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.methodologyStepsJson || ''}
-                  onChange={(e) => setForm({ ...form, methodologyStepsJson: e.target.value })}
-                  placeholder='[{"stepNumber":"01","badge":"FOUNDATION","title":"Classroom Mastery","description":"Concept clarity first."}]'
-                  className="cwb-textarea"
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
-                />
-                <p className="cwb-hint">Configures the 5-step learning workflow on Section 9 of your homepage.</p>
-              </div>
+              {/* Section 06: Why Choose Us (Advantages) */}
+              <WhyChooseUsVisualEditor
+                value={form.whyChooseUsJson}
+                onChange={(json) => setForm({ ...form, whyChooseUsJson: json })}
+              />
+
+              {/* Section 09: Teaching Methodology Framework */}
+              <MethodologyStepsVisualEditor
+                value={form.methodologyStepsJson}
+                onChange={(json) => setForm({ ...form, methodologyStepsJson: json })}
+              />
 
               <div className="cwb-save-bar">
                 <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
@@ -1710,33 +2905,17 @@ export default function CollegeWebsiteBuilder() {
                 </div>
               </div>
 
-              <div className="cwb-form-group">
-                <label className="cwb-label">
-                  Admission Process Steps (JSON Array: [{'{'} step, title, desc {'}'}])
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.admissionProcessJson || ''}
-                  onChange={(e) => setForm({ ...form, admissionProcessJson: e.target.value })}
-                  placeholder='[{"step":"01","title":"Submit Enquiry Form","desc":"Fill out student details online."},{"step":"02","title":"Counseling & Aptitude Evaluation","desc":"Attend academic discussion."}]'
-                  className="cwb-textarea"
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
-                />
-              </div>
+              {/* Section 12/13: Visual Admission Roadmap */}
+              <AdmissionRoadmapVisualEditor
+                value={form.admissionProcessJson}
+                onChange={(json) => setForm({ ...form, admissionProcessJson: json })}
+              />
 
-              <div className="cwb-form-group">
-                <label className="cwb-label">
-                  Scholarship & Concession Criteria (JSON Array: [{'{'} bracket, scholarship, criteria {'}'}])
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.scholarshipDetailsJson || ''}
-                  onChange={(e) => setForm({ ...form, scholarshipDetailsJson: e.target.value })}
-                  placeholder='[{"bracket":"Tier 1","scholarship":"100% Tuition Fee Waiver","criteria":"Top 100 in State Talent Search"}]'
-                  className="cwb-textarea"
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
-                />
-              </div>
+              {/* Section 12/13: Visual Scholarship Tiers */}
+              <ScholarshipTiersVisualEditor
+                value={form.scholarshipDetailsJson}
+                onChange={(json) => setForm({ ...form, scholarshipDetailsJson: json })}
+              />
 
               <div className="cwb-save-bar">
                 <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
@@ -2050,19 +3229,11 @@ export default function CollegeWebsiteBuilder() {
                 />
               </div>
 
-              <div className="cwb-form-group">
-                <label className="cwb-label">
-                  Frequently Asked Questions (JSON Array: [{'{'} question, answer {'}'}])
-                </label>
-                <textarea
-                  rows={5}
-                  value={form.faqsJson || ''}
-                  onChange={(e) => setForm({ ...form, faqsJson: e.target.value })}
-                  placeholder='[{"question":"What board is followed?","answer":"BIEAP along with intensive NEET/JEE curriculum."}]'
-                  className="cwb-textarea"
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11 }}
-                />
-              </div>
+              {/* Section 14: Visual FAQ Accordion */}
+              <FaqsVisualEditor
+                value={form.faqsJson}
+                onChange={(json) => setForm({ ...form, faqsJson: json })}
+              />
 
               <div className="cwb-save-bar">
                 <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">

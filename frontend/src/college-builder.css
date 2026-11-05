@@ -1068,3 +1068,224 @@ table.w-full td {
 table.w-full tr:hover td {
   background-color: #f8fafc;
 }
+
+/* =========================================================================
+   NATURAL VISUAL STRUCTURED CONTENT EDITORS
+   Transforms raw JSON arrays into human-friendly, visual card builders
+   ========================================================================= */
+
+.cwb-structured-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.cwb-structured-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cwb-structured-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cwb-structured-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cwb-structured-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.cwb-structured-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cwb-vcard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cwb-vcard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cwb-vcard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.cwb-vcard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.cwb-vcard-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cwb-vcard-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cwb-btn-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.cwb-btn-chip:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.cwb-btn-chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.cwb-btn-chip-danger {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.cwb-btn-chip-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.cwb-btn-chip-primary {
+  color: #0284c7;
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.cwb-btn-chip-primary:hover:not(:disabled) {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+.cwb-btn-dashed {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+  margin-top: 10px;
+}
+
+.cwb-btn-dashed:hover {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.cwb-grid-fields {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+}
+
+.cwb-col-12 { grid-column: span 12 / span 12; }
+.cwb-col-8  { grid-column: span 8 / span 8; }
+.cwb-col-6  { grid-column: span 6 / span 6; }
+.cwb-col-4  { grid-column: span 4 / span 4; }
+.cwb-col-3  { grid-column: span 3 / span 3; }
+.cwb-col-2  { grid-column: span 2 / span 2; }
+
+@media (max-width: 768px) {
+  .cwb-col-8, .cwb-col-6, .cwb-col-4, .cwb-col-3, .cwb-col-2 {
+    grid-column: span 12 / span 12;
+  }
+}
+
+.cwb-stat-grid-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.cwb-stat-cell-editor {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.cwb-stat-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
