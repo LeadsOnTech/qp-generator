@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import '../student-analytics.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
 
@@ -295,68 +296,69 @@ export default function StudentAnalytics() {
       (s.batchName || '').toLowerCase().includes((searchFilter || '').toLowerCase())
   );
 
+  const cleanParentPhone = analyticsData?.student?.parentPhone
+    ? analyticsData.student.parentPhone.replace(/\D/g, '').slice(-10)
+    : '';
+
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.headerRow}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+    <div className="sa-container">
+      {/* Executive Header Bar */}
+      <div className="sa-header-bar">
+        <div className="sa-header-content">
           <div>
-            <div style={styles.badge}>MODULE 4 &amp; 5 • INSTITUTIONAL PERFORMANCE AUDIT</div>
-            <h1 style={styles.title}>Student Performance Analytics &amp; Academic Progression</h1>
-            <p style={styles.subtitle}>
+            <div className="sa-header-badge">
+              <span className="sa-pulse-dot" />
+              <span>Institutional Performance Audit • Academic Progression</span>
+            </div>
+            <h1 className="sa-title">Student Performance Analytics & Academic Progression</h1>
+            <p className="sa-subtitle">
               Multi-test trajectory, diagnostic weak-chapter audit, and automated 1-click remedial intervention.
             </p>
           </div>
-          <div>
-            <Link
-              to="/students"
-              style={{
-                background: '#fff',
-                color: '#334155',
-                border: '1px solid #cbd5e1',
-                borderRadius: 8,
-                padding: '8px 14px',
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              }}
-            >
+          <div className="sa-header-actions">
+            <Link to="/students" className="sa-btn-roster">
               👥 View Full Roster
             </Link>
+            <button
+              type="button"
+              onClick={() => loadStudentData(selectedRoll)}
+              className="sa-btn-refresh"
+              title="Reload student progress records"
+            >
+              🔄 Refresh
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Two-Column Layout: Left Roster, Right Analytics */}
-      <div style={styles.layoutGrid}>
+      <div className="sa-layout-grid">
         {/* Left Column: Student Roster Search, Selector & Cohort Summary */}
-        <div style={styles.rosterCard}>
-          <div style={styles.rosterHeader}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>
-                Enrolled Students
+        <div className="sa-roster-card">
+          <div className="sa-roster-header">
+            <div className="sa-roster-title-row">
+              <span className="sa-roster-title">
+                👥 Enrolled Students
               </span>
-              <span style={styles.rosterCountPill}>
-                {studentsList.length} Total
+              <span className="sa-roster-pill">
+                {studentsList.length} Active
               </span>
             </div>
-            <div style={{ position: 'relative' }}>
+            <div className="sa-search-wrap">
+              <span className="sa-search-icon">🔍</span>
               <input
                 type="text"
                 placeholder="Filter by name, roll, batch..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                style={styles.rosterSearchInput}
+                className="sa-search-input"
               />
               {searchFilter && (
                 <button
                   type="button"
                   onClick={() => setSearchFilter('')}
-                  style={styles.searchClearBtn}
+                  className="sa-search-clear"
+                  title="Clear search"
                 >
                   ✕
                 </button>
@@ -364,74 +366,50 @@ export default function StudentAnalytics() {
             </div>
           </div>
 
-          <div style={styles.rosterList}>
+          <div className="sa-roster-list">
             {filteredStudents.length === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+              <div style={{ padding: '30px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                 No matching students found
               </div>
             ) : (
               filteredStudents.map((s) => {
                 const isSelected = s.rollNumber === selectedRoll;
                 const initials = (s.studentName || s.rollNumber || 'S').charAt(0).toUpperCase();
+                const avgPct = Math.round(s.averagePercentage || 0);
+                const scoreClass = avgPct >= 70 ? 'high' : avgPct >= 50 ? 'mid' : 'low';
+
                 return (
                   <div
                     key={s.rollNumber}
                     onClick={() => handleSelectStudent(s.rollNumber)}
-                    style={{
-                      ...styles.rosterItem,
-                      background: isSelected ? '#eff6ff' : '#fff',
-                      borderLeft: isSelected ? '4px solid #2563eb' : '4px solid transparent',
-                    }}
+                    className={`sa-roster-item ${isSelected ? 'active' : ''}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50%',
-                          background: isSelected ? '#dbeafe' : '#f1f5f9',
-                          color: isSelected ? '#1d4ed8' : '#475569',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: 14,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initials}
+                    <div className="sa-student-avatar-ring">
+                      {s.photoUrl ? (
+                        <img src={s.photoUrl} alt={s.studentName} className="sa-student-avatar-img" />
+                      ) : (
+                        initials
+                      )}
+                    </div>
+
+                    <div className="sa-student-meta">
+                      <div className="sa-student-name">
+                        {s.studentName || s.rollNumber}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontWeight: 700,
-                          fontSize: 13.5,
-                          color: isSelected ? '#1d4ed8' : '#0f172a',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}>
-                          {s.studentName || s.rollNumber}
-                        </div>
-                        <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 1 }}>
-                          Roll: <b style={{ color: '#334155' }}>{s.rollNumber}</b>
-                        </div>
+                      <div className="sa-student-sub">
+                        <span>Roll: <strong>{s.rollNumber}</strong></span>
+                        {s.batchName && (
+                          <span style={{ color: '#64748b' }}>• {s.batchName}</span>
+                        )}
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            background: (s.averagePercentage || 0) >= 70 ? '#dcfce7' : (s.averagePercentage || 0) >= 50 ? '#fef3c7' : '#fee2e2',
-                            color: (s.averagePercentage || 0) >= 70 ? '#15803d' : (s.averagePercentage || 0) >= 50 ? '#b45309' : '#b91c1c',
-                          }}
-                        >
-                          {s.averagePercentage || 0}%
-                        </span>
-                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
-                          {s.totalExams || 1} {s.totalExams === 1 ? 'Exam' : 'Exams'}
-                        </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <span className={`sa-score-pill ${scoreClass}`}>
+                        {avgPct}%
+                      </span>
+                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
+                        {s.totalExams || 1} {s.totalExams === 1 ? 'Exam' : 'Exams'}
                       </div>
                     </div>
                   </div>
@@ -440,149 +418,177 @@ export default function StudentAnalytics() {
             )}
           </div>
 
-          {/* Institutional Cohort Summary card at the bottom of the sidebar */}
-          <div style={styles.rosterCohortSummary}>
-            <div style={{ fontSize: 10.5, fontWeight: 800, color: '#1e3a8a', letterSpacing: '0.04em', marginBottom: 6 }}>
-              COHORT SNAPSHOT
+          {/* Institutional Cohort Summary Box */}
+          <div className="sa-cohort-box">
+            <div className="sa-cohort-eyebrow">
+              <span>📊</span> Batch Benchmark Snapshot
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#475569', marginBottom: 4 }}>
+            <div className="sa-cohort-row">
               <span>Total Enrolled</span>
-              <b style={{ color: '#0f172a' }}>{studentsList.length} Student{studentsList.length !== 1 ? 's' : ''}</b>
+              <strong>{studentsList.length} Student{studentsList.length !== 1 ? 's' : ''}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#475569', marginBottom: 4 }}>
+            <div className="sa-cohort-row">
               <span>Active Batch</span>
-              <b style={{ color: '#0f172a' }}>{analyticsData?.student?.batchName || 'General'}</b>
+              <strong>{analyticsData?.student?.batchName || 'General'}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#475569' }}>
+            <div className="sa-cohort-row">
               <span>Top Batch Score</span>
-              <b style={{ color: '#059669' }}>{analyticsData?.careerStats?.careerAveragePercentage ?? 0}%</b>
+              <strong style={{ color: '#059669' }}>{analyticsData?.careerStats?.careerAveragePercentage ?? 0}%</strong>
             </div>
           </div>
         </div>
 
         {/* Right Column: Detailed Performance Analytics */}
-        <div style={styles.analyticsCol}>
+        <div className="sa-analytics-col">
           {loading ? (
-            <div style={styles.emptyCard}>
-              <div style={styles.spinner}></div>
-              <p style={{ marginTop: 16, color: '#64748b' }}>Analyzing multi-exam performance records...</p>
+            <div className="sa-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+              <h4 style={{ margin: 0, color: '#0f172a' }}>Analyzing Performance Records...</h4>
+              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 13 }}>
+                Gathering multi-exam trajectories, weak-chapter indices, and accuracy benchmarks.
+              </p>
             </div>
           ) : error ? (
-            <div style={styles.emptyCard}>
+            <div className="sa-card" style={{ textAlign: 'center', padding: '40px 20px', borderColor: '#fca5a5', background: '#fef2f2' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
-              <div style={{ color: '#dc2626', fontWeight: 600 }}>{error}</div>
+              <div style={{ color: '#dc2626', fontWeight: 700, fontSize: 15 }}>{error}</div>
+              <button
+                onClick={() => loadStudentData(selectedRoll)}
+                className="sa-btn-refresh"
+                style={{ marginTop: 14 }}
+              >
+                Try Again
+              </button>
             </div>
           ) : !analyticsData ? (
-            <div style={styles.emptyCard}>
-              <p style={{ color: '#64748b' }}>Select a student from the left roster to view performance analytics.</p>
+            <div className="sa-card" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
+              <h4 style={{ margin: '0 0 4px 0', color: '#0f172a' }}>Select a Student</h4>
+              <p style={{ margin: 0, fontSize: 13 }}>Choose a student from the left roster to inspect detailed diagnostic analytics.</p>
             </div>
           ) : (
-            <div>
+            <>
               {/* 1. Student Profile Hero Card */}
-              <div style={styles.profileBanner}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18, flex: 1, minWidth: 320 }}>
+              <div className="sa-profile-hero">
+                <div className="sa-profile-left">
                   {/* Interactive Avatar */}
                   <div
                     onClick={openEditModal}
-                    style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    className="sa-hero-avatar-frame"
                     title="Click to edit profile or upload photo"
                   >
                     {analyticsData.student.photoUrl ? (
                       <img
                         src={analyticsData.student.photoUrl}
                         alt={analyticsData.student.studentName}
-                        style={styles.avatarImg}
+                        className="sa-hero-avatar"
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     ) : (
-                      <div style={styles.avatarPlaceholder}>
+                      <div className="sa-hero-avatar-placeholder">
                         {analyticsData.student.studentName?.charAt(0).toUpperCase() || '👤'}
                       </div>
                     )}
-                    <div style={styles.avatarBadge} title="Upload photo / Edit profile">
+                    <div className="sa-avatar-edit-badge" title="Upload photo / Edit profile">
                       📷
                     </div>
                   </div>
 
                   <div style={{ flex: 1 }}>
                     {/* Demographics Chips */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                    <div className="sa-chips-row">
                       {analyticsData.student.courseTarget && (
-                        <span style={styles.chipCourse}>🎯 {analyticsData.student.courseTarget}</span>
+                        <span className="sa-chip sa-chip-target">
+                          🎯 {analyticsData.student.courseTarget}
+                        </span>
                       )}
                       {analyticsData.student.classYear && (
-                        <span style={styles.chipClass}>🎓 {analyticsData.student.classYear}</span>
+                        <span className="sa-chip sa-chip-class">
+                          🎓 {analyticsData.student.classYear}
+                        </span>
                       )}
                       {analyticsData.student.hostelStatus && (
-                        <span style={String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? styles.chipHostel : styles.chipDayScholar}>
+                        <span className="sa-chip sa-chip-hostel">
                           {String(analyticsData.student.hostelStatus).toLowerCase().includes('hostel') ? '🛏️ Hosteler' : '🏠 Day Scholar'}
                         </span>
                       )}
-                      <span style={styles.chipBatch}>
+                      <span className="sa-chip sa-chip-batch">
                         🏷️ {analyticsData.student.batchName || 'General'} {analyticsData.student.section ? `(${analyticsData.student.section})` : ''}
                       </span>
                     </div>
 
-                    <h2 style={styles.profileStudentName}>
+                    <h2 className="sa-profile-name">
                       {analyticsData.student.studentName}
                     </h2>
 
-                    <div style={styles.profileMetaRow}>
-                      <span>Roll: <b style={{ color: '#0f172a' }}>{analyticsData.student.rollNumber}</b></span>
+                    <div className="sa-profile-meta-line">
+                      <span>Roll: <strong className="sa-meta-code">{analyticsData.student.rollNumber}</strong></span>
                       {analyticsData.student.admissionNumber && (
-                        <span>• Adm: <b>{analyticsData.student.admissionNumber}</b></span>
+                        <span>• Adm: <strong>{analyticsData.student.admissionNumber}</strong></span>
                       )}
                       {(analyticsData.student.nativePlace || analyticsData.student.district) && (
-                        <span>• 📍 <b>{analyticsData.student.nativePlace || ''}{analyticsData.student.nativePlace && analyticsData.student.district ? ', ' : ''}{analyticsData.student.district ? `${analyticsData.student.district} Dt` : ''}</b></span>
+                        <span>• 📍 <strong>{analyticsData.student.nativePlace || ''}{analyticsData.student.nativePlace && analyticsData.student.district ? ', ' : ''}{analyticsData.student.district ? `${analyticsData.student.district} Dt` : ''}</strong></span>
                       )}
                       {analyticsData.student.state && (
-                        <span>• <b>{analyticsData.student.state}</b></span>
+                        <span>• <strong>{analyticsData.student.state}</strong></span>
                       )}
                     </div>
 
-                    {/* Parent & WhatsApp Cardlet */}
-                    <div style={styles.parentCardlet}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span>👨‍👩‍👦 <b>{analyticsData.student.parentName || 'Parent'}</b>{analyticsData.student.parentRelation ? ` (${analyticsData.student.parentRelation})` : ''}{analyticsData.student.parentOccupation ? ` • ${analyticsData.student.parentOccupation}` : ''}</span>
-                        <span style={{ color: '#cbd5e1' }}>•</span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#059669', fontWeight: 700 }}>
+                    {/* Parent & WhatsApp Ribbon */}
+                    <div className="sa-parent-ribbon">
+                      <span>
+                        👨‍👩‍👦 <strong>{analyticsData.student.parentName || 'Parent'}</strong>
+                        {analyticsData.student.parentRelation ? ` (${analyticsData.student.parentRelation})` : ''}
+                        {analyticsData.student.parentOccupation ? ` • ${analyticsData.student.parentOccupation}` : ''}
+                      </span>
+                      <span>•</span>
+                      {cleanParentPhone ? (
+                        <a
+                          href={`https://wa.me/91${cleanParentPhone}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="sa-whatsapp-badge"
+                          title="Open WhatsApp chat with parent"
+                        >
                           <span>💬 WhatsApp:</span>
-                          <span>{analyticsData.student.parentPhoneMasked || 'Not registered'}</span>
-                        </span>
-                        {analyticsData.student.studentPhone && (
-                          <>
-                            <span style={{ color: '#cbd5e1' }}>•</span>
-                            <span style={{ color: '#475569' }}>Student Mobile: <b>{analyticsData.student.studentPhone}</b></span>
-                          </>
-                        )}
-                      </div>
+                          <span>{analyticsData.student.parentPhoneMasked || analyticsData.student.parentPhone}</span>
+                        </a>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>💬 WhatsApp: Not registered</span>
+                      )}
+                      {analyticsData.student.studentPhone && (
+                        <>
+                          <span>•</span>
+                          <span>Student Mobile: <strong>{analyticsData.student.studentPhone}</strong></span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Profile Action Cluster */}
-                <div style={styles.profileActionsCol}>
-                  <div style={styles.examMilestoneTile}>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: '#1e3a8a', lineHeight: 1 }}>
+                {/* Profile Actions & Milestones */}
+                <div className="sa-profile-right">
+                  <div className="sa-exams-count-box">
+                    <div className="sa-count-number">
                       {analyticsData.careerStats?.totalExamsTaken || 1}
                     </div>
-                    <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, marginTop: 4 }}>
+                    <div className="sa-count-label">
                       Exam{analyticsData.careerStats?.totalExamsTaken !== 1 ? 's' : ''} Completed
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div className="sa-profile-btn-row">
                     <button
                       onClick={openEditModal}
-                      style={styles.editProfileBtn}
+                      className="sa-btn-edit"
                       title="Edit profile demographics or upload photo"
                     >
-                      ✏️ Edit Profile &amp; Photo
+                      ✏️ Edit Profile & Photo
                     </button>
                     <button
                       onClick={handleExportCsv}
                       disabled={exportingCsv}
-                      style={styles.exportCsvBtn}
+                      className="sa-btn-export"
                       title="Export student history as CSV"
                     >
                       {exportingCsv ? 'Exporting…' : '📥 Export CSV'}
@@ -592,159 +598,168 @@ export default function StudentAnalytics() {
               </div>
 
               {/* 2. Key Performance Indicators Row (Balanced 4-Grid) */}
-              <div style={styles.kpiGrid}>
-                <div style={{ ...styles.kpiCard, borderTop: '3px solid #2563eb' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={styles.kpiLabel}>CAREER AVERAGE</div>
-                    <span style={{ fontSize: 16 }}>📈</span>
+              <div className="sa-kpi-grid">
+                <div className="sa-kpi-card blue">
+                  <div className="sa-kpi-top">
+                    <span className="sa-kpi-title">CAREER AVERAGE</span>
+                    <div className="sa-kpi-icon-wrap">📈</div>
                   </div>
-                  <div style={{ ...styles.kpiValue, color: '#2563eb' }}>
+                  <div className="sa-kpi-value">
                     {analyticsData.careerStats?.careerAveragePercentage ?? 0}%
                   </div>
-                  <div style={styles.kpiSub}>Across {analyticsData.careerStats?.totalExamsTaken || 1} exam(s)</div>
+                  <div className="sa-kpi-subtitle">
+                    Across {analyticsData.careerStats?.totalExamsTaken || 1} exam attempt(s)
+                  </div>
                 </div>
 
-                <div style={{ ...styles.kpiCard, borderTop: '3px solid #10b981' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={styles.kpiLabel}>OVERALL ACCURACY</div>
-                    <span style={{ fontSize: 16 }}>🎯</span>
+                <div className="sa-kpi-card emerald">
+                  <div className="sa-kpi-top">
+                    <span className="sa-kpi-title">OVERALL ACCURACY</span>
+                    <div className="sa-kpi-icon-wrap">🎯</div>
                   </div>
-                  <div style={{ ...styles.kpiValue, color: '#059669' }}>
+                  <div className="sa-kpi-value">
                     {analyticsData.careerStats?.careerAverageAccuracy ?? 0}%
                   </div>
-                  <div style={styles.kpiSub}>Correct vs attempted efficiency</div>
+                  <div className="sa-kpi-subtitle">
+                    Correct vs attempted efficiency
+                  </div>
                 </div>
 
-                <div style={{ ...styles.kpiCard, borderTop: '3px solid #f59e0b' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={styles.kpiLabel}>COLLEGE RANK</div>
-                    <span style={{ fontSize: 16 }}>🏆</span>
+                <div className="sa-kpi-card amber">
+                  <div className="sa-kpi-top">
+                    <span className="sa-kpi-title">COLLEGE / BATCH RANK</span>
+                    <div className="sa-kpi-icon-wrap">🏆</div>
                   </div>
-                  <div style={{ ...styles.kpiValue, color: '#d97706' }}>
+                  <div className="sa-kpi-value">
                     #{analyticsData.careerStats?.bestRank || 1}
                   </div>
-                  <div style={styles.kpiSub}>Batch benchmark standing</div>
+                  <div className="sa-kpi-subtitle">
+                    Batch benchmark standing
+                  </div>
                 </div>
 
-                <div style={{ ...styles.kpiCard, borderTop: '3px solid #8b5cf6' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={styles.kpiLabel}>LATEST TEST GAIN</div>
-                    <span style={{ fontSize: 16 }}>⚡</span>
+                <div className="sa-kpi-card violet">
+                  <div className="sa-kpi-top">
+                    <span className="sa-kpi-title">LATEST TEST GAIN</span>
+                    <div className="sa-kpi-icon-wrap">⚡</div>
                   </div>
-                  <div style={styles.kpiValue}>
+                  <div className="sa-kpi-value">
                     {(analyticsData.careerStats?.latestDelta ?? 0) >= 0 ? (
                       <span style={{ color: '#16a34a' }}>+{(analyticsData.careerStats?.latestDelta ?? 0)} pts ▲</span>
                     ) : (
                       <span style={{ color: '#dc2626' }}>{analyticsData.careerStats?.latestDelta} pts ▼</span>
                     )}
                   </div>
-                  <div style={styles.kpiSub}>Relative to baseline</div>
+                  <div className="sa-kpi-subtitle">
+                    Relative to baseline exam
+                  </div>
                 </div>
               </div>
 
-              {/* 3. Balanced 2-Column Core: Progression & Exam History (Left) | Subject Mastery (Right) */}
-              <div style={styles.dashboardSplitGrid}>
-                
+              {/* 3. Balanced 2-Column Split: Progression & Exam History (Left) | Subject Mastery (Right) */}
+              <div className="sa-split-grid">
                 {/* Left Column: Test Progression Trajectory & Detailed Exam Table */}
-                <div style={styles.sectionCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div>
-                      <h3 style={styles.sectionHeading}>📈 Examination Progression &amp; History</h3>
-                      <p style={styles.sectionSub}>Sequential test scores, accuracy percentage, and scorecards.</p>
-                    </div>
+                <div className="sa-card">
+                  <div className="sa-section-header">
+                    <h3 className="sa-section-heading">
+                      <span>📈</span> Examination Progression & History
+                    </h3>
+                    <p className="sa-section-sub">
+                      Sequential examination scores, accuracy percentage, and digital scorecards.
+                    </p>
                   </div>
 
-                  {/* Progression Chart Area */}
+                  {/* Progression Milestone Card */}
                   {analyticsData.timeline?.length <= 1 ? (
-                    <div style={styles.singleTestBenchmarkCard}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={styles.baselineScoreBadge}>
-                          <div style={{ fontSize: 24, fontWeight: 900, color: '#2563eb' }}>
-                            {analyticsData.timeline[0]?.percentage || 0}%
-                          </div>
-                          <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>Test 1 (T1)</div>
+                    <div className="sa-baseline-card">
+                      <div className="sa-baseline-badge">
+                        <span className="sa-baseline-num">
+                          {analyticsData.timeline[0]?.percentage || 0}%
+                        </span>
+                        <span className="sa-baseline-lbl">Test 1 (T1)</span>
+                      </div>
+                      <div className="sa-baseline-info" style={{ flex: 1 }}>
+                        <h4>Baseline Examination: "{analyticsData.timeline[0]?.examName || 'Kinematics'}"</h4>
+                        <div className="sa-baseline-stats">
+                          Score: <strong>{analyticsData.timeline[0]?.marksObtained}/{analyticsData.timeline[0]?.maxMarks}</strong> • Rank: <strong style={{ color: '#d97706' }}>#{analyticsData.timeline[0]?.rank}</strong> of {analyticsData.timeline[0]?.totalStudents} • Accuracy: <strong style={{ color: '#059669' }}>{analyticsData.timeline[0]?.accuracyPercentage}%</strong>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                            Baseline Examination: "{analyticsData.timeline[0]?.examName || 'Kinematics'}"
-                          </div>
-                          <div style={{ fontSize: 12, color: '#475569', marginTop: 3 }}>
-                            Score: <b>{analyticsData.timeline[0]?.marksObtained}/{analyticsData.timeline[0]?.maxMarks}</b> • Rank: <b style={{ color: '#d97706' }}>#{analyticsData.timeline[0]?.rank}</b> of {analyticsData.timeline[0]?.totalStudents} • Accuracy: <b style={{ color: '#059669' }}>{analyticsData.timeline[0]?.accuracyPercentage}%</b>
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>
-                            ℹ️ Sequential trajectory trendlines and percentage-point deltas will dynamically plot as future tests are recorded.
-                          </div>
-                        </div>
+                        <p className="sa-baseline-note">
+                          ℹ️ Baseline milestone established. Interactive trajectory trendlines and percentile deltas will automatically plot as future exams are taken.
+                        </p>
                       </div>
                     </div>
                   ) : (
-                    <div style={styles.chartContainer}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 110, padding: '16px 10px', background: '#f8fafc', borderRadius: 12, marginBottom: 16 }}>
                       {(analyticsData.timeline || []).map((item, idx) => (
-                        <div key={item.resultId} style={styles.chartBarCol}>
-                          <div style={styles.chartBarWrapper}>
-                            <div
-                              style={{
-                                ...styles.chartBarScore,
-                                height: `${Math.max(item.percentage || 0, 8)}%`,
-                              }}
-                              title={`Score: ${item.percentage}% (${item.marksObtained}/${item.maxMarks})`}
-                            >
-                              <span style={styles.barLabelText}>{item.percentage}%</span>
-                            </div>
+                        <div key={item.resultId} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                          <div
+                            style={{
+                              width: '100%',
+                              maxWidth: 36,
+                              height: `${Math.max(item.percentage || 0, 12)}%`,
+                              background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
+                              borderRadius: '6px 6px 0 0',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'center',
+                              paddingTop: 4,
+                              color: '#fff',
+                              fontSize: 10,
+                              fontWeight: 800,
+                            }}
+                            title={`Score: ${item.percentage}% (${item.marksObtained}/${item.maxMarks})`}
+                          >
+                            {item.percentage}%
                           </div>
-                          <div style={styles.barSubText}>T{idx + 1}</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>#{item.rank}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#334155', marginTop: 4 }}>T{idx + 1}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>#{item.rank}</div>
                         </div>
                       ))}
                     </div>
                   )}
 
                   {/* Examination Breakdown Table */}
-                  <div style={{ overflowX: 'auto', marginTop: 14 }}>
-                    <table style={styles.table}>
+                  <div className="sa-table-wrap">
+                    <table className="sa-table">
                       <thead>
-                        <tr style={styles.theadRow}>
-                          <th style={styles.th}>Test</th>
-                          <th style={styles.th}>Exam Name</th>
-                          <th style={styles.th}>Date</th>
-                          <th style={styles.th}>Type</th>
-                          <th style={{ ...styles.th, textAlign: 'center' }}>Rank</th>
-                          <th style={{ ...styles.th, textAlign: 'right' }}>Score</th>
-                          <th style={{ ...styles.th, textAlign: 'center' }}>Accuracy</th>
-                          <th style={{ ...styles.th, textAlign: 'center' }}>Gain</th>
-                          <th style={{ ...styles.th, textAlign: 'center' }}>Actions</th>
+                        <tr>
+                          <th className="sa-th">Test</th>
+                          <th className="sa-th">Exam Name</th>
+                          <th className="sa-th">Date</th>
+                          <th className="sa-th">Format</th>
+                          <th className="sa-th" style={{ textAlign: 'center' }}>Rank</th>
+                          <th className="sa-th" style={{ textAlign: 'right' }}>Score</th>
+                          <th className="sa-th" style={{ textAlign: 'center' }}>Accuracy</th>
+                          <th className="sa-th" style={{ textAlign: 'center' }}>Gain</th>
+                          <th className="sa-th" style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {(analyticsData.timeline || []).map((item, idx) => (
-                          <tr key={item.resultId} style={styles.tr}>
-                            <td style={{ ...styles.td, fontWeight: 700, color: '#475569' }}>T{idx + 1}</td>
-                            <td style={{ ...styles.td, fontWeight: 700, color: '#0f172a' }}>{item.examName}</td>
-                            <td style={{ ...styles.td, color: '#64748b', fontSize: 12 }}>
+                          <tr key={item.resultId} className="sa-tr">
+                            <td className="sa-td" style={{ fontWeight: 800, color: '#475569' }}>T{idx + 1}</td>
+                            <td className="sa-td" style={{ fontWeight: 800, color: '#0f172a' }}>{item.examName}</td>
+                            <td className="sa-td" style={{ color: '#64748b', fontSize: 12 }}>
                               {item.examDate ? new Date(item.examDate).toLocaleDateString('en-IN') : '—'}
                             </td>
-                            <td style={styles.td}>
-                              <span style={styles.examTypePill}>{item.examType}</span>
+                            <td className="sa-td">
+                              <span className="sa-exam-badge">{item.examType}</span>
                             </td>
-                            <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700, color: item.rank <= 3 ? '#d97706' : '#334155' }}>
-                              #{item.rank} <span style={{ fontSize: 10.5, color: '#94a3b8' }}>/{item.totalStudents}</span>
+                            <td className="sa-td" style={{ textAlign: 'center', fontWeight: 800, color: item.rank <= 3 ? '#d97706' : '#334155' }}>
+                              #{item.rank} <span style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 600 }}>/{item.totalStudents}</span>
                             </td>
-                            <td style={{ ...styles.td, textAlign: 'right' }}>
+                            <td className="sa-td" style={{ textAlign: 'right' }}>
                               <div style={{ fontWeight: 800, color: '#0f172a' }}>{item.marksObtained} / {item.maxMarks}</div>
-                              <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 600 }}>{item.percentage}%</div>
+                              <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 700 }}>{item.percentage}%</div>
                             </td>
-                            <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <td className="sa-td" style={{ textAlign: 'center' }}>
                               <span
-                                style={{
-                                  ...styles.accuracyBadge,
-                                  background: item.accuracyPercentage >= 70 ? '#dcfce7' : item.accuracyPercentage >= 50 ? '#fef3c7' : '#fee2e2',
-                                  color: item.accuracyPercentage >= 70 ? '#15803d' : item.accuracyPercentage >= 50 ? '#b45309' : '#b91c1c',
-                                }}
+                                className={`sa-score-pill ${item.accuracyPercentage >= 70 ? 'high' : item.accuracyPercentage >= 50 ? 'mid' : 'low'}`}
                               >
                                 {item.accuracyPercentage}%
                               </span>
                             </td>
-                            <td style={{ ...styles.td, textAlign: 'center', fontWeight: 700 }}>
+                            <td className="sa-td" style={{ textAlign: 'center', fontWeight: 700 }}>
                               {idx === 0 ? (
                                 <span style={{ color: '#94a3b8' }}>—</span>
                               ) : item.percentagePointsDelta >= 0 ? (
@@ -753,13 +768,13 @@ export default function StudentAnalytics() {
                                 <span style={{ color: '#dc2626' }}>{item.percentagePointsDelta}</span>
                               )}
                             </td>
-                            <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <td className="sa-td" style={{ textAlign: 'center' }}>
                               <div style={{ display: 'inline-flex', gap: 6 }}>
                                 <a
                                   href={`${API_BASE}/results/${item.resultId}/pdf`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={styles.actionBtnIcon}
+                                  className="sa-btn-action"
                                   title="Download PDF Scorecard"
                                 >
                                   📄 PDF
@@ -768,7 +783,7 @@ export default function StudentAnalytics() {
                                   <Link
                                     to={`/scorecard/${item.publicToken}`}
                                     target="_blank"
-                                    style={styles.actionBtnIcon}
+                                    className="sa-btn-action"
                                     title="View Web Scorecard"
                                   >
                                     🔗 View
@@ -783,36 +798,31 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
 
-                {/* Right Column: Subject Mastery & Diagnostic Guidance */}
-                <div style={styles.sectionCard}>
-                  <div style={{ marginBottom: 12 }}>
-                    <h3 style={styles.sectionHeading}>🎯 Subject Mastery</h3>
-                    <p style={styles.sectionSub}>Historical proficiency &amp; accuracy across subjects.</p>
+                {/* Right Column: Subject Mastery & Faculty Diagnostic */}
+                <div className="sa-card">
+                  <div className="sa-section-header">
+                    <h3 className="sa-section-heading">
+                      <span>🎯</span> Subject Mastery
+                    </h3>
+                    <p className="sa-section-sub">Historical proficiency and accuracy rates across subjects.</p>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div className="sa-subject-list">
                     {(analyticsData.subjectPerformance || []).map((subj) => (
-                      <div key={subj.subjectName} style={styles.subjectCardCompact}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>{subj.subjectName}</div>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            background: subj.averageAccuracy >= 60 ? '#dcfce7' : '#fee2e2',
-                            color: subj.averageAccuracy >= 60 ? '#15803d' : '#b91c1c',
-                          }}>
+                      <div key={subj.subjectName} className="sa-subject-card">
+                        <div className="sa-subject-top">
+                          <span className="sa-subject-name">{subj.subjectName}</span>
+                          <span className={`sa-score-pill ${subj.averageAccuracy >= 60 ? 'high' : 'low'}`}>
                             {subj.averageAccuracy}% Accuracy
                           </span>
                         </div>
-                        <div style={{ fontSize: 11.5, color: '#64748b', marginBottom: 8 }}>
-                          {subj.testsAppeared} Test Appeared • Career Avg: <b>{subj.averagePercentage}%</b>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
+                          {subj.testsAppeared} Test Appeared • Career Avg: <strong>{subj.averagePercentage}%</strong>
                         </div>
-                        <div style={styles.progressBarBg}>
+                        <div className="sa-progress-bar-bg">
                           <div
+                            className="sa-progress-bar-fill"
                             style={{
-                              ...styles.progressBarFill,
                               width: `${Math.min(subj.averagePercentage, 100)}%`,
                               background: subj.averagePercentage >= 70 ? '#10b981' : subj.averagePercentage >= 50 ? '#f59e0b' : '#ef4444',
                             }}
@@ -821,45 +831,48 @@ export default function StudentAnalytics() {
                       </div>
                     ))}
                     {(!analyticsData.subjectPerformance || analyticsData.subjectPerformance.length === 0) && (
-                      <div style={{ padding: '20px', color: '#64748b', fontSize: 12.5, textAlign: 'center', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-                        No subject breakdown available yet.
+                      <div style={{ padding: '24px', color: '#64748b', fontSize: 13, textAlign: 'center', background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
+                        No subject breakdown recorded yet.
                       </div>
                     )}
                   </div>
 
-                  {/* Quick Academic Diagnostic Insight Box */}
-                  <div style={styles.diagnosticQuickTip}>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: '#1e3a8a', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Faculty Diagnostic Advisory Note */}
+                  <div className="sa-diagnostic-note-box">
+                    <div className="sa-diag-title">
                       <span>💡</span> Faculty Diagnostic Note
                     </div>
-                    <p style={{ margin: 0, fontSize: 11.5, color: '#334155', lineHeight: 1.5 }}>
+                    <p className="sa-diag-body">
                       {(analyticsData.careerStats?.careerAveragePercentage ?? 0) >= 60
                         ? 'Student demonstrates solid conceptual foundation. Recommend speed-drilling and timer practice to improve question attempt rate.'
-                        : 'Accuracy is below 50% threshold. Immediate priority: Focus on fundamentals and formula application before attempting full mock tests.'}
+                        : 'Accuracy is below the 50% threshold. Immediate priority: Focus on fundamentals and formula application before attempting full mock tests.'}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* 4. Diagnostic Weak Chapters Audit */}
-              <div style={styles.sectionCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+              <div className="sa-card">
+                <div className="sa-weak-header">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <h3 style={styles.sectionHeading}>⚠️ Chronic Weak Chapters (Diagnostic Audit)</h3>
-                      <span style={styles.weakBadgeCount}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <h3 className="sa-section-heading" style={{ margin: 0 }}>
+                        <span>⚠️</span> Diagnostic Weak Chapters Audit
+                      </h3>
+                      <span className="sa-weak-pill">
                         {(analyticsData.chronicWeakChapters || []).length} Identified
                       </span>
                     </div>
-                    <p style={styles.sectionSub}>
-                      Chapters with accuracy below the 60% mastery threshold across examinations.
+                    <p className="sa-section-sub">
+                      Chapters identified with accuracy below the 60% mastery threshold requiring targeted remediation.
                     </p>
                   </div>
+
                   {(analyticsData.chronicWeakChapters || []).length > 0 && (
                     <button
                       onClick={() => handleGenerateRemedial()}
                       disabled={generatingRemedial}
-                      style={styles.remedialBtn}
+                      className="sa-btn-remedial-mega"
                       title="Generate customized remedial Daily Practice Problem targeting all weak chapters"
                     >
                       {generatingRemedial ? 'Generating DPP…' : '⚡ 1-Click Tailored Remedial DPP'}
@@ -868,41 +881,40 @@ export default function StudentAnalytics() {
                 </div>
 
                 {(!analyticsData.chronicWeakChapters || analyticsData.chronicWeakChapters.length === 0) ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#059669', background: '#ecfdf5', borderRadius: 8 }}>
-                    ✅ <b>Outstanding Mastery!</b> No chronic weak chapters detected below 60% accuracy threshold.
+                  <div style={{ padding: 28, textAlign: 'center', color: '#059669', background: '#ecfdf5', borderRadius: 12, border: '1.5px solid #a7f3d0' }}>
+                    ✅ <strong>Outstanding Mastery!</strong> No chronic weak chapters detected below 60% accuracy threshold.
                   </div>
                 ) : (
                   <>
-                    <div style={styles.weakChapterGrid}>
+                    <div className="sa-weak-grid">
                       {(showAllWeakChapters
                         ? analyticsData.chronicWeakChapters
                         : analyticsData.chronicWeakChapters.slice(0, 6)
                       ).map((w) => {
                         const acc = Math.round(w.overallAccuracy ?? w.averageAccuracy ?? 0);
                         return (
-                          <div key={w.chapterName} style={styles.weakChapterCard}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                              <div style={{ fontWeight: 700, fontSize: 13, color: '#991b1b', flex: 1 }}>
-                                {w.chapterName}
+                          <div key={w.chapterName} className="sa-weak-card">
+                            <div>
+                              <div className="sa-weak-top">
+                                <span className="sa-weak-chapter-name">{w.chapterName}</span>
+                                <span className="sa-weak-acc-pill">{acc}% Acc</span>
                               </div>
-                              <span style={styles.weakAccuracyTag}>
-                                {acc}% Acc
-                              </span>
+                              <div className="sa-weak-stats">
+                                {w.totalAttempted > 0 ? (
+                                  <span>{w.totalCorrect || 0}/{w.totalAttempted} Correct • {w.occurrenceCount || w.timesEncountered || 1} Test</span>
+                                ) : (
+                                  <span>Unattempted • {w.occurrenceCount || w.timesEncountered || 1} Test Encountered</span>
+                                )}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 11.5, color: '#78350f', marginTop: 4 }}>
-                              {w.totalAttempted > 0 ? (
-                                <span>{w.totalCorrect || 0}/{w.totalAttempted} Correct • {w.occurrenceCount || w.timesEncountered || 1} Test</span>
-                              ) : (
-                                <span>Unattempted • {w.occurrenceCount || w.timesEncountered || 1} Test Encountered</span>
-                              )}
-                            </div>
+
                             <button
                               onClick={() => handleGenerateRemedial([w.chapterName])}
                               disabled={generatingRemedial}
-                              style={styles.singleChapterRemedialBtn}
+                              className="sa-btn-target-dpp"
                               title={`Generate practice paper targeting ${w.chapterName}`}
                             >
-                              Target DPP
+                              Target Remedial DPP →
                             </button>
                           </div>
                         );
@@ -910,11 +922,11 @@ export default function StudentAnalytics() {
                     </div>
 
                     {analyticsData.chronicWeakChapters.length > 6 && (
-                      <div style={{ textAlign: 'center', marginTop: 14 }}>
+                      <div style={{ textAlign: 'center', marginTop: 18 }}>
                         <button
                           type="button"
                           onClick={() => setShowAllWeakChapters(!showAllWeakChapters)}
-                          style={styles.toggleWeakBtn}
+                          className="sa-btn-toggle-chapters"
                         >
                           {showAllWeakChapters
                             ? '▲ Show Fewer Chapters (Top 6 Priority)'
@@ -927,12 +939,16 @@ export default function StudentAnalytics() {
               </div>
 
               {/* 5. Academic Counseling & Remedial Action Plan */}
-              <div style={{ ...styles.sectionCard, background: '#f8fafc', border: '1px solid #cbd5e1' }}>
-                <h3 style={{ ...styles.sectionHeading, color: '#1e3a8a' }}>📋 Academic Counseling &amp; Remedial Action Plan</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginTop: 10 }}>
-                  <div style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>🎯 Diagnostic Assessment</div>
-                    <p style={{ margin: 0, fontSize: 12.5, color: '#475569', lineHeight: 1.55 }}>
+              <div className="sa-card" style={{ background: '#f8fafc' }}>
+                <h3 className="sa-section-heading" style={{ color: '#1e3a8a' }}>
+                  <span>📋</span> Academic Counseling & Remedial Action Plan
+                </h3>
+                <div className="sa-counseling-grid">
+                  <div className="sa-counseling-card">
+                    <div className="sa-counseling-card-title">
+                      <span>🎯</span> AI Diagnostic Assessment
+                    </div>
+                    <p>
                       {(analyticsData.careerStats?.careerAveragePercentage ?? 0) >= 75
                         ? `High-caliber student with strong conceptual retention (${analyticsData.careerStats?.careerAveragePercentage ?? 0}% avg). Focus on speed and negative-marking discipline to reach top-tier percentiles.`
                         : (analyticsData.careerStats?.careerAveragePercentage ?? 0) >= 50
@@ -940,9 +956,12 @@ export default function StudentAnalytics() {
                         : `Requires academic support in core foundation chapters. Recommend structured daily practice problems (DPPs) before full syllabus mock examinations.`}
                     </p>
                   </div>
-                  <div style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>💡 Recommended Action Plan</div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+
+                  <div className="sa-counseling-card">
+                    <div className="sa-counseling-card-title">
+                      <span>💡</span> Recommended Action Plan
+                    </div>
+                    <ul className="sa-counseling-list">
                       <li>Practice 15–20 questions daily from identified weak chapters using generated Remedial DPPs.</li>
                       <li>Avoid speculative guessing when confidence is below 50% to prevent negative mark deductions.</li>
                       <li>Review complete step-by-step solutions for incorrect questions before the next exam.</li>
@@ -950,31 +969,30 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
 
       {/* MODAL 1: Edit Student Profile & Upload Photo */}
       {editModal && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modalContent, maxWidth: 680 }}>
-            <div style={styles.modalHeader}>
+        <div className="sa-modal-overlay" onClick={() => setEditModal(false)}>
+          <div className="sa-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="sa-modal-header">
               <div>
-                <h3 style={{ margin: 0, fontSize: 17, color: '#0f172a', fontWeight: 800 }}>
-                  ✏️ Edit Student Profile & Upload Photo
-                </h3>
+                <h3 className="sa-modal-title">✏️ Edit Student Profile & Upload Photo</h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
                   Update passport photograph, target course, native place, and parent WhatsApp contact.
                 </p>
               </div>
-              <button onClick={() => setEditModal(false)} style={styles.modalCloseBtn}>✕</button>
+              <button onClick={() => setEditModal(false)} className="sa-modal-close">✕</button>
             </div>
+
             <form onSubmit={handleSaveEditProfile}>
-              <div style={{ padding: '16px 20px', maxHeight: '76vh', overflowY: 'auto' }}>
+              <div style={{ padding: '20px 24px', maxHeight: '72vh', overflowY: 'auto' }}>
                 
-                {/* PHOTOGRAPH UPLOAD WIDGET */}
-                <div style={styles.photoUploadCard}>
+                {/* Photograph Upload Widget */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18, background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: 12, padding: 16, marginBottom: 20 }}>
                   <div style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
                     {editForm.photoUrl ? (
                       <img
@@ -997,11 +1015,10 @@ export default function StudentAnalytics() {
                         background: '#e2e8f0',
                         color: '#64748b',
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         border: '2px dashed #94a3b8',
-                        fontSize: 24,
+                        fontSize: 26,
                       }}>
                         📷
                       </div>
@@ -1009,8 +1026,8 @@ export default function StudentAnalytics() {
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 2 }}>
-                      Student Photograph (Passport Photo)
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a', marginBottom: 2 }}>
+                      Student Photograph (Passport Size)
                     </div>
                     <p style={{ margin: '0 0 8px 0', fontSize: 11.5, color: '#64748b' }}>
                       Upload passport photo for ID cards, hall tickets, and scorecards (JPG, PNG, WebP up to 5MB).
@@ -1028,17 +1045,14 @@ export default function StudentAnalytics() {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingPhoto}
                         style={{
-                          background: '#fff',
+                          background: '#ffffff',
                           color: '#2563eb',
-                          border: '1px solid #93c5fd',
-                          borderRadius: 6,
-                          padding: '6px 12px',
+                          border: '1.5px solid #bfdbfe',
+                          borderRadius: 8,
+                          padding: '6px 14px',
                           fontSize: 12,
                           fontWeight: 700,
                           cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
                         }}
                       >
                         {uploadingPhoto ? '⏳ Uploading…' : editForm.photoUrl ? '🔄 Change Photo' : '📷 Upload Photo'}
@@ -1051,10 +1065,10 @@ export default function StudentAnalytics() {
                             background: '#fee2e2',
                             color: '#dc2626',
                             border: '1px solid #fecaca',
-                            borderRadius: 6,
+                            borderRadius: 8,
                             padding: '6px 10px',
                             fontSize: 12,
-                            fontWeight: 600,
+                            fontWeight: 700,
                             cursor: 'pointer',
                           }}
                         >
@@ -1065,53 +1079,52 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
 
-                {/* SECTION 1: Academic & Course */}
-                <div style={styles.sectionHeader}>
-                  <span style={styles.sectionIcon}>🎓</span>
-                  <span style={styles.sectionTitle}>1. Academic & Course Enrollment</span>
+                {/* Section 1: Academic & Course */}
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+                  1. Academic & Course Enrollment
                 </div>
                 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Roll Number / Hall Ticket *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Roll Number / Hall Ticket *</label>
                     <input
                       type="text"
                       disabled
                       value={editForm.rollNumber}
-                      style={{ ...styles.input, fontWeight: 700, background: '#f1f5f9', cursor: 'not-allowed' }}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#f1f5f9', cursor: 'not-allowed', boxSizing: 'border-box' }}
                     />
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Student Full Name *</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Student Full Name *</label>
                     <input
                       type="text"
                       required
                       value={editForm.fullName}
                       onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
-                      style={styles.input}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Target Course Joined *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Target Course Joined *</label>
                     <select
                       value={editForm.courseTarget}
                       onChange={(e) => setEditForm((f) => ({ ...f, courseTarget: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {COURSE_TARGET_OPTIONS.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Class / Academic Year *</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Class / Academic Year *</label>
                     <select
                       value={editForm.classYear}
                       onChange={(e) => setEditForm((f) => ({ ...f, classYear: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {CLASS_YEAR_OPTIONS.map((cy) => (
                         <option key={cy} value={cy}>{cy}</option>
@@ -1120,96 +1133,85 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
 
-                <div style={styles.formGrid3}>
-                  <div className="field">
-                    <label style={styles.label}>Batch / Class</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Batch / Class</label>
                     <input
                       type="text"
                       value={editForm.batchName}
                       onChange={(e) => setEditForm((f) => ({ ...f, batchName: e.target.value }))}
-                      style={styles.input}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Section (Optional)</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Section</label>
                     <input
                       type="text"
                       value={editForm.section}
                       onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}
-                      style={styles.input}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Admission No</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Admission No</label>
                     <input
                       type="text"
                       value={editForm.admissionNumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, admissionNumber: e.target.value }))}
-                      style={styles.input}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
 
-                {/* SECTION 2: Personal & Native Details */}
-                <div style={{ ...styles.sectionHeader, marginTop: 18 }}>
-                  <span style={styles.sectionIcon}>🏡</span>
-                  <span style={styles.sectionTitle}>2. Personal, Native & Residence Background</span>
+                {/* Section 2: Residential & Location */}
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+                  2. Residential Status & Demographics
                 </div>
 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Native Village / Town / City</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Tenali, Nuzvid, Tirupati, Vijayawada"
-                      value={editForm.nativePlace}
-                      onChange={(e) => setEditForm((f) => ({ ...f, nativePlace: e.target.value }))}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div className="field">
-                    <label style={styles.label}>District</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Krishna, Guntur, NTR, Visakhapatnam"
-                      value={editForm.district}
-                      onChange={(e) => setEditForm((f) => ({ ...f, district: e.target.value }))}
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.formGrid3}>
-                  <div className="field">
-                    <label style={styles.label}>Residence / Hostel Status</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Hostel / Day Scholar</label>
                     <select
                       value={editForm.hostelStatus}
                       onChange={(e) => setEditForm((f) => ({ ...f, hostelStatus: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {HOSTEL_OPTIONS.map((h) => (
                         <option key={h} value={h}>{h}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Gender</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Native Place / City</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Guntur, Kurnool"
+                      value={editForm.nativePlace}
+                      onChange={(e) => setEditForm((f) => ({ ...f, nativePlace: e.target.value }))}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Gender</label>
                     <select
                       value={editForm.gender}
                       onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {GENDER_OPTIONS.map((g) => (
                         <option key={g} value={g}>{g}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>State *</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>State *</label>
                     <select
                       value={editForm.state}
                       onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
-                      style={{ ...styles.select, fontWeight: 600 }}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, fontWeight: 700, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {INDIAN_STATES.map((st) => (
                         <option key={st} value={st}>{st}</option>
@@ -1218,57 +1220,53 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
 
-                {/* SECTION 3: Parent WhatsApp & Contact */}
-                <div style={{ ...styles.sectionHeader, marginTop: 18 }}>
-                  <span style={styles.sectionIcon}>📱</span>
-                  <span style={styles.sectionTitle}>3. Parent WhatsApp Mobile & Family Details</span>
+                {/* Section 3: Parent WhatsApp & Contact */}
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e3a8a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>
+                  3. Parent WhatsApp Mobile & Family Details
                 </div>
 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Parent Mobile (WhatsApp) *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369a1', marginBottom: 4 }}>Parent Mobile (WhatsApp) *</label>
                     <input
                       type="tel"
-                      placeholder="e.g. 9848628863 (10 digits)"
+                      placeholder="e.g. 9848628863"
                       value={editForm.parentPhone}
                       onChange={(e) => setEditForm((f) => ({ ...f, parentPhone: e.target.value }))}
-                      style={{ ...styles.input, borderColor: '#0284c7', background: '#f0f9ff' }}
+                      style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #0284c7', background: '#f0f9ff', borderRadius: 8, fontSize: 13, fontWeight: 700, boxSizing: 'border-box' }}
                     />
-                    <span style={{ fontSize: 11, color: '#0369a1', display: 'block', marginTop: 3 }}>
-                      Automated exam scorecards and PDF reports are dispatched here.
-                    </span>
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Parent / Guardian Name</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Parent / Guardian Name</label>
                     <input
                       type="text"
                       placeholder="e.g. K. Venkat Reddy"
                       value={editForm.parentName}
                       onChange={(e) => setEditForm((f) => ({ ...f, parentName: e.target.value }))}
-                      style={styles.input}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Relationship</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Relationship</label>
                     <select
                       value={editForm.parentRelation}
                       onChange={(e) => setEditForm((f) => ({ ...f, parentRelation: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {PARENT_RELATION_OPTIONS.map((pr) => (
                         <option key={pr} value={pr}>{pr}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="field">
-                    <label style={styles.label}>Parent Occupation</label>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Parent Occupation</label>
                     <select
                       value={editForm.parentOccupation}
                       onChange={(e) => setEditForm((f) => ({ ...f, parentOccupation: e.target.value }))}
-                      style={styles.select}
+                      style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', background: '#fff' }}
                     >
                       {PARENT_OCCUPATION_OPTIONS.map((po) => (
                         <option key={po} value={po}>{po}</option>
@@ -1277,36 +1275,22 @@ export default function StudentAnalytics() {
                   </div>
                 </div>
 
-                <div style={styles.formGrid}>
-                  <div className="field">
-                    <label style={styles.label}>Student Personal Mobile (Optional)</label>
-                    <input
-                      type="tel"
-                      placeholder="e.g. 9848628800"
-                      value={editForm.studentPhone}
-                      onChange={(e) => setEditForm((f) => ({ ...f, studentPhone: e.target.value }))}
-                      style={styles.input}
-                    />
-                  </div>
-                  <div className="field">
-                    <label style={styles.label}>Permanent / Native Address (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. D.No 4-12, Main Road, Tenali"
-                      value={editForm.address}
-                      onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                      style={styles.input}
-                    />
-                  </div>
-                </div>
-
               </div>
-              <div style={styles.modalFooter}>
-                <button type="button" onClick={() => setEditModal(false)} style={styles.cancelBtn}>
+
+              <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setEditModal(false)}
+                  style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={savingEdit || uploadingPhoto} style={styles.primaryBtn}>
-                  {savingEdit ? 'Saving…' : 'Save Profile Changes'}
+                <button
+                  type="submit"
+                  disabled={savingEdit || uploadingPhoto}
+                  style={{ background: '#2563eb', border: 'none', borderRadius: 8, padding: '9px 22px', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}
+                >
+                  {savingEdit ? 'Saving Changes…' : 'Save Profile Changes'}
                 </button>
               </div>
             </form>
@@ -1316,40 +1300,60 @@ export default function StudentAnalytics() {
 
       {/* MODAL 2: Remedial Paper Generated Notification */}
       {remedialModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <h3 style={{ margin: 0, fontSize: 16, color: '#059669' }}>
-                🎉 Remedial Paper Generated!
+        <div className="sa-modal-overlay" onClick={() => setRemedialModal(null)}>
+          <div className="sa-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+            <div className="sa-modal-header">
+              <h3 className="sa-modal-title" style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>🎉</span> Remedial Paper Generated!
               </h3>
-              <button onClick={() => setRemedialModal(null)} style={styles.modalCloseBtn}>✕</button>
+              <button onClick={() => setRemedialModal(null)} className="sa-modal-close">✕</button>
             </div>
-            <div style={{ padding: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 12 }}>
+            <div style={{ padding: '24px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
                 {remedialModal.title}
-              </div>
-              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 16, fontSize: 13 }}>
-                <div style={{ marginBottom: 4 }}>
-                  <b>Questions Assembled:</b> <span style={{ color: '#2563eb', fontWeight: 700 }}>{remedialModal.questionCount} Questions</span>
+              </h4>
+              <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 16, fontSize: 13 }}>
+                <div style={{ marginBottom: 6 }}>
+                  <strong>Questions Assembled:</strong> <span style={{ color: '#2563eb', fontWeight: 800 }}>{remedialModal.questionCount} Questions</span>
                 </div>
                 <div>
-                  <b>Targeted Chapters:</b> {remedialModal.chaptersTargeted?.join(', ')}
+                  <strong>Targeted Chapters:</strong> {remedialModal.chaptersTargeted?.join(', ')}
                 </div>
               </div>
-              <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 18px 0', lineHeight: 1.5 }}>
-                This remedial practice paper has been saved to your <b>Papers</b> list. You can print the question paper with detailed solutions, download an OMR sheet, or launch an online CBT test for this student!
+              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px 0', lineHeight: 1.55 }}>
+                This remedial practice paper has been saved to your <strong>Papers</strong> repository. You can print the question paper with complete solution keys or launch an online CBT practice test for this student!
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <Link
                   to={remedialModal.previewUrl}
-                  style={styles.openPaperBtn}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#2563eb',
+                    color: '#fff',
+                    borderRadius: 10,
+                    padding: '11px 18px',
+                    fontWeight: 800,
+                    fontSize: 13.5,
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                  }}
                 >
                   📄 Open Paper & Print PDF
                 </Link>
                 <button
                   type="button"
                   onClick={() => setRemedialModal(null)}
-                  style={styles.closeBtn}
+                  style={{
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 10,
+                    padding: '11px 18px',
+                    fontWeight: 700,
+                    fontSize: 13.5,
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
                 >
                   Close
                 </button>
@@ -1361,693 +1365,3 @@ export default function StudentAnalytics() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: 1380,
-    margin: '0 auto',
-    padding: '24px 20px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  headerRow: {
-    marginBottom: 20,
-  },
-  badge: {
-    display: 'inline-block',
-    fontSize: 10,
-    fontWeight: 800,
-    color: '#2563eb',
-    background: '#eff6ff',
-    padding: '3px 8px',
-    borderRadius: 4,
-    marginBottom: 6,
-    letterSpacing: '0.04em',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 800,
-    color: '#0f172a',
-    margin: '0 0 6px 0',
-  },
-  subtitle: {
-    fontSize: 13.5,
-    color: '#64748b',
-    margin: 0,
-  },
-  layoutGrid: {
-    display: 'grid',
-    gridTemplateColumns: '290px 1fr',
-    gap: 20,
-    alignItems: 'start',
-  },
-  rosterCard: {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: 12,
-    overflow: 'hidden',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    position: 'sticky',
-    top: 20,
-  },
-  rosterHeader: {
-    padding: '14px 16px',
-    borderBottom: '1px solid #e2e8f0',
-    background: '#f8fafc',
-  },
-  rosterCountPill: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#2563eb',
-    background: '#eff6ff',
-    padding: '2px 8px',
-    borderRadius: 12,
-    border: '1px solid #bfdbfe',
-  },
-  rosterSearchInput: {
-    width: '100%',
-    padding: '7px 28px 7px 10px',
-    border: '1px solid #cbd5e1',
-    borderRadius: 6,
-    fontSize: 12.5,
-    boxSizing: 'border-box',
-  },
-  searchClearBtn: {
-    position: 'absolute',
-    right: 8,
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    color: '#94a3b8',
-    cursor: 'pointer',
-    fontSize: 12,
-  },
-  rosterList: {
-    maxHeight: 'calc(100vh - 350px)',
-    minHeight: 180,
-    overflowY: 'auto',
-  },
-  rosterItem: {
-    padding: '12px 14px',
-    borderBottom: '1px solid #f1f5f9',
-    cursor: 'pointer',
-    transition: 'background 0.15s ease',
-  },
-  rosterCohortSummary: {
-    padding: '14px 16px',
-    background: '#f8fafc',
-    borderTop: '1px solid #e2e8f0',
-  },
-  analyticsCol: {
-    minWidth: 0,
-  },
-  profileBanner: {
-    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-    border: '1px solid #e2e8f0',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 18,
-    boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-  },
-  avatarImg: {
-    width: 72,
-    height: 72,
-    borderRadius: '50%',
-    objectFit: 'cover',
-    border: '3px solid #2563eb',
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-    display: 'block',
-  },
-  avatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: '50%',
-    background: '#eff6ff',
-    color: '#1d4ed8',
-    border: '2px solid #bfdbfe',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 28,
-    fontWeight: 900,
-  },
-  avatarBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    background: '#2563eb',
-    color: '#fff',
-    width: 24,
-    height: 24,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 12,
-    border: '2px solid #fff',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-  },
-  chipCourse: {
-    background: '#eff6ff',
-    color: '#1d4ed8',
-    border: '1px solid #bfdbfe',
-    padding: '2px 9px',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 700,
-  },
-  chipClass: {
-    background: '#f8fafc',
-    color: '#334155',
-    border: '1px solid #cbd5e1',
-    padding: '2px 9px',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  chipHostel: {
-    background: '#faf5ff',
-    color: '#7e22ce',
-    border: '1px solid #e9d5ff',
-    padding: '2px 9px',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  chipDayScholar: {
-    background: '#f0fdf4',
-    color: '#15803d',
-    border: '1px solid #bbf7d0',
-    padding: '2px 9px',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  chipBatch: {
-    background: '#f1f5f9',
-    color: '#475569',
-    border: '1px solid #e2e8f0',
-    padding: '2px 9px',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  profileStudentName: {
-    margin: '4px 0',
-    fontSize: 22,
-    fontWeight: 900,
-    color: '#0f172a',
-    letterSpacing: '-0.02em',
-  },
-  profileMetaRow: {
-    fontSize: 12.5,
-    color: '#475569',
-    marginTop: 3,
-    display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  parentCardlet: {
-    marginTop: 10,
-    padding: '8px 14px',
-    background: '#f1f5f9',
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    fontSize: 12,
-    color: '#334155',
-  },
-  profileActionsCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 10,
-    minWidth: 160,
-  },
-  examMilestoneTile: {
-    background: '#eff6ff',
-    border: '1px solid #bfdbfe',
-    borderRadius: 10,
-    padding: '10px 18px',
-    textAlign: 'center',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  editProfileBtn: {
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    padding: '9px 15px',
-    fontSize: 12.5,
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    boxShadow: '0 1px 3px rgba(37,99,235,0.25)',
-  },
-  exportCsvBtn: {
-    background: '#fff',
-    color: '#0f172a',
-    border: '1px solid #cbd5e1',
-    borderRadius: 8,
-    padding: '9px 14px',
-    fontSize: 12.5,
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  kpiGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: 14,
-    marginBottom: 16,
-  },
-  kpiCard: {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: 10,
-    padding: '14px 16px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  kpiLabel: {
-    fontSize: 11,
-    fontWeight: 800,
-    color: '#64748b',
-    letterSpacing: '0.04em',
-  },
-  kpiValue: {
-    fontSize: 24,
-    fontWeight: 900,
-    color: '#0f172a',
-    margin: '4px 0 2px 0',
-  },
-  kpiSub: {
-    fontSize: 11,
-    color: '#94a3b8',
-  },
-  dashboardSplitGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1.25fr 0.75fr',
-    gap: 16,
-    marginBottom: 16,
-  },
-  sectionCard: {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: 12,
-    padding: 18,
-    marginBottom: 16,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  },
-  sectionHeading: {
-    fontSize: 15,
-    fontWeight: 800,
-    color: '#0f172a',
-    margin: '0 0 2px 0',
-  },
-  sectionSub: {
-    margin: 0,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  singleTestBenchmarkCard: {
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 10,
-    padding: '16px 18px',
-    marginTop: 10,
-  },
-  baselineScoreBadge: {
-    background: '#eff6ff',
-    border: '2px solid #bfdbfe',
-    borderRadius: 10,
-    padding: '12px 16px',
-    textAlign: 'center',
-    minWidth: 76,
-  },
-  chartContainer: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: 12,
-    height: 160,
-    paddingTop: 20,
-    paddingBottom: 10,
-    borderBottom: '1px solid #e2e8f0',
-    overflowX: 'auto',
-  },
-  chartBarCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    minWidth: 44,
-  },
-  chartBarWrapper: {
-    height: 120,
-    display: 'flex',
-    alignItems: 'flex-end',
-    width: 28,
-  },
-  chartBarScore: {
-    width: '100%',
-    background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-    borderRadius: '4px 4px 0 0',
-    position: 'relative',
-    display: 'flex',
-    justifyContent: 'center',
-    transition: 'height 0.3s ease',
-  },
-  barLabelText: {
-    position: 'absolute',
-    top: -18,
-    fontSize: 10.5,
-    fontWeight: 700,
-    color: '#1e3a8a',
-    whiteSpace: 'nowrap',
-  },
-  barSubText: {
-    marginTop: 6,
-    fontSize: 11.5,
-    fontWeight: 700,
-    color: '#0f172a',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    textAlign: 'left',
-  },
-  theadRow: {
-    background: '#f8fafc',
-    borderBottom: '1px solid #e2e8f0',
-  },
-  th: {
-    padding: '10px 12px',
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#475569',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  },
-  tr: {
-    borderBottom: '1px solid #f1f5f9',
-  },
-  td: {
-    padding: '11px 12px',
-    fontSize: 12.5,
-    verticalAlign: 'middle',
-  },
-  examTypePill: {
-    background: '#f1f5f9',
-    color: '#475569',
-    padding: '2px 6px',
-    borderRadius: 4,
-    fontSize: 11,
-    fontWeight: 600,
-  },
-  accuracyBadge: {
-    display: 'inline-block',
-    padding: '2px 7px',
-    borderRadius: 12,
-    fontSize: 11,
-    fontWeight: 700,
-  },
-  actionBtnIcon: {
-    background: '#f1f5f9',
-    color: '#2563eb',
-    border: '1px solid #e2e8f0',
-    borderRadius: 4,
-    padding: '3px 8px',
-    fontSize: 11,
-    fontWeight: 700,
-    textDecoration: 'none',
-    cursor: 'pointer',
-  },
-  subjectCardCompact: {
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    padding: '12px 14px',
-  },
-  diagnosticQuickTip: {
-    background: '#eff6ff',
-    border: '1px solid #bfdbfe',
-    borderRadius: 8,
-    padding: '12px 14px',
-    marginTop: 14,
-  },
-  weakBadgeCount: {
-    background: '#fee2e2',
-    color: '#b91c1c',
-    border: '1px solid #fca5a5',
-    padding: '1px 8px',
-    borderRadius: 12,
-    fontSize: 11,
-    fontWeight: 700,
-  },
-  toggleWeakBtn: {
-    background: '#f8fafc',
-    color: '#334155',
-    border: '1px solid #cbd5e1',
-    borderRadius: 6,
-    padding: '8px 18px',
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  progressBarBg: {
-    width: '100%',
-    height: 7,
-    background: '#e2e8f0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  weakChapterGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: 10,
-    marginTop: 10,
-  },
-  weakChapterCard: {
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: 8,
-    padding: 12,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  },
-  weakAccuracyTag: {
-    fontSize: 11,
-    fontWeight: 800,
-    color: '#991b1b',
-    background: '#fff',
-    border: '1px solid #fca5a5',
-    padding: '1px 6px',
-    borderRadius: 4,
-    whiteSpace: 'nowrap',
-  },
-  remedialBtn: {
-    background: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '8px 14px',
-    fontSize: 12.5,
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  singleChapterRemedialBtn: {
-    background: '#fee2e2',
-    color: '#991b1b',
-    border: '1px solid #fecaca',
-    borderRadius: 4,
-    padding: '4px 8px',
-    fontSize: 11,
-    fontWeight: 700,
-    cursor: 'pointer',
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  openPaperBtn: {
-    background: '#2563eb',
-    color: '#fff',
-    padding: '9px 16px',
-    borderRadius: 6,
-    fontWeight: 700,
-    fontSize: 13,
-    textDecoration: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-  },
-  closeBtn: {
-    background: '#fff',
-    color: '#334155',
-    border: '1px solid #cbd5e1',
-    padding: '9px 14px',
-    borderRadius: 6,
-    fontWeight: 600,
-    fontSize: 13,
-    cursor: 'pointer',
-  },
-  modalOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15,23,42,0.65)',
-    zIndex: 999,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backdropFilter: 'blur(2px)',
-  },
-  modalContent: {
-    background: '#fff',
-    borderRadius: 14,
-    maxWidth: 680,
-    width: '100%',
-    overflow: 'hidden',
-    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
-  },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    borderBottom: '1px solid #e2e8f0',
-    background: '#f8fafc',
-  },
-  modalCloseBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: 18,
-    cursor: 'pointer',
-    color: '#64748b',
-    padding: '4px 8px',
-  },
-  modalFooter: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 10,
-    padding: '14px 20px',
-    borderTop: '1px solid #e2e8f0',
-    background: '#f8fafc',
-  },
-  cancelBtn: {
-    background: '#fff',
-    border: '1px solid #cbd5e1',
-    borderRadius: 6,
-    padding: '8px 14px',
-    fontSize: 13,
-    cursor: 'pointer',
-    fontWeight: 600,
-  },
-  primaryBtn: {
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '8px 16px',
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: 'pointer',
-  },
-  photoUploadCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-    padding: '12px 16px',
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    paddingBottom: 6,
-    borderBottom: '1px solid #e2e8f0',
-    marginBottom: 10,
-  },
-  sectionIcon: {
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontWeight: 800,
-    fontSize: 13,
-    color: '#0f172a',
-    letterSpacing: 0.2,
-  },
-  formGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 12,
-    marginBottom: 10,
-  },
-  formGrid3: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gap: 10,
-    marginBottom: 10,
-  },
-  label: {
-    fontSize: 11.5,
-    fontWeight: 700,
-    color: '#334155',
-    display: 'block',
-    marginBottom: 4,
-  },
-  input: {
-    width: '100%',
-    padding: '8px 11px',
-    borderRadius: 6,
-    border: '1px solid #cbd5e1',
-    fontSize: 13,
-    boxSizing: 'border-box',
-    color: '#0f172a',
-  },
-  select: {
-    width: '100%',
-    padding: '8px 11px',
-    borderRadius: 6,
-    border: '1px solid #cbd5e1',
-    fontSize: 13,
-    boxSizing: 'border-box',
-    background: '#fff',
-    color: '#0f172a',
-  },
-  emptyCard: {
-    background: '#fff',
-    border: '1px solid #e2e8f0',
-    borderRadius: 10,
-    padding: 40,
-    textAlign: 'center',
-  },
-  spinner: {
-    width: 36,
-    height: 36,
-    border: '3px solid #e2e8f0',
-    borderTopColor: '#2563eb',
-    borderRadius: '50%',
-    margin: '0 auto',
-    animation: 'spin 1s linear infinite',
-  },
-};
