@@ -1040,8 +1040,11 @@ router.post('/paper/:paperId/batch-whatsapp-send', async (req, res) => {
  */
 router.get('/whatsapp/ledger', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
-
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
+    if (!instituteId && req.user.role === 'ADMIN') {
+      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'desc' } });
+      if (firstInst) instituteId = firstInst.id;
+    }
     if (!instituteId) {
       return res.status(400).json({ error: 'Institute ID required' });
     }
@@ -1100,7 +1103,11 @@ router.get('/whatsapp/ledger', async (req, res) => {
 router.post('/whatsapp/wallet-recharge', async (req, res) => {
   try {
     const { amountRupees } = req.body;
-    const instituteId = req.user.role === 'ADMIN' ? req.body.instituteId : req.user.instituteId;
+    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
+    if (!instituteId && req.user.role === 'ADMIN') {
+      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'desc' } });
+      if (firstInst) instituteId = firstInst.id;
+    }
 
     const amount = parseFloat(amountRupees);
     if (!amount || amount <= 0) {
