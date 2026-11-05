@@ -51,9 +51,32 @@ const upload = multer({
  * defaulting to the latest active institute if none specified.
  */
 async function resolveInstituteId(req) {
+  // 1. Direct institute ID from JWT token
   if (req.user?.instituteId) {
     return req.user.instituteId;
   }
+
+  // 2. Fallback: query user in database if instituteId was assigned or updated after JWT was signed
+  if (req.user?.userId) {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { instituteId: true, role: true },
+      });
+      if (dbUser?.instituteId) {
+        req.user.instituteId = dbUser.instituteId;
+        req.user.role = dbUser.role;
+        return dbUser.instituteId;
+      }
+      if (dbUser?.role) {
+        req.user.role = dbUser.role;
+      }
+    } catch (e) {
+      console.warn('Could not query user for instituteId fallback:', e.message);
+    }
+  }
+
+  // 3. Super Admin or Admin can manage any institute (selected or latest/default)
   if (req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN') {
     const targetId =
       req.query?.instituteId ||
@@ -63,10 +86,22 @@ async function resolveInstituteId(req) {
       const inst = await prisma.institute.findUnique({ where: { id: targetId } });
       if (inst) return inst.id;
     }
-    const latest = await prisma.institute.findFirst({
+    let latest = await prisma.institute.findFirst({
       orderBy: { createdAt: 'desc' },
     });
-    if (latest) return latest.id;
+    if (!latest) {
+      latest = await prisma.institute.create({
+        data: {
+          name: 'Andhra Inspire Academy',
+          slug: 'andhra-inspire-academy',
+          phone: '9848022338',
+          address: 'Vijayawada, Andhra Pradesh',
+          tagline: 'Empowering Future Leaders & Achievers',
+          creditBalance: 3000,
+        },
+      });
+    }
+    return latest.id;
   }
   return null;
 }
@@ -188,12 +223,13 @@ router.patch('/website', async (req, res) => {
       'showGallerySection', 'showTestimonialsSection', 'showFaqSection', 'showContactFormSection',
       'whyChooseUsJson', 'methodologyStepsJson', 'admissionProcessJson', 'scholarshipDetailsJson',
       'faqsJson', 'promotionalBannerText',
+      'examFee', 'upiId', 'upiQrUrl', 'payeeName', 'cbtPaymentInstructions',
     ];
 
     const data = {};
     for (const key of allowed) {
       if (key in req.body) {
-        if (key === 'estYear') {
+        if (key === 'estYear' || key === 'examFee') {
           data[key] = req.body[key] ? parseInt(req.body[key], 10) : null;
         } else if (key.startsWith('has') || key.startsWith('show')) {
           data[key] = Boolean(req.body[key]);
@@ -343,6 +379,82 @@ router.delete('/courses/:id', async (req, res) => {
 
     await prisma.collegeCourse.deleteMany({
       where: { id, websiteId: website.id },
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Approve CBT payment and issue candidate credentials
+router.post('/enquiries/:id/approve-cbt', async (req, res) => {
+  try {
+    const instituteId = await resolveInstituteId(req);
+    const website = await getOrCreateWebsite(instituteId);
+    const { id } = req.params;
+
+    const enquiry = await prisma.collegeEnquiry.findFirst({
+      where: { id, websiteId: website.id },
+    });
+    if (!enquiry) return res.status(404).json({ error: 'Registration not found.' });
+
+    const cleanPrefix = (website.slug || 'AIA').split('-').map((s) => s[0]?.toUpperCase()).join('').slice(0, 4) || 'CBT';
+    const rollNo = enquiry.candidateRollNumber || `${cleanPrefix}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const password = enquiry.candidatePassword || `CBT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const updated = await prisma.collegeEnquiry.update({
+      where: { id },
+      data: {
+        paymentStatus: 'APPROVED',
+        status: 'ENROLLED',
+        candidateRollNumber: rollNo,
+        candidatePassword: password,
+        approvedAt: new Date(),
+      },
+    });
+
+    res.json({ ok: true, enquiry: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reject CBT payment
+router.post('/enquiries/:id/reject-cbt', async (req, res) => {
+  try {
+    const instituteId = await resolveInstituteId(req);
+    const website = await getOrCreateWebsite(instituteId);
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const updated = await prisma.collegeEnquiry.updateMany({
+      where: { id, websiteId: website.id },
+      data: {
+        paymentStatus: 'REJECTED',
+        status: 'CLOSED',
+        adminNotes: reason ? `Rejected: ${reason}` : 'Payment verification rejected',
+      },
+    });
+
+    res.json({ ok: true, updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Log WhatsApp dispatch
+router.post('/enquiries/:id/log-whatsapp', async (req, res) => {
+  try {
+    const instituteId = await resolveInstituteId(req);
+    const website = await getOrCreateWebsite(instituteId);
+    const { id } = req.params;
+
+    await prisma.collegeEnquiry.updateMany({
+      where: { id, websiteId: website.id },
+      data: {
+        whatsappSentAt: new Date(),
+      },
     });
 
     res.json({ ok: true });

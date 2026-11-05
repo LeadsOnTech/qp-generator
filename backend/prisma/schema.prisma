@@ -745,6 +745,13 @@ model CollegeWebsite {
   faqsJson               String?  // [{ question, answer, category }]
   promotionalBannerText  String?  // Marquee announcement ticker
 
+  // CBT Examination Monetization & UPI Payment System
+  examFee                Int                 @default(0) // Default ₹0 (Free mock tests) or ₹99, ₹199, ₹499 etc.
+  upiId                  String?             // e.g. "andhrainspire@sbi"
+  upiQrUrl               String?             // URL to uploaded QR image in /uploads/images
+  payeeName              String?             // e.g. "Andhra Inspire Academy"
+  cbtPaymentInstructions String?             // e.g. "Scan QR code & enter 12-digit UTR number"
+
   // Child Website Modules
   courses              CollegeCourse[]
   faculties            CollegeFaculty[]
@@ -866,6 +873,19 @@ model CollegeEnquiry {
   message           String?
   status            String         @default("NEW") // NEW | CONTACTED | COUNSELED | ENROLLED | CLOSED
   adminNotes        String?
+
+  // CBT Examination Registration & Verification
+  isCbtRegistration     Boolean        @default(false)
+  cbtExamName           String?
+  examFee               Int            @default(0)
+  paymentStatus         String         @default("FREE") // FREE | PENDING_VERIFICATION | APPROVED | REJECTED
+  utrNumber             String?        // 12-digit UPI transaction reference
+  paymentReceiptUrl     String?        // Receipt screenshot
+  candidateRollNumber   String?        // Generated on approval
+  candidatePassword     String?        // Generated on approval
+  approvedAt            DateTime?
+  whatsappSentAt        DateTime?
+
   createdAt         DateTime       @default(now())
 }
 

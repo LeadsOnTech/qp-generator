@@ -163,6 +163,11 @@ export default function PublicCollegePortal() {
   const [candidateSubmitting, setCandidateSubmitting] = useState(false);
   const [candidateCredentials, setCandidateCredentials] = useState(null);
   const [candidateError, setCandidateError] = useState(null);
+  const [candidateStep, setCandidateStep] = useState(1); // 1: Details, 2: UPI QR & UTR
+  const [candidateUtr, setCandidateUtr] = useState('');
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [submittedUtr, setSubmittedUtr] = useState('');
+  const [copyUpiSuccess, setCopyUpiSuccess] = useState(false);
 
   // Admission Enquiry Form State
   const [enquiryForm, setEnquiryForm] = useState({
@@ -311,38 +316,64 @@ export default function PublicCollegePortal() {
 
   async function handleCandidateRegisterSubmit(e) {
     e.preventDefault();
-    setCandidateSubmitting(true);
     setCandidateError(null);
+
+    const feeAmount = Number(data?.examFee) || 0;
+
+    // If paid mock exam and currently on Step 1, validate and proceed to Step 2 (UPI Payment)
+    if (feeAmount > 0 && candidateStep === 1) {
+      if (!candidateForm.fullName.trim()) {
+        setCandidateError('Please enter candidate full name.');
+        return;
+      }
+      const cleanPhone = candidateForm.phone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length < 10) {
+        setCandidateError('Please enter a valid 10-digit WhatsApp number.');
+        return;
+      }
+      setCandidateStep(2);
+      return;
+    }
+
+    // Step 2 validation for paid mock exam
+    if (feeAmount > 0 && candidateStep === 2) {
+      const cleanUtr = candidateUtr.replace(/[^0-9]/g, '');
+      if (cleanUtr.length !== 12) {
+        setCandidateError('Please enter the complete 12-digit UPI Reference / UTR Number from your payment receipt.');
+        return;
+      }
+    }
+
+    setCandidateSubmitting(true);
     try {
       const targetSlug = (!slug || slug === 'dummy' || slug === 'demo') ? 'andhra-inspire-academy' : slug;
       const res = await fetch(`/api/public/colleges/${targetSlug}/enquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studentName: candidateForm.fullName,
+          studentName: candidateForm.fullName.trim(),
           parentName: 'External CBT Aspirant',
-          phone: candidateForm.phone,
-          email: candidateForm.email,
+          phone: candidateForm.phone.trim(),
+          email: candidateForm.email.trim(),
           courseOfInterest: `${candidateForm.targetExam} (Online CBT Mock Test)`,
-          cityOrTown: candidateForm.city,
+          cityOrTown: candidateForm.city.trim(),
           academicYear: '2026-2027',
           message: `School: ${candidateForm.schoolName || 'N/A'} | External Aspirant Online Exam Registration`,
+          isCbtRegistration: true,
+          cbtExamName: candidateForm.targetExam,
+          examFee: feeAmount,
+          utrNumber: feeAmount > 0 ? candidateUtr.trim() : null,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Registration failed');
 
-      const firstExam = data?.openExams?.[0];
-      const generatedRoll = `AIA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      const generatedPass = `CBT-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      setCandidateCredentials({
-        fullName: candidateForm.fullName,
-        rollNumber: generatedRoll,
-        password: generatedPass,
-        targetExam: candidateForm.targetExam,
-        cbtUrl: firstExam?.cbtUrl || null,
-      });
+      if (json.pendingVerification) {
+        setPendingVerification(true);
+        setSubmittedUtr(candidateUtr.trim());
+      } else if (json.credentials) {
+        setCandidateCredentials(json.credentials);
+      }
     } catch (err) {
       setCandidateError(err.message);
     } finally {
@@ -554,6 +585,10 @@ export default function PublicCollegePortal() {
               onClick={() => {
                 setCandidateCredentials(null);
                 setCandidateError(null);
+                setCandidateStep(1);
+                setCandidateUtr('');
+                setPendingVerification(false);
+                setSubmittedUtr('');
                 setIsCandidateModalOpen(true);
               }}
               className="cp-btn-cta"
@@ -2148,6 +2183,10 @@ export default function PublicCollegePortal() {
                   } else {
                     setCandidateCredentials(null);
                     setCandidateError(null);
+                    setCandidateStep(1);
+                    setCandidateUtr('');
+                    setPendingVerification(false);
+                    setSubmittedUtr('');
                     setIsCandidateModalOpen(true);
                   }
                 }}
@@ -2206,14 +2245,88 @@ export default function PublicCollegePortal() {
               <div>
                 <h3 className="cp-modal-title">Online CBT Exam Registration</h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                  Instant candidate credentials for outside aspirants & scholarship contenders
+                  {data?.examFee > 0
+                    ? `Official CBT Mock Test • Registration Fee: ₹${data.examFee}`
+                    : 'Instant candidate credentials for outside aspirants & scholarship contenders'}
                 </p>
               </div>
               <button className="cp-modal-close" onClick={() => setIsCandidateModalOpen(false)}>✕</button>
             </div>
 
             <div className="cp-modal-body">
-              {candidateCredentials ? (
+              {/* CASE 1: PAYMENT SUBMITTED FOR VERIFICATION (PAID EXAM) */}
+              {pendingVerification ? (
+                <div>
+                  <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                    <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
+                    <h4 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
+                      Payment Submitted for Verification!
+                    </h4>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                      Your 12-digit UTR reference has been recorded with the admissions desk.
+                    </p>
+                  </div>
+
+                  <div className="cp-verification-pending-card">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#b45309' }}>
+                        Registration Receipt
+                      </span>
+                      <span style={{ fontSize: 11, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: 10, fontWeight: 800 }}>
+                        ⏳ Pending UTR Verification
+                      </span>
+                    </div>
+
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Candidate Name:</span>
+                      <strong style={{ color: '#0f172a' }}>{candidateForm.fullName}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>WhatsApp Number:</span>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>+91 {candidateForm.phone}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Target Competitive Stream:</span>
+                      <strong style={{ color: '#0284c7' }}>{candidateForm.targetExam}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Exam Registration Fee:</span>
+                      <strong style={{ color: '#059669', fontSize: 14 }}>₹{data?.examFee || 0}</strong>
+                    </div>
+                    <div className="cp-cred-row">
+                      <span style={{ color: '#64748b' }}>Submitted UTR / Ref ID:</span>
+                      <strong style={{ color: '#1e3a8a', fontFamily: 'monospace', fontSize: 14, letterSpacing: 1 }}>{submittedUtr}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 16, padding: '12px 14px', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe', fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
+                    📲 <strong>WhatsApp Credentials Notice:</strong> Our admissions desk verifies bank UTR references within 15–30 minutes. Your official Candidate Roll Number and CBT Passcode will be delivered directly to your WhatsApp at <strong>+91 {candidateForm.phone}</strong>.
+                  </div>
+
+                  <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <a
+                      href={`https://wa.me/${(data?.whatsappNumber || data?.contactPhone || '919848022338').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `Hello ${data?.displayName || 'Andhra Inspire Academy'}, I have registered for the ${candidateForm.targetExam} CBT Mock Test and completed the payment of ₹${data?.examFee || 0}. My UTR reference number is: ${submittedUtr}. Please verify and send my exam passcode. Candidate: ${candidateForm.fullName} (+91 ${candidateForm.phone})`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="cp-btn-wa-direct"
+                    >
+                      💬 Chat with Admissions Desk on WhatsApp
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCandidateModalOpen(false)}
+                      className="cp-btn-secondary"
+                      style={{ width: '100%', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                    >
+                      Close Window
+                    </button>
+                  </div>
+                </div>
+              ) : candidateCredentials ? (
+                /* CASE 2: INSTANT CREDENTIALS (FREE EXAM OR INSTANT TOKEN) */
                 <div>
                   <div style={{ textAlign: 'center', marginBottom: 16 }}>
                     <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
@@ -2258,6 +2371,17 @@ export default function PublicCollegePortal() {
                   </div>
 
                   <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <a
+                      href={`https://wa.me/${candidateForm.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `🎓 *${data.displayName} - CBT Exam Credentials* 🎓\n\nCandidate: *${candidateCredentials.fullName}*\nRoll No: *${candidateCredentials.rollNumber}*\nExam Passcode: *${candidateCredentials.password}*\nTarget Stream: *${candidateCredentials.targetExam}*\nExam Link: ${candidateCredentials.cbtUrl || window.location.href}\n\nAll the best for your examination!`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="cp-btn-wa-direct"
+                    >
+                      📲 Send Hall Ticket to my WhatsApp
+                    </a>
+
                     {candidateCredentials.cbtUrl ? (
                       <a
                         href={candidateCredentials.cbtUrl}
@@ -2294,6 +2418,7 @@ export default function PublicCollegePortal() {
                   </div>
                 </div>
               ) : (
+                /* CASE 3: REGISTRATION & UPI PAYMENT FORM */
                 <form onSubmit={handleCandidateRegisterSubmit}>
                   {candidateError && (
                     <div className="cp-form-error" style={{ marginBottom: 14 }}>
@@ -2301,94 +2426,215 @@ export default function PublicCollegePortal() {
                     </div>
                   )}
 
-                  <div className="cp-form-group">
-                    <label className="cp-label">Aspirant / Student Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Rahul Sharma"
-                      value={candidateForm.fullName}
-                      onChange={(e) => setCandidateForm({ ...candidateForm, fullName: e.target.value })}
-                      className="cp-input"
-                    />
-                  </div>
+                  {/* STEP 1: ASPIRANT DETAILS */}
+                  {candidateStep === 1 && (
+                    <>
+                      <div className="cp-form-group">
+                        <label className="cp-label">Aspirant / Student Full Name *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rahul Sharma"
+                          value={candidateForm.fullName}
+                          onChange={(e) => setCandidateForm({ ...candidateForm, fullName: e.target.value })}
+                          className="cp-input"
+                        />
+                      </div>
 
-                  <div className="cp-form-row">
-                    <div className="cp-form-group">
-                      <label className="cp-label">WhatsApp Number *</label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="e.g. 9876543210"
-                        value={candidateForm.phone}
-                        onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
-                        className="cp-input"
-                      />
-                    </div>
-                    <div className="cp-form-group">
-                      <label className="cp-label">Email Address *</label>
-                      <input
-                        type="email"
-                        required
-                        placeholder="student@example.com"
-                        value={candidateForm.email}
-                        onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
-                        className="cp-input"
-                      />
-                    </div>
-                  </div>
+                      <div className="cp-form-row">
+                        <div className="cp-form-group">
+                          <label className="cp-label">WhatsApp Number *</label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={candidateForm.phone}
+                            onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
+                            className="cp-input"
+                          />
+                        </div>
+                        <div className="cp-form-group">
+                          <label className="cp-label">Email Address *</label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="student@example.com"
+                            value={candidateForm.email}
+                            onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
+                            className="cp-input"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="cp-form-row">
-                    <div className="cp-form-group">
-                      <label className="cp-label">Target Competitive Stream *</label>
-                      <select
-                        value={candidateForm.targetExam}
-                        onChange={(e) => setCandidateForm({ ...candidateForm, targetExam: e.target.value })}
-                        className="cp-select"
+                      <div className="cp-form-row">
+                        <div className="cp-form-group">
+                          <label className="cp-label">Target Competitive Stream *</label>
+                          <select
+                            value={candidateForm.targetExam}
+                            onChange={(e) => setCandidateForm({ ...candidateForm, targetExam: e.target.value })}
+                            className="cp-select"
+                          >
+                            <option value="NEET-UG 2026">NEET-UG Medical</option>
+                            <option value="JEE Mains 2026">JEE Mains Engineering</option>
+                            <option value="JEE Advanced 2026">JEE Advanced (IIT)</option>
+                            <option value="AP/TS EAMCET">AP / TS EAMCET</option>
+                            <option value="Class 11 Foundation">Class 11 Foundation</option>
+                            <option value="Class 12 Board + Competitive">Class 12 Board + Competitive</option>
+                          </select>
+                        </div>
+                        <div className="cp-form-group">
+                          <label className="cp-label">City / Town *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Vijayawada, Guntur"
+                            value={candidateForm.city}
+                            onChange={(e) => setCandidateForm({ ...candidateForm, city: e.target.value })}
+                            className="cp-input"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="cp-form-group">
+                        <label className="cp-label">Current College / School Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Sri Chaitanya / Narayana / Govt Junior College"
+                          value={candidateForm.schoolName}
+                          onChange={(e) => setCandidateForm({ ...candidateForm, schoolName: e.target.value })}
+                          className="cp-input"
+                        />
+                      </div>
+
+                      {data?.examFee > 0 ? (
+                        <div style={{ padding: '12px 14px', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe', marginBottom: 16 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 13, color: '#1e40af', fontWeight: 700 }}>Mock Exam Registration Fee:</span>
+                            <span style={{ fontSize: 16, fontWeight: 900, color: '#1e3a8a' }}>₹{data.examFee}</span>
+                          </div>
+                          <span style={{ fontSize: 11, color: '#3b82f6', marginTop: 4, display: 'block' }}>
+                            In the next step, scan the official college UPI QR code and enter your 12-digit UTR.
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
+                          🔒 Free scholarship mock test. Candidate credentials will be generated instantly.
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={candidateSubmitting}
+                        className="cp-btn-submit"
                       >
-                        <option value="NEET-UG 2026">NEET-UG Medical</option>
-                        <option value="JEE Mains 2026">JEE Mains Engineering</option>
-                        <option value="JEE Advanced 2026">JEE Advanced (IIT)</option>
-                        <option value="AP/TS EAMCET">AP / TS EAMCET</option>
-                        <option value="Class 11 Foundation">Class 11 Foundation</option>
-                        <option value="Class 12 Board + Competitive">Class 12 Board + Competitive</option>
-                      </select>
+                        {data?.examFee > 0 ? `Proceed to Payment (₹${data.examFee}) →` : 'Generate Free Roll No & Passcode →'}
+                      </button>
+                    </>
+                  )}
+
+                  {/* STEP 2: OFFICIAL COLLEGE UPI QR SCANNER & UTR VERIFICATION */}
+                  {candidateStep === 2 && data?.examFee > 0 && (
+                    <div>
+                      <div className="cp-upi-payment-box">
+                        <div className="cp-upi-header">
+                          <div style={{ textAlign: 'left' }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>
+                              College Official UPI
+                            </span>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+                              {data.payeeName || data.displayName}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: 11, color: '#64748b' }}>Amount:</span>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: '#059669' }}>₹{data.examFee}</div>
+                          </div>
+                        </div>
+
+                        {/* QR Code Frame */}
+                        <div className="cp-upi-qr-frame">
+                          <img
+                            src={
+                              data.upiQrUrl ||
+                              `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                                `upi://pay?pa=${data.upiId || 'andhrainspire@sbi'}&pn=${encodeURIComponent(data.payeeName || data.displayName)}&am=${data.examFee}&cu=INR`
+                              )}`
+                            }
+                            alt="College UPI QR Code"
+                          />
+                        </div>
+
+                        {/* UPI ID Pill with Copy button */}
+                        <div>
+                          <div className="cp-upi-vpa-pill">
+                            <span>UPI ID: {data.upiId || 'andhrainspire@sbi'}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(data.upiId || 'andhrainspire@sbi');
+                                setCopyUpiSuccess(true);
+                                setTimeout(() => setCopyUpiSuccess(false), 2000);
+                              }}
+                              className="cp-upi-vpa-copy"
+                            >
+                              {copyUpiSuccess ? '✓ Copied' : 'Copy'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Mobile Direct UPI Deep Link */}
+                        <a
+                          href={`upi://pay?pa=${encodeURIComponent(data.upiId || 'andhrainspire@sbi')}&pn=${encodeURIComponent(data.payeeName || data.displayName)}&am=${data.examFee}&cu=INR`}
+                          className="cp-upi-app-btn"
+                        >
+                          📲 Pay using PhonePe / Google Pay / Paytm
+                        </a>
+
+                        <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+                          {data.cbtPaymentInstructions ||
+                            `Scan the QR using PhonePe or Google Pay. Make the payment of ₹${data.examFee} and copy the 12-digit UTR/UPI Reference Number from your receipt.`}
+                        </p>
+                      </div>
+
+                      {/* 12-Digit UTR Input */}
+                      <div className="cp-utr-input-group">
+                        <label className="cp-label" style={{ fontSize: 13, color: '#0f172a', fontWeight: 800 }}>
+                          12-Digit UPI Reference Number (UTR) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={12}
+                          placeholder="e.g. 423589123456"
+                          value={candidateUtr}
+                          onChange={(e) => setCandidateUtr(e.target.value.replace(/[^0-9]/g, ''))}
+                          className="cp-input cp-utr-input"
+                        />
+                        <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                          Enter the 12-digit numeric transaction ID shown on your Google Pay / PhonePe receipt.
+                        </span>
+                      </div>
+
+                      <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => setCandidateStep(1)}
+                          className="cp-btn-secondary"
+                          style={{ flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                        >
+                          ← Back
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={candidateSubmitting}
+                          className="cp-btn-submit"
+                          style={{ flex: 2, margin: 0 }}
+                        >
+                          {candidateSubmitting ? 'Verifying & Submitting...' : 'Submit UTR & Register 🚀'}
+                        </button>
+                      </div>
                     </div>
-                    <div className="cp-form-group">
-                      <label className="cp-label">City / Town *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Vijayawada, Guntur"
-                        value={candidateForm.city}
-                        onChange={(e) => setCandidateForm({ ...candidateForm, city: e.target.value })}
-                        className="cp-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="cp-form-group">
-                    <label className="cp-label">Current College / School Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sri Chaitanya / Narayana / Govt Junior College"
-                      value={candidateForm.schoolName}
-                      onChange={(e) => setCandidateForm({ ...candidateForm, schoolName: e.target.value })}
-                      className="cp-input"
-                    />
-                  </div>
-
-                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
-                    🔒 Candidate credentials are created in real time and synced with the CBT examination server.
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={candidateSubmitting}
-                    className="cp-btn-submit"
-                  >
-                    {candidateSubmitting ? 'Generating Candidate Credentials...' : 'Generate Roll No & Passcode →'}
-                  </button>
+                  )}
                 </form>
               )}
             </div>

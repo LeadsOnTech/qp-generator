@@ -1252,6 +1252,10 @@ export default function CollegeWebsiteBuilder() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentInstituteId, setCurrentInstituteId] = useState(null);
 
+  // CBT Enquiries & Payments State
+  const [enquiryFilter, setEnquiryFilter] = useState('ALL'); // 'ALL' | 'CBT' | 'PENDING'
+  const [processingEnquiryId, setProcessingEnquiryId] = useState(null);
+
   useEffect(() => {
     fetchWebsite();
   }, []);
@@ -1485,6 +1489,86 @@ export default function CollegeWebsiteBuilder() {
       fetchWebsite();
     } catch (err) {
       alert(err.message);
+    }
+  }
+
+  async function handleApproveCbt(enquiryId) {
+    setProcessingEnquiryId(enquiryId);
+    try {
+      const token = getAuthToken();
+      const targetId = currentInstituteId || institute?.id;
+      const res = await fetch(`/api/college-cms/enquiries/${enquiryId}/approve-cbt`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to approve registration');
+      setEnquiries((prev) =>
+        prev.map((item) => (item.id === enquiryId ? data.enquiry : item))
+      );
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProcessingEnquiryId(null);
+    }
+  }
+
+  async function handleRejectCbt(enquiryId) {
+    if (!window.confirm('Are you sure you want to reject this CBT registration?')) return;
+    setProcessingEnquiryId(enquiryId);
+    try {
+      const token = getAuthToken();
+      const targetId = currentInstituteId || institute?.id;
+      const res = await fetch(`/api/college-cms/enquiries/${enquiryId}/reject-cbt`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reject registration');
+      setEnquiries((prev) =>
+        prev.map((item) => (item.id === enquiryId ? { ...item, paymentStatus: 'REJECTED', status: 'CLOSED' } : item))
+      );
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProcessingEnquiryId(null);
+    }
+  }
+
+  async function handleSendWhatsAppCredentials(enq) {
+    const cleanPhone = (enq.phone || '').replace(/[^0-9]/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const collegeName = website?.displayName || institute?.name || 'College';
+    const cbtUrl = fullLiveUrl;
+
+    const message = `🎓 *${collegeName} - Online CBT Mock Exam Hall Ticket* 🎓\n\nDear *${enq.studentName}*,\nYour registration and payment for *${enq.cbtExamName || enq.courseOfInterest || 'CBT Mock Examination'}* have been verified successfully!\n\n📝 *Your Official Exam Credentials*:\n• *Roll Number / ID*: ${enq.candidateRollNumber || 'Generated'}\n• *Exam Passcode*: ${enq.candidatePassword || 'Generated'}\n• *Exam Portal Link*: ${cbtUrl}\n\n⏰ *Important Instructions*:\n1. Log in 15 minutes before the scheduled exam start time.\n2. Ensure stable internet connection during your test.\n3. Keep your roll number and passcode safe.\n\nBest of luck!\n- *${collegeName} Admissions Desk*`;
+
+    const waUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+
+    try {
+      const token = getAuthToken();
+      const targetId = currentInstituteId || institute?.id;
+      await fetch(`/api/college-cms/enquiries/${enq.id}/log-whatsapp`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(targetId ? { 'x-institute-id': targetId } : {}),
+        },
+      });
+      setEnquiries((prev) =>
+        prev.map((item) => (item.id === enq.id ? { ...item, whatsappSentAt: new Date().toISOString() } : item))
+      );
+    } catch (e) {
+      console.warn('Could not log WhatsApp dispatch:', e);
     }
   }
 
@@ -2986,9 +3070,128 @@ export default function CollegeWebsiteBuilder() {
             <div>
               <div className="cwb-section-header">
                 <div>
-                  <h2 className="cwb-section-title">Open CBT Examinations Showcase</h2>
-                  <p className="cwb-section-desc">Enable online tests so prospective students can attempt mock practice tests directly from your portal.</p>
+                  <h2 className="cwb-section-title">Open CBT Examinations & Direct UPI Monetization</h2>
+                  <p className="cwb-section-desc">Sell online mock tests directly to outside aspirants, collect UPI payments with 0% gateway commission, and verify 12-digit UTR references.</p>
                 </div>
+              </div>
+
+              {/* CBT Mock Exam Monetization & Official UPI QR Setup Card */}
+              <div className="cwb-card" style={{ marginBottom: 24, border: '1px solid #bfdbfe', background: '#f8fafc', padding: 22, borderRadius: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>⚡</span> CBT Mock Exam Monetization & College UPI QR Setup
+                    </h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#64748b' }}>
+                      Set your online mock exam registration fee. Students scan your college UPI QR code (PhonePe/GPay), pay directly to your bank account, and submit their 12-digit UTR.
+                    </p>
+                  </div>
+                  <span style={{ background: '#dbeafe', color: '#1e40af', padding: '4px 12px', borderRadius: 12, fontSize: 11, fontWeight: 800 }}>
+                    Direct UPI Settlement • 0% Fee
+                  </span>
+                </div>
+
+                <form onSubmit={handleSaveWebsiteSettings}>
+                  <div className="cwb-grid-fields">
+                    <div className="cwb-col-6">
+                      <label className="cwb-label">Mock Exam Registration Fee (₹ INR)</label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 12, top: 10, color: '#64748b', fontWeight: 800 }}>₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.examFee ?? 0}
+                          onChange={(e) => setForm({ ...form, examFee: parseInt(e.target.value, 10) || 0 })}
+                          placeholder="0 for Free Test, or 199, 499..."
+                          className="cwb-input"
+                          style={{ paddingLeft: 28, fontWeight: 700 }}
+                        />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                        {form.examFee > 0
+                          ? `Paid test: ₹${form.examFee}. Outside students must scan UPI QR and submit 12-digit UTR.`
+                          : 'Free test: Outside students receive instant hall ticket and password without payment.'}
+                      </span>
+                    </div>
+
+                    <div className="cwb-col-6">
+                      <label className="cwb-label">College Official UPI ID (VPA)</label>
+                      <input
+                        type="text"
+                        value={form.upiId || ''}
+                        onChange={(e) => setForm({ ...form, upiId: e.target.value })}
+                        placeholder="e.g. andhrainspire@sbi, 9848022338@ybl"
+                        className="cwb-input"
+                        style={{ fontFamily: 'monospace', fontWeight: 700 }}
+                      />
+                      <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                        Official PhonePe, Google Pay, or BHIM UPI ID for student fees.
+                      </span>
+                    </div>
+
+                    <div className="cwb-col-6">
+                      <label className="cwb-label">Payee / Account Name</label>
+                      <input
+                        type="text"
+                        value={form.payeeName || ''}
+                        onChange={(e) => setForm({ ...form, payeeName: e.target.value })}
+                        placeholder="e.g. Andhra Inspire Academy"
+                        className="cwb-input"
+                      />
+                    </div>
+
+                    <div className="cwb-col-6">
+                      <label className="cwb-label">Official College UPI QR Code Image</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {form.upiQrUrl ? (
+                          <div style={{ position: 'relative', width: 64, height: 64, border: '1px solid #cbd5e1', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+                            <img src={form.upiQrUrl} alt="UPI QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, upiQrUrl: '' })}
+                              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : null}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const url = await handleFileUpload(file);
+                              if (url) setForm((prev) => ({ ...prev, upiQrUrl: url }));
+                            } catch (err) {
+                              alert('QR upload failed: ' + err.message);
+                            }
+                          }}
+                          className="cwb-input"
+                          style={{ flex: 1, padding: 6 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="cwb-col-12">
+                      <label className="cwb-label">Candidate Payment Instructions</label>
+                      <textarea
+                        rows={2}
+                        value={form.cbtPaymentInstructions || ''}
+                        onChange={(e) => setForm({ ...form, cbtPaymentInstructions: e.target.value })}
+                        placeholder="e.g. Scan QR code using PhonePe, Google Pay, or Paytm. Complete payment of ₹199 and copy the 12-digit UTR number from your receipt. Enter it below for verification."
+                        className="cwb-textarea"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
+                      {saving ? 'Saving...' : '💾 Save Monetization & UPI Settings'}
+                    </button>
+                  </div>
+                </form>
               </div>
 
               {openExams.length === 0 ? (
@@ -3157,87 +3360,275 @@ export default function CollegeWebsiteBuilder() {
             </div>
           )}
 
-          {/* ==================== TAB 16: ADMISSIONS INBOX ==================== */}
-          {activeTab === 'enquiries' && (
-            <div>
-              <div className="cwb-section-header">
-                <div>
-                  <h2 className="cwb-section-title">Admissions & Student Leads Inbox ({enquiries.length})</h2>
-                  <p className="cwb-section-desc">Manage prospective student inquiries, track counseling status, and chat directly on WhatsApp.</p>
-                </div>
-              </div>
+          {/* ==================== TAB 16: ADMISSIONS & CBT PAYMENTS INBOX ==================== */}
+          {activeTab === 'enquiries' && (() => {
+            const cbtEnquiries = enquiries.filter((e) => e.isCbtRegistration);
+            const pendingUtr = enquiries.filter((e) => e.isCbtRegistration && e.paymentStatus === 'PENDING_VERIFICATION');
 
-              {enquiries.length === 0 ? (
-                <div className="cwb-empty-state">
-                  <span className="cwb-empty-icon">📬</span>
-                  <h3 className="cwb-empty-title">No Admission Enquiries Yet</h3>
-                  <p className="cwb-empty-desc">Inquiries submitted by parents and students on your website contact form appear here in real time.</p>
+            const displayList =
+              enquiryFilter === 'CBT'
+                ? cbtEnquiries
+                : enquiryFilter === 'PENDING'
+                ? pendingUtr
+                : enquiries;
+
+            return (
+              <div>
+                <div className="cwb-section-header">
+                  <div>
+                    <h2 className="cwb-section-title">Admissions & CBT Registrations Inbox ({enquiries.length})</h2>
+                    <p className="cwb-section-desc">Manage admissions leads, verify student UPI UTR transactions, and dispatch CBT exam credentials via WhatsApp.</p>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setEnquiryFilter('ALL')}
+                      className={`cwb-btn ${enquiryFilter === 'ALL' ? 'cwb-btn-primary' : 'cwb-btn-secondary'}`}
+                      style={{ padding: '6px 14px', fontSize: 12 }}
+                    >
+                      All Leads ({enquiries.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnquiryFilter('CBT')}
+                      className={`cwb-btn ${enquiryFilter === 'CBT' ? 'cwb-btn-purple' : 'cwb-btn-secondary'}`}
+                      style={{ padding: '6px 14px', fontSize: 12 }}
+                    >
+                      ⚡ CBT Mock Registrations ({cbtEnquiries.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEnquiryFilter('PENDING')}
+                      className={`cwb-btn ${enquiryFilter === 'PENDING' ? 'cwb-btn-danger' : 'cwb-btn-secondary'}`}
+                      style={{ padding: '6px 14px', fontSize: 12 }}
+                    >
+                      ⏳ Pending UTR ({pendingUtr.length})
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="cwb-table-wrapper">
-                  <table className="cwb-table">
-                    <thead>
-                      <tr>
-                        <th>Student / Parent</th>
-                        <th>Contact Phone</th>
-                        <th>Target Stream</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {enquiries.map((enq) => (
-                        <tr key={enq.id}>
-                          <td>
-                            <strong style={{ display: 'block', color: '#0f172a' }}>{enq.studentName}</strong>
-                            {enq.email && <span style={{ fontSize: 11, color: '#64748b' }}>{enq.email}</span>}
-                          </td>
-                          <td>
-                            <strong style={{ fontFamily: 'var(--font-mono, monospace)', color: '#0f172a' }}>{enq.phone}</strong>
-                          </td>
-                          <td>
-                            <span className="cwb-item-pill" style={{ background: '#eff6ff', color: '#1e40af' }}>
-                              {enq.courseOfInterest || 'General'}
-                            </span>
-                            {enq.cityOrTown && <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>({enq.cityOrTown})</span>}
-                          </td>
-                          <td>
-                            <select
-                              value={enq.status}
-                              onChange={(e) => handleUpdateEnquiryStatus(enq.id, e.target.value)}
-                              className="cwb-select"
-                              style={{ width: 'auto', padding: '4px 8px', fontSize: 11, fontWeight: 700 }}
-                            >
-                              <option value="NEW">NEW</option>
-                              <option value="CONTACTED">CONTACTED</option>
-                              <option value="COUNSELED">COUNSELED</option>
-                              <option value="ENROLLED">ENROLLED</option>
-                              <option value="CLOSED">CLOSED</option>
-                            </select>
-                          </td>
-                          <td style={{ fontSize: 11, color: '#64748b' }}>
-                            {new Date(enq.createdAt).toLocaleDateString()}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <a
-                              href={`https://wa.me/${enq.phone.replace(/[^0-9]/g, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="cwb-btn cwb-btn-emerald"
-                              style={{ padding: '4px 10px', fontSize: 11 }}
-                            >
-                              💬 WhatsApp
-                            </a>
-                          </td>
+
+                {displayList.length === 0 ? (
+                  <div className="cwb-empty-state">
+                    <span className="cwb-empty-icon">📬</span>
+                    <h3 className="cwb-empty-title">
+                      {enquiryFilter === 'PENDING'
+                        ? 'No Pending UTR Verifications'
+                        : enquiryFilter === 'CBT'
+                        ? 'No Online CBT Registrations Yet'
+                        : 'No Inquiries Yet'}
+                    </h3>
+                    <p className="cwb-empty-desc">
+                      {enquiryFilter === 'PENDING'
+                        ? 'All candidate UPI payments have been verified and processed!'
+                        : 'Prospective students and aspirants registering on your portal appear here in real time.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="cwb-table-wrapper">
+                    <table className="cwb-table">
+                      <thead>
+                        <tr>
+                          <th>Aspirant / Candidate</th>
+                          <th>Lead Type & Stream</th>
+                          <th>Fee & UTR Reference</th>
+                          <th>Payment Status</th>
+                          <th>Credentials</th>
+                          <th style={{ textAlign: 'right' }}>Actions & WhatsApp</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+                      </thead>
+                      <tbody>
+                        {displayList.map((enq) => {
+                          const isCbt = Boolean(enq.isCbtRegistration);
+                          const isPending = enq.paymentStatus === 'PENDING_VERIFICATION';
+                          const isApproved = enq.paymentStatus === 'APPROVED' || enq.paymentStatus === 'FREE';
+
+                          return (
+                            <tr key={enq.id}>
+                              {/* Column 1: Candidate info */}
+                              <td>
+                                <strong style={{ display: 'block', color: '#0f172a' }}>{enq.studentName}</strong>
+                                <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#334155', fontWeight: 700 }}>
+                                  {enq.phone}
+                                </span>
+                                {enq.email && <div style={{ fontSize: 11, color: '#64748b' }}>{enq.email}</div>}
+                                {enq.cityOrTown && <div style={{ fontSize: 10, color: '#94a3b8' }}>📍 {enq.cityOrTown}</div>}
+                              </td>
+
+                              {/* Column 2: Lead Type & Stream */}
+                              <td>
+                                {isCbt ? (
+                                  <span className="cwb-item-pill" style={{ background: '#f5f3ff', color: '#6d28d9', fontWeight: 800 }}>
+                                    ⚡ CBT Mock Exam
+                                  </span>
+                                ) : (
+                                  <span className="cwb-item-pill" style={{ background: '#eff6ff', color: '#1e40af' }}>
+                                    🏫 Admission Enquiry
+                                  </span>
+                                )}
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>
+                                  {enq.cbtExamName || enq.courseOfInterest || 'General Admission'}
+                                </div>
+                                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                                  {new Date(enq.createdAt).toLocaleDateString()}
+                                </div>
+                              </td>
+
+                              {/* Column 3: Fee & UTR */}
+                              <td>
+                                {isCbt ? (
+                                  <>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: enq.examFee > 0 ? '#059669' : '#0284c7' }}>
+                                      {enq.examFee > 0 ? `₹${enq.examFee}` : 'FREE (Scholarship)'}
+                                    </div>
+                                    {enq.utrNumber ? (
+                                      <div style={{ marginTop: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#64748b', display: 'block' }}>UTR Reference:</span>
+                                        <code
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            fontWeight: 800,
+                                            fontSize: 12,
+                                            background: '#f1f5f9',
+                                            padding: '2px 6px',
+                                            borderRadius: 4,
+                                            color: '#0f172a',
+                                            cursor: 'pointer',
+                                          }}
+                                          title="Click to copy UTR"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(enq.utrNumber);
+                                            alert('UTR copied: ' + enq.utrNumber);
+                                          }}
+                                        >
+                                          {enq.utrNumber} 📋
+                                        </code>
+                                      </div>
+                                    ) : (
+                                      <span style={{ fontSize: 11, color: '#94a3b8' }}>—</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span style={{ fontSize: 11, color: '#64748b' }}>N/A (Admission)</span>
+                                )}
+                              </td>
+
+                              {/* Column 4: Payment Status */}
+                              <td>
+                                {isCbt ? (
+                                  <div>
+                                    {enq.paymentStatus === 'PENDING_VERIFICATION' && (
+                                      <span className="cwb-item-pill" style={{ background: '#fef3c7', color: '#b45309', fontWeight: 800 }}>
+                                        ⏳ PENDING UTR
+                                      </span>
+                                    )}
+                                    {enq.paymentStatus === 'APPROVED' && (
+                                      <span className="cwb-item-pill" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
+                                        ✅ APPROVED
+                                      </span>
+                                    )}
+                                    {enq.paymentStatus === 'REJECTED' && (
+                                      <span className="cwb-item-pill" style={{ background: '#fee2e2', color: '#b91c1c', fontWeight: 800 }}>
+                                        ❌ REJECTED
+                                      </span>
+                                    )}
+                                    {enq.paymentStatus === 'FREE' && (
+                                      <span className="cwb-item-pill" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 800 }}>
+                                        🎁 FREE ACCESS
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={enq.status}
+                                    onChange={(e) => handleUpdateEnquiryStatus(enq.id, e.target.value)}
+                                    className="cwb-select"
+                                    style={{ width: 'auto', padding: '4px 8px', fontSize: 11, fontWeight: 700 }}
+                                  >
+                                    <option value="NEW">NEW</option>
+                                    <option value="CONTACTED">CONTACTED</option>
+                                    <option value="COUNSELED">COUNSELED</option>
+                                    <option value="ENROLLED">ENROLLED</option>
+                                    <option value="CLOSED">CLOSED</option>
+                                  </select>
+                                )}
+                              </td>
+
+                              {/* Column 5: Generated Credentials */}
+                              <td>
+                                {enq.candidateRollNumber ? (
+                                  <div style={{ fontSize: 11 }}>
+                                    <div>Roll: <strong style={{ fontFamily: 'monospace', color: '#1e40af' }}>{enq.candidateRollNumber}</strong></div>
+                                    <div>Pass: <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{enq.candidatePassword}</strong></div>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Not issued</span>
+                                )}
+                              </td>
+
+                              {/* Column 6: Actions */}
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+                                  {isCbt && isPending && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        disabled={processingEnquiryId === enq.id}
+                                        onClick={() => handleApproveCbt(enq.id)}
+                                        className="cwb-btn cwb-btn-emerald"
+                                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700 }}
+                                        title="Verify UTR and generate roll number and exam passcode"
+                                      >
+                                        {processingEnquiryId === enq.id ? '...' : '✅ Verify & Approve'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={processingEnquiryId === enq.id}
+                                        onClick={() => handleRejectCbt(enq.id)}
+                                        className="cwb-btn cwb-btn-danger"
+                                        style={{ padding: '4px 8px', fontSize: 11 }}
+                                        title="Reject payment"
+                                      >
+                                        ✕ Reject
+                                      </button>
+                                    </>
+                                  )}
+
+                                  {isCbt && isApproved && enq.candidateRollNumber && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSendWhatsAppCredentials(enq)}
+                                      className="cwb-btn cwb-btn-emerald"
+                                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700 }}
+                                      title="Open WhatsApp chat with pre-filled exam hall ticket and credentials"
+                                    >
+                                      {enq.whatsappSentAt ? '📲 Re-send WhatsApp' : '📲 WhatsApp Credentials'}
+                                    </button>
+                                  )}
+
+                                  <a
+                                    href={`https://wa.me/${enq.phone.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="cwb-btn cwb-btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: 11 }}
+                                    title="Open direct WhatsApp chat with student"
+                                  >
+                                    💬 Chat
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ==================== TAB 17: SEO & OPENGRAPH ==================== */}
           {activeTab === 'seo' && (

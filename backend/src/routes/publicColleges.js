@@ -325,7 +325,21 @@ router.post('/:slug/enquiries', async (req, res) => {
   try {
     let cleanSlug = (req.params.slug || '').toLowerCase().trim();
     if (cleanSlug === 'demo') cleanSlug = 'andhra-inspire-academy';
-    const { studentName, parentName, phone, email, courseOfInterest, cityOrTown, academicYear, message } = req.body;
+    const {
+      studentName,
+      parentName,
+      phone,
+      email,
+      courseOfInterest,
+      cityOrTown,
+      academicYear,
+      message,
+      isCbtRegistration,
+      cbtExamName,
+      examFee,
+      utrNumber,
+      paymentReceiptUrl,
+    } = req.body;
 
     if (!studentName || !studentName.trim()) {
       return res.status(400).json({ error: 'Student full name is required.' });
@@ -336,7 +350,7 @@ router.post('/:slug/enquiries', async (req, res) => {
 
     const website = await prisma.collegeWebsite.findUnique({
       where: { slug: cleanSlug },
-      select: { id: true, isPublished: true, status: true, hasCrmModule: true },
+      select: { id: true, slug: true, isPublished: true, status: true, hasCrmModule: true, examFee: true },
     });
 
     if (!website || !website.isPublished || website.status === 'SUSPENDED') {
@@ -347,6 +361,18 @@ router.post('/:slug/enquiries', async (req, res) => {
       return res.status(403).json({ error: 'Admission enquiry system is currently not activated for this institution.' });
     }
 
+    const feeAmount = Number(examFee) || 0;
+    const isCbt = Boolean(isCbtRegistration);
+
+    if (isCbt && feeAmount > 0 && (!utrNumber || !utrNumber.trim())) {
+      return res.status(400).json({ error: 'Please enter the 12-digit UPI Transaction / UTR Reference Number from your payment receipt.' });
+    }
+
+    const cleanPrefix = (website.slug || 'AIA').split('-').map((s) => s[0]?.toUpperCase()).join('').slice(0, 4) || 'CBT';
+    const isAutoApproved = isCbt && feeAmount === 0;
+    const rollNo = isAutoApproved ? `${cleanPrefix}-2026-${Math.floor(1000 + Math.random() * 9000)}` : null;
+    const password = isAutoApproved ? `CBT-${Math.floor(1000 + Math.random() * 9000)}` : null;
+
     const enquiry = await prisma.collegeEnquiry.create({
       data: {
         websiteId: website.id,
@@ -356,11 +382,45 @@ router.post('/:slug/enquiries', async (req, res) => {
         email: email?.trim() || null,
         courseOfInterest: courseOfInterest?.trim() || null,
         cityOrTown: cityOrTown?.trim() || null,
-        academicYear: academicYear?.trim() || null,
+        academicYear: academicYear?.trim() || '2026-2027',
         message: message?.trim() || null,
-        status: 'NEW',
+        status: isAutoApproved ? 'ENROLLED' : 'NEW',
+        isCbtRegistration: isCbt,
+        cbtExamName: cbtExamName?.trim() || null,
+        examFee: feeAmount,
+        paymentStatus: isCbt ? (feeAmount === 0 ? 'FREE' : 'PENDING_VERIFICATION') : 'FREE',
+        utrNumber: utrNumber?.trim() || null,
+        paymentReceiptUrl: paymentReceiptUrl?.trim() || null,
+        candidateRollNumber: rollNo,
+        candidatePassword: password,
+        approvedAt: isAutoApproved ? new Date() : null,
       },
     });
+
+    if (isCbt) {
+      if (feeAmount > 0) {
+        return res.json({
+          success: true,
+          pendingVerification: true,
+          message: 'Payment and registration submitted for verification! Your college admin will verify the UTR number and dispatch your official exam credentials to WhatsApp.',
+          enquiryId: enquiry.id,
+          utrNumber: utrNumber?.trim(),
+        });
+      } else {
+        return res.json({
+          success: true,
+          pendingVerification: false,
+          message: 'Registration confirmed!',
+          enquiryId: enquiry.id,
+          credentials: {
+            fullName: studentName.trim(),
+            rollNumber: rollNo,
+            password: password,
+            targetExam: courseOfInterest || cbtExamName || 'CBT Mock Test',
+          },
+        });
+      }
+    }
 
     res.json({
       success: true,

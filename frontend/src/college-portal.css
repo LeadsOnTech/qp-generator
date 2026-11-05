@@ -3830,3 +3830,143 @@ html {
 .cp-cred-row:last-child {
   border-bottom: none;
 }
+
+/* =========================================================================
+   UPI QR SCANNER & UTR VERIFICATION STYLES
+   ========================================================================= */
+.cp-upi-payment-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  margin: 16px 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.cp-upi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cp-upi-qr-frame {
+  display: inline-block;
+  padding: 12px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin: 8px 0;
+}
+
+.cp-upi-qr-frame img {
+  display: block;
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+}
+
+.cp-upi-vpa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 12px 0;
+}
+
+.cp-upi-vpa-copy {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cp-upi-vpa-copy:hover {
+  background: #1d4ed8;
+}
+
+.cp-upi-app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: #6366f1;
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  margin-bottom: 12px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.cp-upi-app-btn:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.cp-utr-input-group {
+  text-align: left;
+  margin-top: 14px;
+}
+
+.cp-utr-input {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-align: center;
+  color: #0f172a;
+  border: 2px solid #2563eb !important;
+  background: #eff6ff !important;
+}
+
+.cp-verification-pending-card {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 16px;
+  padding: 22px;
+  text-align: left;
+  margin-top: 16px;
+}
+
+.cp-btn-wa-direct {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  background: #059669;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.cp-btn-wa-direct:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
