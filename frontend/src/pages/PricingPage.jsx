@@ -21,15 +21,19 @@ const faqs = [
   },
   { 
     q: "How do the Optional Monthly Modules work?", 
-    a: "Optional modules (OMR Generator, Online CBT, College Website, WhatsApp Automation) are monthly add-ons billed separately. You can subscribe to any individual module or get all four together in the Complete Add-on Bundle for ₹4,499/month." 
+    a: "Optional modules (OMR Sheet Generator, Online CBT, College Website, WhatsApp Automation) are monthly add-ons. You can subscribe to any individual module or get all four together in the Complete Add-on Bundle for ₹4,499/month once online activation launches." 
   },
   { 
     q: "Are question-generation credits included in the Complete Add-on Bundle?", 
     a: "No. The Complete Add-on Bundle (₹4,499/month) covers the four software modules. Question paper generation continues to draw from your lifetime pay-as-you-go credit packages." 
   },
   { 
-    q: "How are WhatsApp messaging charges calculated and billed?", 
-    a: "WhatsApp consists of a ₹499/month software subscription plus actual Meta conversation charges and provider delivery charges. QuestionsStudio charges a minimal ₹0.20 service fee per successfully delivered billable message. Undelivered messages are never charged." 
+    q: "How are WhatsApp messaging charges currently billed?", 
+    a: "Currently, WhatsApp scorecards are billed at an active standard flat rate of ₹0.75 per successfully delivered message directly from your WhatsApp wallet balance. An unbundled direct-billing model (₹499/month subscription + Meta pass-through + ₹0.20 fee) is planned for future Meta Cloud API accounts." 
+  },
+  { 
+    q: "Does the OMR module support automated camera or scanner grading?", 
+    a: "Currently, QuestionStudio generates print-ready optical-compatible A4 OMR sheets (with 1, 2, 3, or 4 sheets per page) and master answer keys. Results can be imported via CSV/Excel or entered manually. Automated camera/scanner evaluation is currently in development as a Coming Soon feature." 
   },
   { 
     q: "How does QuestionStudio compare to hiring a DTP typing agency?", 
@@ -139,34 +143,34 @@ export default function PricingPage() {
       {/* HEADER */}
       <MarketingHeader activePage="pricing" />
 
-      {/* FLOATING TOAST NOTIFICATION FOR SUBSCRIBE BUTTONS */}
+      {/* FLOATING TOAST NOTIFICATION FOR SUBSCRIBE BUTTONS (RESPONSIVELY POSITIONED) */}
       {toastMessage && (
         <div 
           role="alert"
           style={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
+            bottom: 'clamp(14px, 3vw, 24px)',
+            right: 'clamp(12px, 3vw, 24px)',
             zIndex: 9999,
             background: '#07154A',
             color: '#ffffff',
-            padding: '16px 20px',
+            padding: '14px 18px',
             borderRadius: 14,
             boxShadow: '0 20px 45px rgba(7, 21, 74, 0.35)',
             border: '1.5px solid #F6C84C',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 14,
-            maxWidth: 'min(440px, calc(100vw - 32px))',
+            gap: 12,
+            maxWidth: 'min(440px, calc(100vw - 24px))',
             boxSizing: 'border-box'
           }}
         >
-          <div style={{ fontSize: 22, lineHeight: 1, marginTop: 2, color: '#F6C84C' }}>ℹ️</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#F6C84C', marginBottom: 4 }}>
+          <div style={{ fontSize: 20, lineHeight: 1, marginTop: 2, color: '#F6C84C' }}>ℹ️</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#F6C84C', marginBottom: 3, wordBreak: 'break-word' }}>
               {toastMessage.title}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.45 }}>
+            <div style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.88)', lineHeight: 1.45, wordBreak: 'break-word' }}>
               {toastMessage.detail}
             </div>
           </div>
@@ -180,7 +184,8 @@ export default function PricingPage() {
               fontSize: 18,
               cursor: 'pointer',
               padding: '0 4px',
-              lineHeight: 1
+              lineHeight: 1,
+              flexShrink: 0
             }}
             aria-label="Close notification"
           >
@@ -194,7 +199,7 @@ export default function PricingPage() {
         textAlign: 'center', 
         background: 'radial-gradient(circle at 50% 10%, rgba(49, 87, 232, 0.25) 0%, transparent 60%), radial-gradient(circle at 85% 80%, rgba(246, 200, 76, 0.12) 0%, transparent 50%), linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #08113B 100%)', 
         color: '#ffffff',
-        padding: 'clamp(44px, 7vw, 80px) clamp(16px, 4vw, 48px) clamp(48px, 8vw, 88px)',
+        padding: 'clamp(40px, 6vw, 76px) clamp(16px, 4vw, 48px) clamp(44px, 7vw, 84px)',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -228,7 +233,7 @@ export default function PricingPage() {
           </div>
 
           <h1 style={{ 
-            fontSize: 'clamp(30px, 5.5vw, 50px)', 
+            fontSize: 'clamp(28px, 5.2vw, 48px)', 
             fontWeight: 800, 
             marginBottom: 20, 
             fontFamily: 'var(--font-display)', 
@@ -248,10 +253,10 @@ export default function PricingPage() {
           </h1>
 
           <p style={{ 
-            fontSize: 'clamp(15px, 2.5vw, 18px)', 
+            fontSize: 'clamp(14.5px, 2.4vw, 17.5px)', 
             color: 'rgba(255, 255, 255, 0.88)', 
             maxWidth: 760, 
-            margin: '0 auto 32px', 
+            margin: '0 auto 30px', 
             lineHeight: 1.6 
           }}>
             Generate LaTeX-typeset NEET, JEE, and EAPCET question papers at <strong>₹1 per question</strong> with <strong>credits that never expire</strong>. Power up your institution with optional monthly modules for OMR, Online CBT, College Website, and WhatsApp automation.
@@ -264,15 +269,15 @@ export default function PricingPage() {
             justifyContent: 'center', 
             alignItems: 'center', 
             flexWrap: 'wrap',
-            marginBottom: 28
+            marginBottom: 26
           }}>
             <a href="#core-product" style={{
               background: 'rgba(255, 255, 255, 0.12)',
               border: '1px solid rgba(255, 255, 255, 0.25)',
               color: '#ffffff',
-              padding: '8px 16px',
+              padding: '7px 15px',
               borderRadius: 20,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 700,
               textDecoration: 'none',
               transition: 'all 0.15s ease'
@@ -283,9 +288,9 @@ export default function PricingPage() {
               background: 'rgba(255, 255, 255, 0.12)',
               border: '1px solid rgba(255, 255, 255, 0.25)',
               color: '#ffffff',
-              padding: '8px 16px',
+              padding: '7px 15px',
               borderRadius: 20,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 700,
               textDecoration: 'none'
             }}>
@@ -295,9 +300,9 @@ export default function PricingPage() {
               background: 'rgba(246, 200, 76, 0.18)',
               border: '1px solid #F6C84C',
               color: '#F6C84C',
-              padding: '8px 16px',
+              padding: '7px 15px',
               borderRadius: 20,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 800,
               textDecoration: 'none'
             }}>
@@ -307,9 +312,9 @@ export default function PricingPage() {
               background: 'rgba(255, 255, 255, 0.12)',
               border: '1px solid rgba(255, 255, 255, 0.25)',
               color: '#ffffff',
-              padding: '8px 16px',
+              padding: '7px 15px',
               borderRadius: 20,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 700,
               textDecoration: 'none'
             }}>
@@ -321,8 +326,8 @@ export default function PricingPage() {
             <CtaLink 
               className="btn btn-primary" 
               style={{ 
-                padding: '14px 32px', 
-                fontSize: 15.5, 
+                padding: '13px 30px', 
+                fontSize: 15, 
                 fontWeight: 800, 
                 borderRadius: 12,
                 background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
@@ -338,20 +343,20 @@ export default function PricingPage() {
 
           {/* Social Proof + Free Credits Badge */}
           <div style={{ 
-            marginTop: 32, 
+            marginTop: 28, 
             display: 'inline-flex', 
             alignItems: 'center', 
-            gap: 12, 
+            gap: 10, 
             background: 'rgba(255, 255, 255, 0.08)', 
             border: '1px solid rgba(255, 255, 255, 0.16)', 
-            padding: '8px 20px', 
+            padding: '8px 18px', 
             borderRadius: 999, 
             backdropFilter: 'blur(8px)',
             flexWrap: 'wrap',
             justifyContent: 'center'
           }}>
-            <span style={{ color: '#4ADE80', fontWeight: 800, fontSize: 14 }}>✓</span>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.95)' }}>
+            <span style={{ color: '#4ADE80', fontWeight: 800, fontSize: 13.5 }}>✓</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.95)' }}>
               Every verified college receives <strong>200 Free Welcome Credits</strong> to test question quality.
             </span>
           </div>
@@ -365,7 +370,7 @@ export default function PricingPage() {
             background: '#ffffff', 
             border: '1.5px solid #3157E8', 
             borderRadius: 18, 
-            padding: '20px 28px', 
+            padding: '18px 24px', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between', 
@@ -377,11 +382,11 @@ export default function PricingPage() {
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Your Active Institute Account
               </div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                {institute.creditBalance?.toLocaleString() || 0} <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--premium-blue)', fontFamily: 'var(--font-body)' }}>Available Credits</span>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                {institute.creditBalance?.toLocaleString() || 0} <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--premium-blue)', fontFamily: 'var(--font-body)' }}>Available Credits</span>
               </div>
             </div>
-            <Link to="/recharge" className="btn btn-primary" style={{ padding: '12px 24px', fontSize: 14, fontWeight: 700 }}>
+            <Link to="/recharge" className="btn btn-primary" style={{ padding: '11px 22px', fontSize: 13.5, fontWeight: 700 }}>
               + Top Up Credits Now
             </Link>
           </div>
@@ -391,8 +396,16 @@ export default function PricingPage() {
       {/* =========================================================================
           SECTION 1: MANDATORY CORE PRODUCT – QUESTION PAPER GENERATION
           ========================================================================= */}
-      <section id="core-product" style={{ maxWidth: 1200, margin: '48px auto', padding: '0 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+      <section 
+        id="core-product" 
+        style={{ 
+          maxWidth: 1200, 
+          margin: '44px auto', 
+          padding: '0 20px',
+          scrollMarginTop: 90 
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 34 }}>
           <div style={{ 
             display: 'inline-block',
             fontSize: 12, 
@@ -407,10 +420,10 @@ export default function PricingPage() {
           }}>
             1. MANDATORY CORE PRODUCT
           </div>
-          <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+          <h2 style={{ fontSize: 'clamp(25px, 4.2vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
             Question Paper Generation
           </h2>
-          <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 700, margin: '0 auto', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', maxWidth: 700, margin: '0 auto', lineHeight: 1.55 }}>
             Our core product operates on a simple one-time credit recharge system. Pay only when you generate test papers.
           </p>
 
@@ -422,31 +435,33 @@ export default function PricingPage() {
             background: '#ECFDF5',
             border: '1.5px solid #10B981',
             borderRadius: 12,
-            padding: '10px 20px',
-            marginTop: 18,
+            padding: '10px 18px',
+            marginTop: 16,
             color: '#065F46',
-            fontSize: 14,
-            fontWeight: 800
+            fontSize: 13.5,
+            fontWeight: 800,
+            flexWrap: 'wrap',
+            justifyContent: 'center'
           }}>
             <span>🛡️</span>
             <span>CREDITS NEVER EXPIRE • LIFETIME VALIDITY • ZERO MONTHLY COMMITMENTS</span>
           </div>
         </div>
 
-        {/* 3 TIERS GRID */}
+        {/* 3 TIERS GRID (RESPONSIVE MINMAX CLAMPED) */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', 
-          gap: 26, 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', 
+          gap: 24, 
           alignItems: 'stretch',
-          marginBottom: 44
+          marginBottom: 40
         }}>
           
           {/* TIER 1: STARTER */}
           <div style={{ 
             background: '#ffffff', 
             borderRadius: 20, 
-            padding: '34px 26px', 
+            padding: 'clamp(24px, 4vw, 32px) clamp(20px, 3vw, 26px)', 
             border: '1.5px solid var(--line)', 
             boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
             display: 'flex', 
@@ -455,32 +470,32 @@ export default function PricingPage() {
             position: 'relative'
           }}>
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
                 Starter Package
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--navy-950)' }}>₹5,000</span>
-                <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time recharge</span>
+                <span style={{ fontSize: 'clamp(32px, 5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)' }}>₹5,000</span>
+                <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
               </div>
               <div style={{ 
-                padding: '10px 14px', 
+                padding: '9px 12px', 
                 background: '#F1F5F9', 
                 borderRadius: 10, 
-                fontSize: 14, 
+                fontSize: 13.5, 
                 fontWeight: 700, 
                 color: 'var(--navy-900)', 
-                marginBottom: 20,
+                marginBottom: 18,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
               }}>
                 <span>⚡</span> 5,000 Credits (₹1.00 / Question)
               </div>
-              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 22 }}>
+              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
                 Ideal for individual subject faculty, tutors, and coaching branches starting out with weekly chapter tests and DPPs.
               </p>
 
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18, marginBottom: 26 }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 12 }}>
                   What is included:
                 </div>
@@ -512,7 +527,7 @@ export default function PricingPage() {
                 style={{ 
                   width: '100%', 
                   padding: '13px', 
-                  fontSize: 14.5, 
+                  fontSize: 14, 
                   fontWeight: 700, 
                   justifyContent: 'center', 
                   borderRadius: 10,
@@ -537,7 +552,7 @@ export default function PricingPage() {
           <div style={{ 
             background: 'linear-gradient(180deg, #FFFFFF 0%, #FBFDFF 100%)', 
             borderRadius: 22, 
-            padding: '36px 26px', 
+            padding: 'clamp(26px, 4vw, 34px) clamp(20px, 3vw, 26px)', 
             border: '2.5px solid #F59E0B', 
             boxShadow: '0 16px 36px rgba(245, 158, 11, 0.15)',
             display: 'flex', 
@@ -549,14 +564,14 @@ export default function PricingPage() {
             {/* Value Ribbon */}
             <div style={{ 
               position: 'absolute', 
-              top: -14, 
+              top: -13, 
               left: '50%', 
               transform: 'translateX(-50%)', 
               background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)', 
               color: '#07154A', 
-              padding: '5px 18px', 
+              padding: '5px 16px', 
               borderRadius: 999, 
-              fontSize: 11.5, 
+              fontSize: 11, 
               fontWeight: 800, 
               letterSpacing: '0.06em', 
               boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
@@ -566,34 +581,34 @@ export default function PricingPage() {
             </div>
 
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, marginTop: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, marginTop: 4 }}>
                 Growth Package
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--navy-950)' }}>₹10,000</span>
-                <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time recharge</span>
+                <span style={{ fontSize: 'clamp(34px, 5.5vw, 40px)', fontWeight: 800, color: 'var(--navy-950)' }}>₹10,000</span>
+                <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
               </div>
               
               <div style={{ 
-                padding: '11px 14px', 
+                padding: '10px 12px', 
                 background: 'rgba(245, 158, 11, 0.12)', 
                 border: '1px solid rgba(245, 158, 11, 0.3)',
-                borderRadius: 11, 
-                fontSize: 14, 
+                borderRadius: 10, 
+                fontSize: 13.5, 
                 fontWeight: 800, 
                 color: '#B45309', 
-                marginBottom: 20,
+                marginBottom: 18,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
               }}>
                 <span>🔥</span> 11,500 Credits (₹0.87 / Question)
               </div>
-              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 22 }}>
+              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
                 The preferred pack for coaching institutes and intermediate colleges running regular weekly grand tests and DPPs.
               </p>
 
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18, marginBottom: 26 }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 12 }}>
                   Everything in Starter, plus:
                 </div>
@@ -624,8 +639,8 @@ export default function PricingPage() {
                 className="btn btn-primary" 
                 style={{ 
                   width: '100%', 
-                  padding: '14px', 
-                  fontSize: 15, 
+                  padding: '13px', 
+                  fontSize: 14.5, 
                   fontWeight: 800, 
                   justifyContent: 'center', 
                   borderRadius: 11,
@@ -652,7 +667,7 @@ export default function PricingPage() {
           <div style={{ 
             background: '#ffffff', 
             borderRadius: 20, 
-            padding: '34px 26px', 
+            padding: 'clamp(24px, 4vw, 32px) clamp(20px, 3vw, 26px)', 
             border: '1.5px solid var(--line)', 
             boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
             display: 'flex', 
@@ -661,32 +676,32 @@ export default function PricingPage() {
             position: 'relative'
           }}>
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
                 Institution Package
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--navy-950)' }}>₹20,000</span>
-                <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time recharge</span>
+                <span style={{ fontSize: 'clamp(32px, 5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)' }}>₹20,000</span>
+                <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>one-time</span>
               </div>
               <div style={{ 
-                padding: '10px 14px', 
+                padding: '9px 12px', 
                 background: '#EEF0FF', 
                 borderRadius: 10, 
-                fontSize: 14, 
+                fontSize: 13.5, 
                 fontWeight: 700, 
                 color: 'var(--premium-blue)', 
-                marginBottom: 20,
+                marginBottom: 18,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
               }}>
                 <span>🚀</span> 25,000 Credits (₹0.80 / Question)
               </div>
-              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 22 }}>
+              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
                 Designed for junior colleges, multi-branch institutions, and examination centres running year-round competitive test series.
               </p>
 
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18, marginBottom: 26 }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.05em', marginBottom: 12 }}>
                   Maximum institutional value:
                 </div>
@@ -718,7 +733,7 @@ export default function PricingPage() {
                 style={{ 
                   width: '100%', 
                   padding: '13px', 
-                  fontSize: 14.5, 
+                  fontSize: 14, 
                   fontWeight: 700, 
                   justifyContent: 'center', 
                   borderRadius: 10,
@@ -746,18 +761,18 @@ export default function PricingPage() {
         <div style={{ 
           background: '#ffffff', 
           borderRadius: 20, 
-          padding: 'clamp(24px, 4vw, 36px)', 
+          padding: 'clamp(20px, 3.5vw, 32px)', 
           border: '1.5px solid var(--line)', 
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
           maxWidth: 960,
           margin: '0 auto'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', margin: '0 0 4px' }}>
+              <h3 style={{ fontSize: 17.5, fontWeight: 800, color: 'var(--navy-950)', margin: '0 0 4px' }}>
                 Need a Custom Recharge Amount?
               </h3>
-              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: 0 }}>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>
                 Enter any amount (minimum ₹5,000). Volume bonus credits apply automatically.
               </p>
             </div>
@@ -774,8 +789,8 @@ export default function PricingPage() {
                     color: customAmount === amt ? '#F6C84C' : 'var(--ink)',
                     border: 'none',
                     borderRadius: 8,
-                    padding: '6px 12px',
-                    fontSize: 13,
+                    padding: '6px 11px',
+                    fontSize: 12.5,
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
@@ -787,13 +802,13 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 18, alignItems: 'center' }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--navy-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 6, color: 'var(--navy-900)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Recharge Amount (₹)
               </label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 20, fontWeight: 700, color: 'var(--ink-soft)' }}>₹</span>
+                <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 19, fontWeight: 700, color: 'var(--ink-soft)' }}>₹</span>
                 <input 
                   type="number" 
                   step="500"
@@ -802,8 +817,8 @@ export default function PricingPage() {
                   onChange={e => setCustomAmount(e.target.value)} 
                   style={{ 
                     width: '100%', 
-                    padding: '12px 16px 12px 38px', 
-                    fontSize: 20, 
+                    padding: '11px 16px 11px 36px', 
+                    fontSize: 19, 
                     fontWeight: 800, 
                     borderRadius: 10, 
                     border: '2px solid #CBD5E1', 
@@ -817,7 +832,7 @@ export default function PricingPage() {
 
             <div style={{ 
               background: '#EEF0FF', 
-              padding: '16px 20px', 
+              padding: '14px 18px', 
               borderRadius: 12, 
               border: '1px dashed #3157E8', 
               display: 'flex', 
@@ -825,15 +840,15 @@ export default function PricingPage() {
               justifyContent: 'space-between' 
             }}>
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Total Credits Received
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)' }}>
                   {totalCustomCredits.toLocaleString()}
                 </div>
               </div>
               {bonusCredits > 0 && (
-                <div style={{ background: '#DCFCE7', color: '#16A34A', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 800, textAlign: 'right' }}>
+                <div style={{ background: '#DCFCE7', color: '#16A34A', padding: '5px 10px', borderRadius: 8, fontSize: 11.5, fontWeight: 800, textAlign: 'right' }}>
                   +{bonusCredits.toLocaleString()} BONUS FREE!
                 </div>
               )}
@@ -848,8 +863,8 @@ export default function PricingPage() {
                     className="btn btn-primary" 
                     style={{ 
                       width: '100%', 
-                      padding: '14px', 
-                      fontSize: 15, 
+                      padding: '13px', 
+                      fontSize: 14.5, 
                       fontWeight: 700, 
                       justifyContent: 'center', 
                       display: 'flex',
@@ -868,7 +883,7 @@ export default function PricingPage() {
                   )}
                 </>
               ) : (
-                <button disabled style={{ width: '100%', padding: '14px', fontSize: 14, borderRadius: 11, border: 'none', background: '#E2E8F0', color: '#94A3B8', fontWeight: 600 }}>
+                <button disabled style={{ width: '100%', padding: '13px', fontSize: 13.5, borderRadius: 11, border: 'none', background: '#E2E8F0', color: '#94A3B8', fontWeight: 600 }}>
                   Minimum recharge is ₹5,000
                 </button>
               )}
@@ -880,9 +895,18 @@ export default function PricingPage() {
       {/* =========================================================================
           SECTION 2: OPTIONAL MONTHLY MODULES
           ========================================================================= */}
-      <section id="optional-modules" className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+      <section 
+        id="optional-modules" 
+        className="pricing-section-pad" 
+        style={{ 
+          backgroundColor: '#ffffff', 
+          borderTop: '1px solid var(--line)', 
+          borderBottom: '1px solid var(--line)',
+          scrollMarginTop: 90 
+        }}
+      >
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{ 
               display: 'inline-block',
               fontSize: 12, 
@@ -897,19 +921,19 @@ export default function PricingPage() {
             }}>
               2. OPTIONAL MONTHLY MODULES
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+            <h2 style={{ fontSize: 'clamp(25px, 4.2vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
               Campus Management Add-ons
             </h2>
-            <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 720, margin: '0 auto', lineHeight: 1.55 }}>
+            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', maxWidth: 720, margin: '0 auto', lineHeight: 1.55 }}>
               Choose only the software modules your college needs. Monthly flexibility with zero annual lock-in contracts.
             </p>
           </div>
 
-          {/* 4 MODULES GRID */}
+          {/* 4 MODULES GRID (RESPONSIVE MINMAX CLAMPED) */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', 
-            gap: 24, 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', 
+            gap: 22, 
             alignItems: 'stretch' 
           }}>
             
@@ -917,7 +941,7 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 18,
-              padding: '30px 24px',
+              padding: 'clamp(22px, 3.5vw, 28px) clamp(18px, 3vw, 22px)',
               border: '1.5px solid var(--line)',
               display: 'flex',
               flexDirection: 'column',
@@ -925,45 +949,49 @@ export default function PricingPage() {
               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#EEF0FF', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: '#EEF0FF', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                     🎯
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 9px', borderRadius: 999 }}>
                     Module 01
                   </span>
                 </div>
-                <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
                   OMR &amp; Answer Key Generator
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)' }}>₹999</span>
-                  <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)' }}>₹999</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
                 </div>
-                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
-                  Eliminate manual grading fatigue with instant bubble sheets aligned directly to your generated exam papers.
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 18 }}>
+                  Generate print-ready optical-compatible bubble sheets and master answer keys matched directly to your test papers.
                 </p>
 
-                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 22 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
+                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
                     Main Features:
                   </div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12.5, color: 'var(--ink)' }}>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>Custom bubble sheet layouts matched to 75 &amp; 180-Q test structures</span>
+                      <span>Printable A4 OMR sheets (1, 2, 3, or 4 sheets/page for paper savings)</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>Roll number, barcode, and student identifier alignment</span>
+                      <span>Roll number, barcode, and test set alignment</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>Automated master answer key generated with 1 click</span>
+                      <span>1-click master answer key slips for faculty</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>Ready-to-print evaluation templates for faculty</span>
+                      <span>Offline marksheet CSV &amp; Excel import for score calculation</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start', color: '#64748B' }}>
+                      <span style={{ color: '#F59E0B', fontWeight: 800, marginTop: 1 }}>⏳</span>
+                      <span>Automated camera / scanner auto-reading <em style={{ color: '#D97706', fontWeight: 700 }}>(Coming Soon)</em></span>
                     </li>
                   </ul>
                 </div>
@@ -975,8 +1003,8 @@ export default function PricingPage() {
                 className="btn btn-ghost"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  fontSize: 14,
+                  padding: '11px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   justifyContent: 'center',
                   borderRadius: 10,
@@ -993,7 +1021,7 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 18,
-              padding: '30px 24px',
+              padding: 'clamp(22px, 3.5vw, 28px) clamp(18px, 3vw, 22px)',
               border: '1.5px solid var(--line)',
               display: 'flex',
               flexDirection: 'column',
@@ -1001,37 +1029,37 @@ export default function PricingPage() {
               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                     💻
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 9px', borderRadius: 999 }}>
                     Module 02
                   </span>
                 </div>
-                <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
                   Online Examination (CBT)
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)' }}>₹1,999</span>
-                  <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)' }}>₹1,999</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
                 </div>
-                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 18 }}>
                   Deliver realistic NTA-style computer-based examinations on campus computer labs, laptops, or mobile devices.
                 </p>
 
-                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 22 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
+                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
                     Main Features:
                   </div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12.5, color: 'var(--ink)' }}>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
                       <span>Real NTA JEE &amp; NEET interface simulation with question palette</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>Auto-submission on timer expiry &amp; browser focus anti-cheating</span>
+                      <span>Auto-submission upon timer countdown expiry</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
@@ -1040,6 +1068,10 @@ export default function PricingPage() {
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
                       <span>Real-time rank analytics, subject accuracy &amp; time breakdown</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start', color: '#64748B' }}>
+                      <span style={{ color: '#F59E0B', fontWeight: 800, marginTop: 1 }}>⏳</span>
+                      <span>Lockdown browser &amp; webcam anti-cheating <em style={{ color: '#D97706', fontWeight: 700 }}>(Coming Soon)</em></span>
                     </li>
                   </ul>
                 </div>
@@ -1051,8 +1083,8 @@ export default function PricingPage() {
                 className="btn btn-ghost"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  fontSize: 14,
+                  padding: '11px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   justifyContent: 'center',
                   borderRadius: 10,
@@ -1069,7 +1101,7 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 18,
-              padding: '30px 24px',
+              padding: 'clamp(22px, 3.5vw, 28px) clamp(18px, 3vw, 22px)',
               border: '1.5px solid var(--line)',
               display: 'flex',
               flexDirection: 'column',
@@ -1077,30 +1109,30 @@ export default function PricingPage() {
               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                     🌐
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 9px', borderRadius: 999 }}>
                     Module 03
                   </span>
                 </div>
-                <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
                   Dynamic College Website
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)' }}>₹1,499</span>
-                  <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)' }}>₹1,499</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
                 </div>
-                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 18 }}>
                   A modern, responsive public web portal showcasing your courses, faculty, and student achievements without hiring web developers.
                 </p>
 
-                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 22 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
+                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
                     Main Features:
                   </div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12.5, color: 'var(--ink)' }}>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
                       <span>College homepage with Courses, Faculty, Facilities &amp; Gallery</span>
@@ -1127,8 +1159,8 @@ export default function PricingPage() {
                 className="btn btn-ghost"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  fontSize: 14,
+                  padding: '11px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   justifyContent: 'center',
                   borderRadius: 10,
@@ -1145,7 +1177,7 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 18,
-              padding: '30px 24px',
+              padding: 'clamp(22px, 3.5vw, 28px) clamp(18px, 3vw, 22px)',
               border: '1.5px solid var(--line)',
               display: 'flex',
               flexDirection: 'column',
@@ -1153,33 +1185,33 @@ export default function PricingPage() {
               transition: 'transform 0.15s ease, box-shadow 0.15s ease'
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: '#DCFCE7', color: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: '#DCFCE7', color: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
                     💬
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', background: '#E2E8F0', padding: '3px 9px', borderRadius: 999 }}>
                     Module 04
                   </span>
                 </div>
-                <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, lineHeight: 1.25 }}>
                   WhatsApp Automation
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
-                  <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)' }}>₹499</span>
-                  <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy-950)' }}>₹499</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 600 }}>/ month</span>
                 </div>
-                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 20 }}>
-                  Automate scorecard dispatches, weak-chapter parent alerts, and exam credentials directly to WhatsApp.
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 18 }}>
+                  Deliver test scorecards and diagnostic performance reports directly to student and parent WhatsApp numbers.
                 </p>
 
-                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginBottom: 22 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
+                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--navy-900)', letterSpacing: '0.04em', marginBottom: 10 }}>
                     Main Features:
                   </div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--ink)' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12.5, color: 'var(--ink)' }}>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>1-click scorecard and answer key delivery to parents</span>
+                      <span>1-click exam scorecard &amp; result link delivery to parents</span>
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
@@ -1187,11 +1219,11 @@ export default function PricingPage() {
                     </li>
                     <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
-                      <span>CBT online exam login credentials &amp; hall tickets</span>
-                    </li>
-                    <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                      <span style={{ color: '#16A34A', fontWeight: 800, marginTop: 1 }}>✓</span>
                       <span>Meta Cloud API compliance with verified sender ID</span>
+                    </li>
+                    <li style={{ display: 'flex', gap: 8, alignItems: 'flex-start', color: '#64748B' }}>
+                      <span style={{ color: '#F59E0B', fontWeight: 800, marginTop: 1 }}>⏳</span>
+                      <span>Automated CBT credentials &amp; hall ticket dispatch <em style={{ color: '#D97706', fontWeight: 700 }}>(Coming Soon)</em></span>
                     </li>
                   </ul>
                 </div>
@@ -1203,8 +1235,8 @@ export default function PricingPage() {
                 className="btn btn-ghost"
                 style={{
                   width: '100%',
-                  padding: '12px',
-                  fontSize: 14,
+                  padding: '11px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   justifyContent: 'center',
                   borderRadius: 10,
@@ -1224,8 +1256,16 @@ export default function PricingPage() {
       {/* =========================================================================
           SECTION 3: COMPLETE ADD-ON BUNDLE
           ========================================================================= */}
-      <section id="complete-bundle" style={{ maxWidth: 1060, margin: '64px auto', padding: '0 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+      <section 
+        id="complete-bundle" 
+        style={{ 
+          maxWidth: 1060, 
+          margin: '56px auto', 
+          padding: '0 20px',
+          scrollMarginTop: 90 
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 34 }}>
           <div style={{ 
             display: 'inline-block',
             fontSize: 12, 
@@ -1240,10 +1280,10 @@ export default function PricingPage() {
           }}>
             3. COMPLETE ADD-ON BUNDLE
           </div>
-          <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+          <h2 style={{ fontSize: 'clamp(25px, 4.2vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
             All 4 Optional Modules in One Bundle
           </h2>
-          <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 680, margin: '0 auto', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', maxWidth: 680, margin: '0 auto', lineHeight: 1.55 }}>
             Equip your entire college with all four optional software modules at an exclusive bundled discount.
           </p>
         </div>
@@ -1252,7 +1292,7 @@ export default function PricingPage() {
         <div style={{
           background: 'linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #162B8D 100%)',
           borderRadius: 24,
-          padding: 'clamp(28px, 5vw, 44px)',
+          padding: 'clamp(24px, 4.5vw, 40px)',
           color: '#ffffff',
           boxShadow: '0 20px 48px rgba(7, 21, 74, 0.25)',
           position: 'relative',
@@ -1265,52 +1305,53 @@ export default function PricingPage() {
             gap: 8,
             background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
             color: '#07154A',
-            padding: '6px 18px',
+            padding: '6px 16px',
             borderRadius: 999,
-            fontSize: 12,
+            fontSize: 11.5,
             fontWeight: 800,
             letterSpacing: '0.06em',
-            marginBottom: 20
+            marginBottom: 18,
+            flexWrap: 'wrap'
           }}>
             <span>✨</span> COMPLETE INSTITUTIONAL SUITE • SAVE ₹497 / MONTH
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 36, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 32, alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 800, color: '#ffffff', marginBottom: 12, lineHeight: 1.2 }}>
+              <h3 style={{ fontSize: 'clamp(22px, 3.8vw, 32px)', fontWeight: 800, color: '#ffffff', marginBottom: 10, lineHeight: 1.2 }}>
                 Complete Add-on Bundle
               </h3>
               
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 'clamp(38px, 6vw, 48px)', fontWeight: 800, color: '#F6C84C', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+                <span style={{ fontSize: 'clamp(36px, 5.5vw, 46px)', fontWeight: 800, color: '#F6C84C', fontFamily: 'var(--font-mono)' }}>
                   ₹4,499
                 </span>
-                <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>/ month</span>
-                <span style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>₹4,996</span>
+                <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>/ month</span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>₹4,996</span>
               </div>
 
-              <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: 24 }}>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: 20 }}>
                 Includes all four optional software modules in a unified campus workspace. Centralize test administration, web portal presence, online CBT testing, and parent notifications.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <span style={{ color: '#4ADE80', fontWeight: 800 }}>✓</span>
                   <span><strong>OMR &amp; Answer Key Generator</strong> (Regular ₹999/mo)</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <span style={{ color: '#4ADE80', fontWeight: 800 }}>✓</span>
                   <span><strong>Online Examination (CBT) Platform</strong> (Regular ₹1,999/mo)</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <span style={{ color: '#4ADE80', fontWeight: 800 }}>✓</span>
                   <span><strong>Dynamic College Website</strong> (Regular ₹1,499/mo)</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <span style={{ color: '#4ADE80', fontWeight: 800 }}>✓</span>
                   <span><strong>WhatsApp Automation Software</strong> (Regular ₹499/mo)</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <span style={{ color: '#4ADE80', fontWeight: 800 }}>✓</span>
                   <span>Unified student roster sync across all modules</span>
                 </div>
@@ -1322,19 +1363,19 @@ export default function PricingPage() {
               background: 'rgba(255, 255, 255, 0.08)',
               border: '1.5px solid rgba(255, 255, 255, 0.16)',
               borderRadius: 18,
-              padding: '24px',
+              padding: '22px',
               backdropFilter: 'blur(8px)'
             }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#F6C84C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: '#F6C84C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
                 ⚠️ Important Inclusions &amp; Exclusions
               </div>
 
               <div style={{ 
                 background: 'rgba(0, 0, 0, 0.25)', 
                 borderLeft: '3px solid #F59E0B', 
-                padding: '12px 14px', 
+                padding: '11px 13px', 
                 borderRadius: '0 8px 8px 0',
-                fontSize: 13,
+                fontSize: 12.5,
                 lineHeight: 1.5,
                 color: 'rgba(255,255,255,0.92)',
                 marginBottom: 12
@@ -1346,12 +1387,12 @@ export default function PricingPage() {
               <div style={{ 
                 background: 'rgba(0, 0, 0, 0.25)', 
                 borderLeft: '3px solid #F59E0B', 
-                padding: '12px 14px', 
+                padding: '11px 13px', 
                 borderRadius: '0 8px 8px 0',
-                fontSize: 13,
+                fontSize: 12.5,
                 lineHeight: 1.5,
                 color: 'rgba(255,255,255,0.92)',
-                marginBottom: 20
+                marginBottom: 18
               }}>
                 <strong>WhatsApp message charges and provider charges are NOT included.</strong><br />
                 Outbound WhatsApp message delivery fees are billed separately based on actual recipient delivery as described below.
@@ -1363,11 +1404,11 @@ export default function PricingPage() {
                 className="btn btn-primary"
                 style={{
                   width: '100%',
-                  padding: '14px',
-                  fontSize: 15,
+                  padding: '13px',
+                  fontSize: 14.5,
                   fontWeight: 800,
                   justifyContent: 'center',
-                  borderRadius: 12,
+                  borderRadius: 11,
                   background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
                   color: '#07154A',
                   border: 'none',
@@ -1385,9 +1426,18 @@ export default function PricingPage() {
       {/* =========================================================================
           SECTION 4: WHATSAPP PRICING EXPLANATION
           ========================================================================= */}
-      <section id="whatsapp-pricing" className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+      <section 
+        id="whatsapp-pricing" 
+        className="pricing-section-pad" 
+        style={{ 
+          backgroundColor: '#ffffff', 
+          borderTop: '1px solid var(--line)', 
+          borderBottom: '1px solid var(--line)',
+          scrollMarginTop: 90 
+        }}
+      >
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <div style={{ 
               display: 'inline-block',
               fontSize: 12, 
@@ -1402,41 +1452,64 @@ export default function PricingPage() {
             }}>
               4. WHATSAPP PRICING EXPLANATION
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 4.5vw, 38px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
-              100% Transparent WhatsApp Messaging Rates
+            <h2 style={{ fontSize: 'clamp(25px, 4.2vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+              Transparent WhatsApp Messaging Rates
             </h2>
-            <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 700, margin: '0 auto', lineHeight: 1.55 }}>
-              Zero hidden markups. We believe in total clarity so college administrators always know exactly how messaging fees are calculated.
+            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', maxWidth: 700, margin: '0 auto', lineHeight: 1.55 }}>
+              Zero hidden markups. Clear information on active rates and planned Meta Cloud API unbundled models.
             </p>
           </div>
 
-          {/* 4 PILLARS OF WHATSAPP PRICING */}
+          {/* ACTIVE ROLLOUT PRICING NOTICE BANNER */}
+          <div style={{
+            background: '#F0FDF4',
+            border: '1.5px solid #22C55E',
+            borderRadius: 16,
+            padding: '16px 22px',
+            marginBottom: 28,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 14,
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: 24, lineHeight: 1 }}>🟢</span>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#166534', marginBottom: 4 }}>
+                Current Active Rate: Flat ₹0.75 per Delivered Message
+              </div>
+              <div style={{ fontSize: 13, color: '#15803D', lineHeight: 1.55 }}>
+                In the current active version, student scorecard deliveries are billed at a standard flat rate of <strong>₹0.75 per successfully delivered message</strong> directly from your institute WhatsApp wallet (inclusive of Meta utility fees and telecom delivery). There are zero monthly software fees charged during this initial rollout.
+              </div>
+            </div>
+          </div>
+
+          {/* 4 PILLARS OF PLANNED WHATSAPP PRICING */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-            gap: 20, 
-            marginBottom: 32 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', 
+            gap: 18, 
+            marginBottom: 28 
           }}>
             
             {/* ITEM 1: SOFTWARE SUBSCRIPTION */}
             <div style={{
               background: '#F8FAFC',
               borderRadius: 16,
-              padding: '24px 20px',
+              padding: '22px 18px',
               border: '1.5px solid var(--line)',
               borderTop: '4px solid #25D366'
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 01
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Component 01 • Planned
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
                 WhatsApp Software Subscription
               </h3>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 10 }}>
-                ₹499 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-soft)', fontFamily: 'var(--font-body)' }}>/ month</span>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
+                ₹499 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', fontFamily: 'var(--font-body)' }}>/ month</span>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Fixed monthly platform fee for software integration, template approval management, broadcast dispatch queue, and automated score delivery triggers.
+              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
+                Monthly software platform subscription for template approval management, broadcast dispatch queues, and automated score notifications.
               </p>
             </div>
 
@@ -1444,23 +1517,23 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 16,
-              padding: '24px 20px',
+              padding: '22px 18px',
               border: '1.5px solid var(--line)',
               borderTop: '4px solid #3B82F6'
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 02
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Component 02 • Pass-Through
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
                 Actual Meta Messaging Charges
               </h3>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 10, height: 32, display: 'flex', alignItems: 'center' }}>
-                <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '3px 10px', borderRadius: 8, fontSize: 13.5 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, height: 28, display: 'flex', alignItems: 'center' }}>
+                <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '3px 9px', borderRadius: 8, fontSize: 12.5 }}>
                   Additional (At Cost)
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Official per-conversation fee levied directly by Meta (WhatsApp Business Platform) based on conversation category (Authentication, Utility, or Marketing) per Meta India rates.
+              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
+                Per-conversation fees charged directly by Meta (WhatsApp Business Platform) based on conversation category per official Meta India rate cards.
               </p>
             </div>
 
@@ -1468,22 +1541,22 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 16,
-              padding: '24px 20px',
+              padding: '22px 18px',
               border: '1.5px solid var(--line)',
               borderTop: '4px solid #F59E0B'
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 03
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Component 03 • Pass-Through
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
                 Actual WhatsApp Provider Charges
               </h3>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 10, height: 32, display: 'flex', alignItems: 'center' }}>
-                <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: 8, fontSize: 13.5 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, height: 28, display: 'flex', alignItems: 'center' }}>
+                <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 9px', borderRadius: 8, fontSize: 12.5 }}>
                   Additional (At Cost)
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
                 Underlying WhatsApp Business Solution Provider (BSP) infrastructure and telecom carrier network throughput charges passed through at direct cost.
               </p>
             </div>
@@ -1492,21 +1565,21 @@ export default function PricingPage() {
             <div style={{
               background: '#F8FAFC',
               borderRadius: 16,
-              padding: '24px 20px',
+              padding: '22px 18px',
               border: '1.5px solid var(--line)',
               borderTop: '4px solid #7C3AED'
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 04
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Component 04 • Planned Model
               </div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
                 QuestionsStudio Service Fee
               </h3>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 10 }}>
-                ₹0.20 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-soft)', fontFamily: 'var(--font-body)' }}>/ delivered message</span>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
+                ₹0.20 <span style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED', fontFamily: 'var(--font-body)' }}>(Planned Rate)</span>
               </div>
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Minimal processing fee charged <strong>only per successfully delivered billable message</strong>. Zero fee for undelivered or failed messages.
+              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
+                Planned processing fee per delivered message when colleges connect direct Meta Cloud API credentials. Zero fee for undelivered or failed messages.
               </p>
             </div>
 
@@ -1516,20 +1589,20 @@ export default function PricingPage() {
           <div style={{
             background: '#F1F5F9',
             borderRadius: 16,
-            padding: '22px 26px',
+            padding: '20px 24px',
             border: '1px solid #CBD5E1',
             display: 'flex',
             alignItems: 'center',
-            gap: 16,
+            gap: 14,
             flexWrap: 'wrap'
           }}>
-            <div style={{ fontSize: 28 }}>💡</div>
+            <div style={{ fontSize: 26 }}>💡</div>
             <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 4 }}>
-                Real-World College Example
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 4 }}>
+                Real-World Billing Example
               </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
-                When your college conducts a grand test and broadcasts 400 student scorecards to parents, you pay the <strong>₹499/mo</strong> software subscription + actual Meta/BSP utility fees + QuestionsStudio fee of just <strong>₹80</strong> (400 × ₹0.20). Complete audit logs are viewable directly from your Recharge &amp; Approvals ledger.
+              <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
+                When your college conducts a test and broadcasts 400 student scorecards to parents, your account is deducted <strong>₹300</strong> (400 × ₹0.75 active flat rate) from your WhatsApp recharge balance. Detailed delivery logs and live balances are audited in your <strong>Recharge &amp; Approvals</strong> dashboard.
               </div>
             </div>
           </div>
@@ -1541,19 +1614,19 @@ export default function PricingPage() {
           ========================================================================= */}
       <section className="pricing-section-pad" style={{ backgroundColor: '#F8FAFC' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               REAL-WORLD USAGE CALCULATOR
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 'clamp(25px, 4.5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 12 }}>
               See What Your Credits Can Do
             </h2>
-            <p style={{ fontSize: 16, color: 'var(--ink-soft)', maxWidth: 640, margin: '0 auto', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)', maxWidth: 640, margin: '0 auto', lineHeight: 1.5 }}>
               Choose an exam format below to see the exact cost per paper. Compare it with the high price and turnaround time of typing agencies!
             </p>
 
             {/* Exam Preset Selector Tabs */}
-            <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: 6, borderRadius: 12, marginTop: 24, gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{ display: 'inline-flex', background: '#F1F5F9', padding: 5, borderRadius: 12, marginTop: 20, gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={() => selectExamPreset('JEE')}
@@ -1562,8 +1635,8 @@ export default function PricingPage() {
                   color: examType === 'JEE' ? '#ffffff' : 'var(--ink)',
                   border: 'none',
                   borderRadius: 8,
-                  padding: '9px 18px',
-                  fontSize: 14,
+                  padding: '8px 16px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -1579,8 +1652,8 @@ export default function PricingPage() {
                   color: examType === 'NEET' ? '#ffffff' : 'var(--ink)',
                   border: 'none',
                   borderRadius: 8,
-                  padding: '9px 18px',
-                  fontSize: 14,
+                  padding: '8px 16px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -1596,8 +1669,8 @@ export default function PricingPage() {
                   color: examType === 'DPP' ? '#ffffff' : 'var(--ink)',
                   border: 'none',
                   borderRadius: 8,
-                  padding: '9px 18px',
-                  fontSize: 14,
+                  padding: '8px 16px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -1613,8 +1686,8 @@ export default function PricingPage() {
                   color: examType === 'CUSTOM' ? '#ffffff' : 'var(--ink)',
                   border: 'none',
                   borderRadius: 8,
-                  padding: '9px 18px',
-                  fontSize: 14,
+                  padding: '8px 16px',
+                  fontSize: 13.5,
                   fontWeight: 700,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -1625,17 +1698,17 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 310px), 1fr))', gap: 28, alignItems: 'center' }}>
             {/* Interactive Calculator Controls */}
-            <div style={{ background: '#ffffff', padding: 'clamp(24px, 4vw, 36px)', borderRadius: 20, border: '1.5px solid var(--line)' }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 20 }}>
+            <div style={{ background: '#ffffff', padding: 'clamp(20px, 3.5vw, 32px)', borderRadius: 20, border: '1.5px solid var(--line)' }}>
+              <h3 style={{ fontSize: 17.5, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 18 }}>
                 {examType === 'CUSTOM' ? 'Customize Your Paper Specs' : `${examType} Exam Specifications`}
               </h3>
 
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5, fontWeight: 700, marginBottom: 10 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
                   <span>Questions in this Paper</span>
-                  <span style={{ color: 'var(--premium-blue)', fontFamily: 'var(--font-mono)', fontSize: 16 }}>{calcQ} Questions</span>
+                  <span style={{ color: 'var(--premium-blue)', fontFamily: 'var(--font-mono)', fontSize: 15.5 }}>{calcQ} Questions</span>
                 </div>
                 <input 
                   type="range" 
@@ -1648,7 +1721,7 @@ export default function PricingPage() {
                 />
               </div>
 
-              <div style={{ marginBottom: 26, background: '#F8FAFC', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--line)' }}>
+              <div style={{ marginBottom: 22, background: '#F8FAFC', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line)' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
                   <input 
                     type="checkbox" 
@@ -1657,22 +1730,22 @@ export default function PricingPage() {
                     style={{ width: 18, height: 18, accentColor: 'var(--premium-blue)' }} 
                   />
                   <div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy-900)' }}>Include Full Worked Solutions (+{calcQ} Credits)</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy-900)' }}>Include Full Worked Solutions (+{calcQ} Credits)</span>
                     <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>Master answer key is always free. Worked solutions are optional.</div>
                   </div>
                 </label>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 10, color: 'var(--ink-soft)' }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 8, color: 'var(--ink-soft)' }}>
                   <span>Question Assembling:</span>
                   <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{calcQ} Credits</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 10, color: 'var(--ink-soft)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 8, color: 'var(--ink-soft)' }}>
                   <span>Worked Solutions Add-on:</span>
                   <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{includeSol ? `${calcQ} Credits` : '₹0 (Answer Key Included Free)'}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 16, color: 'var(--ink-soft)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 14, color: 'var(--ink-soft)' }}>
                   <span>PDF &amp; Logo Branding:</span>
                   <span style={{ fontWeight: 800, color: '#16A34A' }}>FREE</span>
                 </div>
@@ -1683,52 +1756,60 @@ export default function PricingPage() {
                   alignItems: 'center', 
                   background: 'linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
                   color: '#ffffff', 
-                  padding: '16px 20px', 
+                  padding: '14px 18px', 
                   borderRadius: 14 
                 }}>
                   <div>
-                    <div style={{ fontSize: 11.5, color: '#F6C84C', fontWeight: 700, textTransform: 'uppercase' }}>Total QuestionStudio Cost</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ fontSize: 11, color: '#F6C84C', fontWeight: 700, textTransform: 'uppercase' }}>Total QuestionStudio Cost</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
                       ₹{includeSol ? calcQ * 2 : calcQ}
                     </div>
                   </div>
-                  <div style={{ fontSize: 12.5, textAlign: 'right', color: 'rgba(255, 255, 255, 0.85)' }}>
+                  <div style={{ fontSize: 12, textAlign: 'right', color: 'rgba(255, 255, 255, 0.85)' }}>
                     Just <strong>{includeSol ? calcQ * 2 : calcQ} credits</strong><br />Generated in 2 minutes
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Savings & Comparison vs DTP Agency */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Savings & Comparison vs DTP Agency (Stacked & Clamped on Small Screens) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ 
                 background: '#FEF3C7', 
                 border: '1.5px solid #F59E0B', 
                 borderRadius: 18, 
-                padding: '24px', 
+                padding: 'clamp(18px, 3.5vw, 24px)', 
                 boxShadow: '0 8px 24px rgba(245, 158, 11, 0.12)' 
               }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
                   💰 MASSIVE COST COMPARISON
                 </div>
-                <h4 style={{ fontSize: 20, fontWeight: 800, color: '#78350F', margin: '0 0 12px' }}>
+                <h4 style={{ fontSize: 'clamp(18px, 3vw, 20px)', fontWeight: 800, color: '#78350F', margin: '0 0 12px' }}>
                   You Save Over 85% per Test Paper
                 </h4>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, background: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 14 }}>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', 
+                  gap: 12, 
+                  background: '#ffffff', 
+                  padding: '14px', 
+                  borderRadius: 12, 
+                  marginBottom: 12 
+                }}>
                   <div>
                     <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>DTP Typing Agency:</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#DC2626' }}>₹600 – ₹1,200</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-soft)', marginTop: 2 }}>⏰ Takes 2–3 Days</div>
+                    <div style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 800, color: '#DC2626', wordBreak: 'break-word' }}>₹600 – ₹1,200</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>⏰ Takes 2–3 Days</div>
                   </div>
-                  <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: 14 }}>
+                  <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: 12 }}>
                     <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>QuestionStudio:</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A' }}>₹{includeSol ? calcQ * 2 : calcQ}</div>
-                    <div style={{ fontSize: 11.5, color: '#16A34A', fontWeight: 700, marginTop: 2 }}>⚡ Ready in 2 Minutes</div>
+                    <div style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 800, color: '#16A34A', wordBreak: 'break-word' }}>₹{includeSol ? calcQ * 2 : calcQ}</div>
+                    <div style={{ fontSize: 11, color: '#16A34A', fontWeight: 700, marginTop: 2 }}>⚡ Ready in 2 Minutes</div>
                   </div>
                 </div>
 
-                <div style={{ fontSize: 13.5, color: '#92400E', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.5 }}>
                   Generating 20 test papers per month saves your college over <strong>₹15,000 to ₹22,000 every single month</strong> while completely eliminating typing mistakes.
                 </div>
               </div>
@@ -1737,12 +1818,12 @@ export default function PricingPage() {
                 background: '#ffffff', 
                 border: '1px solid var(--line)', 
                 borderRadius: 18, 
-                padding: '22px 24px' 
+                padding: 'clamp(18px, 3.5vw, 22px)' 
               }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--navy-950)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--navy-950)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>🛡️</span> Zero Watermark, 100% White-Label
                 </div>
-                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0, lineHeight: 1.5 }}>
                   Your generated papers feature only your college's name, address, phone number, and logo. There is no QuestionStudio branding on student printouts.
                 </p>
               </div>
@@ -1756,19 +1837,19 @@ export default function PricingPage() {
           ========================================================================= */}
       <section className="pricing-section-pad" style={{ backgroundColor: '#ffffff', borderTop: '1px solid var(--line)' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--premium-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               HAVE QUESTIONS?
             </div>
-            <h2 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
+            <h2 style={{ fontSize: 'clamp(25px, 4.5vw, 36px)', fontWeight: 800, color: 'var(--navy-950)', letterSpacing: '-0.02em', marginBottom: 10 }}>
               Frequently Asked Questions
             </h2>
-            <p style={{ fontSize: 15.5, color: 'var(--ink-soft)' }}>
+            <p style={{ fontSize: 15, color: 'var(--ink-soft)' }}>
               Everything college management needs to know about credits, modules, and billing.
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {faqs.map((f, i) => {
               const isOpen = openFaq === i;
               return (
@@ -1788,7 +1869,7 @@ export default function PricingPage() {
                     onClick={() => setOpenFaq(isOpen ? -1 : i)}
                     style={{
                       width: '100%',
-                      padding: '18px 22px',
+                      padding: '16px 20px',
                       background: 'none',
                       border: 'none',
                       display: 'flex',
@@ -1796,14 +1877,14 @@ export default function PricingPage() {
                       justifyContent: 'space-between',
                       textAlign: 'left',
                       cursor: 'pointer',
-                      gap: 16
+                      gap: 14
                     }}
                   >
-                    <span style={{ fontSize: 15.5, fontWeight: 700, color: isOpen ? 'var(--premium-blue)' : 'var(--navy-950)' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: isOpen ? 'var(--premium-blue)' : 'var(--navy-950)', wordBreak: 'break-word' }}>
                       {f.q}
                     </span>
                     <span style={{ 
-                      fontSize: 20, 
+                      fontSize: 18, 
                       fontWeight: 700, 
                       color: isOpen ? 'var(--premium-blue)' : '#94A3B8',
                       transform: isOpen ? 'rotate(45deg)' : 'none',
@@ -1815,8 +1896,8 @@ export default function PricingPage() {
                   </button>
 
                   {isOpen && (
-                    <div style={{ padding: '0 22px 20px', fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.6, borderTop: '1px solid rgba(49, 87, 232, 0.1)' }}>
-                      <p style={{ margin: '12px 0 0' }}>{f.a}</p>
+                    <div style={{ padding: '0 20px 18px', fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.6, borderTop: '1px solid rgba(49, 87, 232, 0.1)' }}>
+                      <p style={{ margin: '10px 0 0' }}>{f.a}</p>
                     </div>
                   )}
                 </div>
@@ -1833,23 +1914,23 @@ export default function PricingPage() {
         background: 'radial-gradient(circle at 15% 20%, rgba(49, 87, 232, 0.35) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.2) 0%, transparent 50%), linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
         textAlign: 'center', 
         color: '#ffffff',
-        padding: 'clamp(56px, 8vw, 84px) clamp(20px, 4vw, 40px)',
+        padding: 'clamp(52px, 7vw, 80px) clamp(16px, 4vw, 36px)',
         position: 'relative',
         overflow: 'hidden'
       }}>
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 700, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 800, marginBottom: 16, fontFamily: 'var(--font-display)', color: '#ffffff', letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: 'clamp(26px, 5.5vw, 40px)', fontWeight: 800, marginBottom: 14, fontFamily: 'var(--font-display)', color: '#ffffff', letterSpacing: '-0.02em' }}>
             Ready to Upgrade Your College Testing?
           </h2>
-          <p style={{ fontSize: 'clamp(15px, 2.5vw, 18px)', color: 'rgba(255, 255, 255, 0.88)', margin: '0 auto 32px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'clamp(14.5px, 2.4vw, 17.5px)', color: 'rgba(255, 255, 255, 0.88)', margin: '0 auto 30px', lineHeight: 1.6 }}>
             Set up your institutional account today and receive <strong style={{ color: '#F6C84C' }}>200 free welcome credits</strong> immediately upon verification.
           </p>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <CtaLink 
               className="btn btn-primary" 
               style={{ 
-                padding: '16px 36px', 
-                fontSize: 16, 
+                padding: '14px 32px', 
+                fontSize: 15.5, 
                 fontWeight: 800, 
                 borderRadius: 12,
                 background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)',
