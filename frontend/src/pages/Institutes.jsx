@@ -187,33 +187,44 @@ export default function Institutes() {
   const previewLogoUrl = form.logoFilename ? `${api.imageBase()}/uploads/images/${form.logoFilename}` : null;
 
   return (
-    <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <p className="eyebrow">White-Label Branding</p>
-          <h1 className="page-title">Institutes</h1>
-          <p className="page-sub">
-            Save each college's logo, phone, and address once — every paper generated for that
-            institute automatically carries the correct letterhead, no retyping needed.
-          </p>
+    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>🏛️</span>
+              <span>White-Label Branding &bull; Institutional Directory</span>
+            </div>
+            <h1 className="studio-title">Institutes &amp; College Profiles</h1>
+            <p className="studio-sub">
+              Manage client colleges, letterhead emblems, and addresses. Automatically embed watermarks on generated question papers and administer college credits.
+            </p>
+          </div>
+          <Link
+            to="/admin/subscriptions"
+            className="btn btn-secondary"
+            style={{
+              padding: '10px 18px',
+              fontSize: 13.5,
+              fontWeight: 700,
+            }}
+          >
+            <span>🏷️</span> Subscriptions &amp; Modules &rarr;
+          </Link>
         </div>
-        <Link
-          to="/admin/subscriptions"
-          className="btn btn-ghost"
-          style={{
-            padding: '9px 18px',
-            fontWeight: 800,
-            color: '#7c3aed',
-            borderColor: '#c4b5fd',
-            background: '#f5f3ff',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: '0 2px 6px rgba(124, 58, 237, 0.1)',
-          }}
-        >
-          <span>🏷️</span> College Subscriptions &amp; Modules &rarr;
-        </Link>
+
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Registered Colleges:</span> <strong>{institutes.length}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Watermarks:</span> <strong>Auto-Attached on PDF</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Credit Administration:</span> <strong>Live In-Memory Adjustments</strong>
+          </div>
+        </div>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}

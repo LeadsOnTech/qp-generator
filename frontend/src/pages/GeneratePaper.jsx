@@ -22,8 +22,8 @@ export default function GeneratePaper() {
   const [paperType, setPaperType] = useState('DPP');
   const [examName, setExamName] = useState('');
   const [subjectCounts, setSubjectCounts] = useState({}); // { Physics: { mcq: 20, nvq: 10 }, ... }
-  const [subjectChapters, setSubjectChapters] = useState({}); // { Physics: [{chapter, topics?}, ...] } — empty/absent means "whole syllabus"
-  const [pickerSubject, setPickerSubject] = useState(null); // which subject's modal is open, or null
+  const [subjectChapters, setSubjectChapters] = useState({}); // { Physics: [{chapter, topics?}, ...] }
+  const [pickerSubject, setPickerSubject] = useState(null); // which subject's modal is open
   const [mix, setMix] = useState({ easy: 40, medium: 40, hard: 20 });
   const [avoidRepeats, setAvoidRepeats] = useState(true);
   const [includeSolutions, setIncludeSolutions] = useState(false);
@@ -64,9 +64,6 @@ export default function GeneratePaper() {
     if (isAdmin) {
       api.listInstitutes().then(setInstitutes).catch(() => {});
     } else {
-      // Institute-role users don't pick from a list — they always use their
-      // own account's branding automatically (the backend enforces this
-      // regardless of what's sent, so this is just for display purposes).
       api.myInstitute().then((inst) => {
         setInstituteId(inst.id);
         setInstituteName(inst.name);
@@ -86,7 +83,7 @@ export default function GeneratePaper() {
           const counts = {};
           for (const s of pattern.subjects) counts[s.name] = { mcq: String(s.mcqCount || s.count || 0), nvq: String(s.nvqCount || 0) };
           setSubjectCounts(counts);
-          setPatternMessage(`Loaded ${examName}'s saved pattern.`);
+          setPatternMessage(`Loaded ${examName}'s saved default pattern.`);
         } else {
           setSubjectCounts({});
           setPatternMessage(null);
@@ -99,8 +96,8 @@ export default function GeneratePaper() {
 
   async function savePattern() {
     const subjects = Object.entries(subjectCounts)
-      .filter(([, v]) => Number(v) > 0)
-      .map(([name, v]) => ({ name, count: Number(v) }));
+      .filter(([, v]) => (Number(v?.mcq) || 0) + (Number(v?.nvq) || 0) > 0)
+      .map(([name, v]) => ({ name, count: (Number(v?.mcq) || 0) + (Number(v?.nvq) || 0) }));
     if (subjects.length === 0) return setError('Enter at least one subject count before saving a pattern.');
     try {
       await api.saveExamPattern(examName, {
@@ -240,191 +237,145 @@ export default function GeneratePaper() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 3 — Paper Engine</p>
-        <h1 className="page-title">Generate Paper</h1>
-        <p className="page-sub">
-          Choose the exam, how many questions per subject, and the difficulty mix. The engine picks
-          from the Verified Bank — respecting the Syllabus Master (removed chapters are never used)
-          and skipping questions used in your last three finalized papers. You'll preview everything
-          before any PDF is created.
+    <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div className="studio-badge">
+          <span>⚡</span>
+          <span>Paper Engine v4.6 &bull; Verified Bank</span>
+        </div>
+        <h1 className="studio-title">Question Paper Studio</h1>
+        <p className="studio-sub">
+          Generate rigorous, watermark-ready exam papers with automatic 5-year NTA &amp; CET historical weightages.
+          Syllabus-excluded chapters are filtered out, and previously generated questions are automatically rotated.
         </p>
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Exam:</span> <strong>{examName || 'Select an Exam'}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Format:</span> <strong>{paperType.replace('_', ' ')}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Questions:</span> <strong>{totalQuestions} Selected</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Mix:</span> <strong>{mix.easy}%E / {mix.medium}%M / {mix.hard}%H</strong>
+          </div>
+        </div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {patternMessage && <div className="alert alert-success">{patternMessage}</div>}
-
-      <div className="card card-pad" style={{ maxWidth: 980 }}>
-        <div className="field">
-          <label>Test type</label>
-          <select value={paperType} onChange={(e) => setPaperType(e.target.value)}>
-            <option value="DPP">DPP (Daily Practice Problems)</option>
-            <option value="WEEKLY_TEST">Weekly Test</option>
-            <option value="GRAND_TEST">Grand Test</option>
-            <option value="MOCK_TEST">Mock Test</option>
-            <option value="MODEL_PAPER">Model Paper</option>
-          </select>
+      {/* Notifications */}
+      {error && (
+        <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <span>{error}</span>
         </div>
-
-        <div className="field">
-          <label>Paper title / topic</label>
-          <input type="text" placeholder='e.g. "Kinematics & Cell Biology" or "Full Syllabus"' value={title} onChange={(e) => setTitle(e.target.value)} />
+      )}
+      {patternMessage && (
+        <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 18 }}>✓</span>
+          <span>{patternMessage}</span>
         </div>
+      )}
 
-        {isAdmin ? (
-          <>
-            <div className="field">
-              <label>Institute (letterhead branding)</label>
-              <select
-                value={instituteId}
-                onChange={(e) => {
-                  setInstituteId(e.target.value);
-                  const picked = institutes.find((i) => i.id === e.target.value);
-                  if (picked) setInstituteName(picked.name);
-                }}
-              >
-                <option value="">— Type a custom name instead —</option>
-                {institutes.map((inst) => (
-                  <option key={inst.id} value={inst.id}>{inst.name}</option>
-                ))}
-              </select>
-              {institutes.length === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>
-                  No saved institutes yet — <Link to="/institutes" style={{ color: 'var(--gold-500)' }}>add one</Link> to reuse its logo/phone/address automatically, or just type a name below.
-                </div>
-              )}
-            </div>
-
-            {!instituteId && (
-              <div className="field">
-                <label>Institute name (custom, no logo — printed on the letterhead)</label>
-                <input type="text" placeholder="e.g. KVR Junior College, Vijayawada" value={instituteName} onChange={(e) => setInstituteName(e.target.value)} />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="field">
-            <label>Letterhead branding</label>
-            <div style={{
-              padding: '10px 14px', borderRadius: 8, background: 'var(--paper-dim)',
-              fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span>{instituteName ? <>Using <strong>{instituteName}</strong>'s saved branding</> : 'Loading your institute…'}</span>
-              <Link to="/my-institute" style={{ color: 'var(--gold-500)', fontWeight: 600, fontSize: 12.5 }}>Edit branding</Link>
-            </div>
+      {/* STEP 1: EXAM & BLUEPRINT PRESETS */}
+      <div className="executive-card">
+        <div className="card-section-header">
+          <div>
+            <h3 className="card-section-title">
+              <span style={{ color: '#2563EB' }}>01</span>
+              <span>Select Exam &amp; 5-Year Blueprint Presets</span>
+            </h3>
+            <p className="card-section-sub">
+              Pick your target entrance exam and apply pre-calibrated chapter distributions matching actual 2020–2024 trends.
+            </p>
           </div>
-        )}
+          {examName && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ fontSize: 12.5, padding: '7px 14px', border: '1px solid #CBD5E1' }}
+              onClick={() => setShowSaveCustomModal(true)}
+            >
+              💾 Save As Custom Preset
+            </button>
+          )}
+        </div>
 
         <div className="field">
-          <label>Exam</label>
-          <select value={examName} onChange={(e) => handleExamChange(e.target.value)}>
-            {tree.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
+          <label>Target Entrance Examination</label>
+          <select value={examName} onChange={(e) => handleExamChange(e.target.value)} style={{ fontWeight: 600 }}>
+            {tree.map((e) => (
+              <option key={e.id} value={e.name}>{e.name} — Full Question Pool</option>
+            ))}
           </select>
         </div>
 
-        {/* 5-Year Exam Blueprint Presets Card */}
+        {/* Blueprint Presets Grid */}
         {examName && (
-          <div style={{
-            margin: '18px 0',
-            padding: '16px 18px',
-            background: '#f8fafc',
-            border: '1.5px solid #cbd5e1',
-            borderRadius: 10,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>📊</span>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a', letterSpacing: 0.3 }}>
-                    5-Year Exam Blueprint Presets
-                  </h3>
-                  <span style={{
-                    background: '#dbeafe',
-                    color: '#1e40af',
-                    fontWeight: 700,
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    border: '1px solid #bfdbfe'
-                  }}>
-                    NTA / CET Historical Trends (2020-2024)
-                  </span>
-                </div>
-                <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#64748b' }}>
-                  Auto-populates subject question counts and chapter-by-chapter weightage derived from the last 5 years of competitive papers.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ fontSize: 12, padding: '4px 10px', color: '#1e40af', fontWeight: 600, border: '1px solid #bfdbfe', background: '#eff6ff' }}
-                onClick={() => setShowSaveCustomModal(true)}
-                title="Save your current chapter counts and difficulty mix as a reusable blueprint preset"
-              >
-                💾 Save Current as Custom Blueprint
-              </button>
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569' }}>
+                Historical Weightage Blueprints
+              </span>
+              <span style={{ fontSize: 12, color: '#64748B' }}>
+                Click a blueprint to auto-fill subject &amp; chapter quotas
+              </span>
             </div>
 
-            {/* Blueprint Presets Grid */}
             {loadingBlueprints ? (
-              <div style={{ fontSize: 13, color: '#64748b' }}>Loading blueprint presets…</div>
+              <div className="skeleton" style={{ height: 100 }} />
             ) : blueprints.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#64748b' }}>No presets available for this exam yet.</div>
+              <div style={{ padding: '16px 20px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 13, color: '#64748B' }}>
+                No saved blueprints found for this exam yet. Customize your counts below to save one!
+              </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
+              <div className="blueprint-grid">
                 {blueprints.map((bp) => {
                   const isSelected = selectedBlueprintId === bp.id;
                   return (
                     <div
                       key={bp.id}
                       onClick={() => applyBlueprint(bp)}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: 8,
-                        border: isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                        background: isSelected ? '#eff6ff' : '#ffffff',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        position: 'relative',
-                        boxShadow: isSelected ? '0 2px 6px rgba(37,99,235,0.15)' : 'none',
-                      }}
+                      className={`blueprint-card-item${isSelected ? ' selected' : ''}`}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700, fontSize: 13.5, color: isSelected ? '#1e40af' : '#0f172a' }}>
-                          {bp.name}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            background: bp.isCustom ? '#fef3c7' : '#dcfce7',
-                            color: bp.isCustom ? '#92400e' : '#15803d',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {bp.badge || (bp.isCustom ? 'Custom' : 'Official Preset')}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: isSelected ? '#1E40AF' : '#0F172A' }}>
+                            {bp.name}
                           </span>
-                          {bp.isCustom && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteCustomBlueprint(e, bp.id)}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#dc2626', fontSize: 12, padding: 0 }}
-                              title="Delete preset"
-                            >
-                              ✕
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 9999,
+                              background: bp.isCustom ? '#FEF3C7' : '#DCFCE7',
+                              color: bp.isCustom ? '#92400E' : '#166534',
+                            }}>
+                              {bp.badge || (bp.isCustom ? 'Custom' : 'Official')}
+                            </span>
+                            {bp.isCustom && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteCustomBlueprint(e, bp.id)}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#DC2626', fontSize: 13 }}
+                                title="Delete preset"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748B', lineHeight: 1.4 }}>
+                          {bp.description}
+                        </p>
                       </div>
-                      <p style={{ margin: 0, fontSize: 11.5, color: '#64748b', lineHeight: 1.4 }}>
-                        {bp.description}
-                      </p>
-                      <div style={{ marginTop: 8, display: 'flex', gap: 10, fontSize: 11, color: '#475569', fontWeight: 600 }}>
+
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#475569', fontWeight: 600 }}>
                         <span>📝 {bp.totalQuestions} Questions</span>
-                        <span>⚡ {bp.difficultyMix ? `${bp.difficultyMix.easy}%E / ${bp.difficultyMix.medium}%M / ${bp.difficultyMix.hard}%H` : 'Standard Mix'}</span>
+                        <span>⚡ {bp.difficultyMix ? `${bp.difficultyMix.easy}%E / ${bp.difficultyMix.medium}%M / ${bp.difficultyMix.hard}%H` : 'Standard'}</span>
                       </div>
                     </div>
                   );
@@ -432,43 +383,44 @@ export default function GeneratePaper() {
               </div>
             )}
 
-            {/* Expandable Chapter Weightage Inspector */}
+            {/* Chapter Weightage Breakdown Accordion */}
             {selectedBlueprintId && Object.keys(subjectChapterDistributions).length > 0 && (
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ marginTop: 16, padding: '14px 18px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    style={{ padding: '3px 8px', fontSize: 12, color: '#1e40af', fontWeight: 600 }}
+                    style={{ padding: '4px 10px', fontSize: 12.5, color: '#2563EB', fontWeight: 700, border: '1px solid #BFDBFE', background: '#EFF6FF' }}
                     onClick={() => setShowWeightageDetails((v) => !v)}
                   >
-                    {showWeightageDetails ? '▼ Hide 5-Year Chapter Weightage Breakdown' : '▶ View 5-Year Chapter Weightage Breakdown'}
+                    {showWeightageDetails ? '▲ Hide Chapter Breakdown' : '▼ Inspect 5-Year Chapter Quotas'}
                   </button>
-                  <span style={{ fontSize: 11.5, color: '#64748b' }}>
-                    Questions will be sampled strictly according to these chapter quotas
+                  <span style={{ fontSize: 12, color: '#64748B' }}>
+                    Engine samples strictly according to historical question frequencies
                   </span>
                 </div>
 
                 {showWeightageDetails && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginTop: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginTop: 12 }}>
                     {Object.entries(subjectChapterDistributions).map(([subjName, chapters]) => (
-                      <div key={subjName} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 12px' }}>
-                        <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: 4, marginBottom: 6 }}>
-                          {subjName} ({chapters.reduce((s, c) => s + (c.count || 0), 0)} Qs target)
+                      <div key={subjName} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: '12px 14px' }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#0F172A', borderBottom: '1px solid #F1F5F9', paddingBottom: 6, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{subjName}</span>
+                          <span style={{ color: '#2563EB' }}>{chapters.reduce((s, c) => s + (c.count || 0), 0)} Qs</span>
                         </div>
                         <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {chapters.map((c, cIdx) => (
-                            <div key={cIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, padding: '2px 0' }}>
+                            <div key={cIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '2px 0' }}>
                               <span style={{ color: '#334155', maxWidth: '75%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.chapter}>
                                 {c.chapter}
                               </span>
                               <span style={{
                                 fontWeight: 700,
-                                color: c.count >= 3 ? '#b45309' : '#1e3a8a',
-                                background: c.count >= 3 ? '#fef3c7' : '#f1f5f9',
+                                color: c.count >= 3 ? '#92400E' : '#1E40AF',
+                                background: c.count >= 3 ? '#FEF3C7' : '#EFF6FF',
                                 padding: '1px 6px',
-                                borderRadius: 4,
-                                fontSize: 10.5
+                                borderRadius: 6,
+                                fontSize: 11
                               }}>
                                 {c.count} Qs
                               </span>
@@ -483,134 +435,363 @@ export default function GeneratePaper() {
             )}
           </div>
         )}
+      </div>
 
-        <div className="field">
-          <label>Options format</label>
-          <select value={optionFormat} onChange={(e) => setOptionFormat(e.target.value)}>
-            <option value="AUTO">Automatic by Exam (A, B, C, D for EAPCET/KCET; 1, 2, 3, 4 for NEET/JEE)</option>
-            <option value="ALPHA">(A), (B), (C), (D) — EAPCET & State CET standard</option>
-            <option value="NUMERIC">(1), (2), (3), (4) — NEET & JEE standard</option>
-          </select>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>
-            The question options, instructions, and answer key will all match this exact format.
+      {/* STEP 2: PAPER PARTICULARS & BRANDING */}
+      <div className="executive-card">
+        <div className="card-section-header">
+          <div>
+            <h3 className="card-section-title">
+              <span style={{ color: '#2563EB' }}>02</span>
+              <span>Paper Title &amp; Letterhead Branding</span>
+            </h3>
+            <p className="card-section-sub">
+              Define the paper header, assessment scope, and collegiate branding for print watermarks.
+            </p>
           </div>
         </div>
 
-        <div className="field">
-          <label>Question Paper Layout / Answer Format</label>
-          <select value={answerFormat} onChange={(e) => setAnswerFormat(e.target.value)}>
-            <option value="STANDARD">Standard Format — Clean layout without brackets (Best for OMR sheets)</option>
-            <option value="STUDENT_ANSWER">Student Answer Format [   ] — With square brackets on right side of each question</option>
-          </select>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>
-            {answerFormat === 'STUDENT_ANSWER'
-              ? 'Adds neat square brackets [   ] next to every question for students to write their option directly (ideal when colleges do not provide OMR sheets).'
-              : 'Standard exam paper format without brackets. Best suited when students mark answers on separate OMR sheets.'}
-          </div>
-        </div>
-
-        {exam && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
           <div className="field">
-            <label>Questions per subject</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-              {exam.subjects.map((s) => {
-                const selectionEntries = subjectChapters[s.name] || [];
-                return (
-                  <div key={s.id} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: 12 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>{s.name}</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: 11, color: 'var(--ink-soft)' }}>MCQ</label>
-                          <input type="text" inputMode="numeric" placeholder="0" value={subjectCounts[s.name]?.mcq || ''} onChange={(e) => setCount(s.name, 'mcq', e.target.value.replace(/[^0-9]/g, ''))} style={{ width: '100%' }} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: 11, color: 'var(--ink-soft)' }}>NVQ</label>
-                          <input type="text" inputMode="numeric" placeholder="0" value={subjectCounts[s.name]?.nvq || ''} onChange={(e) => setCount(s.name, 'nvq', e.target.value.replace(/[^0-9]/g, ''))} style={{ width: '100%' }} />
-                        </div>
-                      </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      style={{ marginTop: 8, padding: '7px 10px', fontSize: 12, width: '100%' }}
-                      onClick={() => setPickerSubject(s.name)}
-                    >
-                      {selectionEntries.length > 0
-                        ? `${selectionEntries.length} chapter${selectionEntries.length !== 1 ? 's' : ''} narrowed`
-                        : 'Whole syllabus (click to narrow)'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 8 }}>
-              Total: <strong>{totalQuestions}</strong> question{totalQuestions !== 1 ? 's' : ''}. Leave a subject unnarrowed to draw from its whole syllabus.
-            </div>
+            <label>Assessment Type</label>
+            <select value={paperType} onChange={(e) => setPaperType(e.target.value)}>
+              <option value="DPP">DPP (Daily Practice Problems)</option>
+              <option value="WEEKLY_TEST">Weekly Test / Unit Exam</option>
+              <option value="GRAND_TEST">Grand Test / Pre-Final</option>
+              <option value="MOCK_TEST">Official Simulation Mock Test</option>
+              <option value="MODEL_PAPER">State Board Model Paper</option>
+            </select>
           </div>
-        )}
 
-        {exam && pickerSubject && (
-          <ChapterPickerModal
-            open={Boolean(pickerSubject)}
-            onClose={() => setPickerSubject(null)}
-            subjectName={pickerSubject}
-            chapters={(exam.subjects.find((s) => s.name === pickerSubject)?.chapters || []).filter((c) => c.syllabusStatus === 'ACTIVE')}
-            selection={subjectChapters[pickerSubject] || []}
-            onChange={(entries) => setSelectionFor(pickerSubject, entries)}
-          />
-        )}
+          <div className="field">
+            <label>Paper Title / Topic Scope</label>
+            <input
+              type="text"
+              placeholder='e.g. "Mechanics & Organic Chemistry Grand Test"'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <div className="field">
-          <label>Difficulty mix (must total 100%)</label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {['easy', 'medium', 'hard'].map((level) => (
-              <div key={level} style={{ flex: 1 }}>
-                <div style={{ fontSize: 12.5, marginBottom: 4, textTransform: 'capitalize' }}>{level} %</div>
+        {isAdmin ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <div className="field">
+              <label>Institute Branding (Logo &amp; Header)</label>
+              <select
+                value={instituteId}
+                onChange={(e) => {
+                  setInstituteId(e.target.value);
+                  const picked = institutes.find((i) => i.id === e.target.value);
+                  if (picked) setInstituteName(picked.name);
+                }}
+              >
+                <option value="">— Use Custom Plain Name —</option>
+                {institutes.map((inst) => (
+                  <option key={inst.id} value={inst.id}>{inst.name}</option>
+                ))}
+              </select>
+            </div>
+            {!instituteId && (
+              <div className="field">
+                <label>Custom Institution Name</label>
                 <input
-                  type="text" inputMode="numeric"
-                  value={mix[level]}
-                  onChange={(e) => setMix((m) => ({ ...m, [level]: e.target.value.replace(/[^0-9]/g, '') }))}
+                  type="text"
+                  placeholder="e.g. Narayana IIT Academy, Hyderabad"
+                  value={instituteName}
+                  onChange={(e) => setInstituteName(e.target.value)}
                 />
               </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 12.5, marginTop: 6, color: mixTotal === 100 ? 'var(--success)' : 'var(--danger)' }}>
-            Current total: {mixTotal}%
-          </div>
-        </div>
-
-        <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input id="avoidRepeats" type="checkbox" checked={avoidRepeats} onChange={(e) => setAvoidRepeats(e.target.checked)} />
-          <label htmlFor="avoidRepeats" style={{ margin: 0 }}>Avoid questions used in the last 3 finalized papers</label>
-        </div>
-
-        <div className="field" style={{ background: 'var(--paper-dim)', border: '1px solid var(--line)', borderRadius: 8, padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <input id="includeSolutions" type="checkbox" checked={includeSolutions} onChange={(e) => setIncludeSolutions(e.target.checked)} style={{ marginTop: 3 }} />
-            <label htmlFor="includeSolutions" style={{ margin: 0 }}>
-              <strong>Include worked solutions</strong> (optional add-on)
-              <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4, fontWeight: 400 }}>
-                Every paper already includes the questions and a free answer key. Turning this on
-                adds a <strong>2-column paper-saving worked-solutions section</strong> (matching the exam layout to minimize Xerox paper wastage), charged <strong>1 extra credit per solution</strong>
-                {' '}(only for questions that actually have a solution).
-              </div>
-            </label>
-          </div>
-          <div style={{ fontSize: 12.5, marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)', color: 'var(--ink-soft)' }}>
-            {includeSolutions ? (
-              <>Estimated cost: <strong>{totalQuestions}</strong> credits for questions + up to <strong>{totalQuestions}</strong> more for solutions
-              {' '}= up to <strong>{totalQuestions * 2}</strong> credits. Answer key is free. Exact solution charge depends on how many of these questions have a solution.</>
-            ) : (
-              <>Estimated cost: <strong>{totalQuestions}</strong> credit{totalQuestions !== 1 ? 's' : ''} ({totalQuestions} question{totalQuestions !== 1 ? 's' : ''} + free answer key).</>
             )}
           </div>
+        ) : (
+          <div className="field">
+            <label>Official Institute Letterhead</label>
+            <div style={{
+              padding: '12px 18px',
+              borderRadius: 12,
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              fontSize: 13.5,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <span>
+                Using <strong>{instituteName || 'College Branding'}</strong> (Auto-attached to watermark &amp; PDF header)
+              </span>
+              <Link to="/my-institute" style={{ color: '#2563EB', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                Edit Letterhead &rarr;
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* STEP 3: SUBJECT & QUESTION QUOTAS */}
+      {exam && (
+        <div className="executive-card">
+          <div className="card-section-header">
+            <div>
+              <h3 className="card-section-title">
+                <span style={{ color: '#2563EB' }}>03</span>
+                <span>Subject &amp; Chapter Quotas</span>
+              </h3>
+              <p className="card-section-sub">
+                Allocate Multiple Choice (MCQ) and Numerical Value (NVQ) counts. Narrow specific chapters if testing unit syllabus.
+              </p>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', background: '#F1F5F9', padding: '6px 14px', borderRadius: 9999 }}>
+              Total: {totalQuestions} Questions
+            </div>
+          </div>
+
+          <div className="subject-quota-grid">
+            {exam.subjects.map((s) => {
+              const selectionEntries = subjectChapters[s.name] || [];
+              const mcqCount = subjectCounts[s.name]?.mcq || '';
+              const nvqCount = subjectCounts[s.name]?.nvq || '';
+              return (
+                <div key={s.id} className="subject-quota-box">
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{s.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#2563EB' }}>
+                        {(Number(mcqCount) || 0) + (Number(nvqCount) || 0)} Qs
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: '#64748B', display: 'block', marginBottom: 4 }}>MCQ</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={mcqCount}
+                          onChange={(e) => setCount(s.name, 'mcq', e.target.value.replace(/[^0-9]/g, ''))}
+                          style={{ textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: '#64748B', display: 'block', marginBottom: 4 }}>NVQ</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={nvqCount}
+                          onChange={(e) => setCount(s.name, 'nvq', e.target.value.replace(/[^0-9]/g, ''))}
+                          style={{ textAlign: 'center', fontWeight: 700 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ marginTop: 12, padding: '7px 10px', fontSize: 12, width: '100%', border: '1px solid #CBD5E1' }}
+                    onClick={() => setPickerSubject(s.name)}
+                  >
+                    {selectionEntries.length > 0
+                      ? `🎯 ${selectionEntries.length} Chapter${selectionEntries.length !== 1 ? 's' : ''} Narrowed`
+                      : '📖 Whole Syllabus (Click to Narrow)'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 14 }}>
+            💡 <em>Tip:</em> Leaving a subject without narrowed chapters samples questions proportionately from the entire active syllabus.
+          </div>
+        </div>
+      )}
+
+      {/* Chapter Picker Modal */}
+      {exam && pickerSubject && (
+        <ChapterPickerModal
+          open={Boolean(pickerSubject)}
+          onClose={() => setPickerSubject(null)}
+          subjectName={pickerSubject}
+          chapters={(exam.subjects.find((s) => s.name === pickerSubject)?.chapters || []).filter((c) => c.syllabusStatus === 'ACTIVE')}
+          selection={subjectChapters[pickerSubject] || []}
+          onChange={(entries) => setSelectionFor(pickerSubject, entries)}
+        />
+      )}
+
+      {/* STEP 4: DIFFICULTY & LAYOUT SETTINGS */}
+      <div className="executive-card">
+        <div className="card-section-header">
+          <div>
+            <h3 className="card-section-title">
+              <span style={{ color: '#2563EB' }}>04</span>
+              <span>Difficulty Distribution &amp; Layout Formatting</span>
+            </h3>
+            <p className="card-section-sub">
+              Fine-tune cognitive challenge levels and choose whether questions are formatted for OMR or direct answer sheets.
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-          <button className="btn btn-primary" onClick={generate} disabled={generating}>
-            {generating ? 'Assembling paper…' : 'Generate & Preview'}
+        {/* Difficulty Mix */}
+        <div className="field">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <label style={{ margin: 0 }}>Difficulty Mix Ratio (Must Total 100%)</label>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: 6,
+              background: mixTotal === 100 ? '#DCFCE7' : '#FEE2E2',
+              color: mixTotal === 100 ? '#166534' : '#991B1B'
+            }}>
+              Current: {mixTotal}% {mixTotal === 100 ? '✓ Balanced' : '⚠️ Must equal 100%'}
+            </span>
+          </div>
+
+          {/* Visual Bar */}
+          <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ width: `${mix.easy}%`, background: '#22C55E', transition: 'width 0.2s' }} title={`Easy ${mix.easy}%`} />
+            <div style={{ width: `${mix.medium}%`, background: '#3B82F6', transition: 'width 0.2s' }} title={`Medium ${mix.medium}%`} />
+            <div style={{ width: `${mix.hard}%`, background: '#F59E0B', transition: 'width 0.2s' }} title={`Hard ${mix.hard}%`} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', display: 'block', marginBottom: 4 }}>Easy %</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={mix.easy}
+                onChange={(e) => setMix((m) => ({ ...m, easy: e.target.value.replace(/[^0-9]/g, '') }))}
+                style={{ textAlign: 'center', fontWeight: 700 }}
+              />
+            </div>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#2563EB', display: 'block', marginBottom: 4 }}>Medium %</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={mix.medium}
+                onChange={(e) => setMix((m) => ({ ...m, medium: e.target.value.replace(/[^0-9]/g, '') }))}
+                style={{ textAlign: 'center', fontWeight: 700 }}
+              />
+            </div>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706', display: 'block', marginBottom: 4 }}>Hard %</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={mix.hard}
+                onChange={(e) => setMix((m) => ({ ...m, hard: e.target.value.replace(/[^0-9]/g, '') }))}
+                style={{ textAlign: 'center', fontWeight: 700 }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Layout & Option Format */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 18 }}>
+          <div className="field">
+            <label>Options Enumeration Format</label>
+            <select value={optionFormat} onChange={(e) => setOptionFormat(e.target.value)}>
+              <option value="AUTO">Automatic by Exam (A, B, C, D for CETs; 1, 2, 3, 4 for NEET/JEE)</option>
+              <option value="ALPHA">(A), (B), (C), (D) — State CET Standard</option>
+              <option value="NUMERIC">(1), (2), (3), (4) — NTA NEET / JEE Standard</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label>Question Paper Layout / Answer Format</label>
+            <select value={answerFormat} onChange={(e) => setAnswerFormat(e.target.value)}>
+              <option value="STANDARD">Standard Layout (Best for OMR Sheet Exams)</option>
+              <option value="STUDENT_ANSWER">Student Answer Format [   ] (Brackets next to each question)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Avoid repeats toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0', marginTop: 12 }}>
+          <input
+            id="avoidRepeats"
+            type="checkbox"
+            checked={avoidRepeats}
+            onChange={(e) => setAvoidRepeats(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: '#2563EB', cursor: 'pointer' }}
+          />
+          <label htmlFor="avoidRepeats" style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: '#1E293B', cursor: 'pointer' }}>
+            Rotate Questions: Avoid questions used in the last 3 finalized papers for this institute
+          </label>
+        </div>
+
+        {/* Worked Solutions Addon */}
+        <div style={{
+          marginTop: 14,
+          padding: '16px 18px',
+          borderRadius: 14,
+          border: includeSolutions ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
+          background: includeSolutions ? '#EFF6FF' : '#FFFFFF',
+          transition: 'all 0.2s ease',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <input
+              id="includeSolutions"
+              type="checkbox"
+              checked={includeSolutions}
+              onChange={(e) => setIncludeSolutions(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: '#2563EB', cursor: 'pointer', marginTop: 3 }}
+            />
+            <label htmlFor="includeSolutions" style={{ margin: 0, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Include Worked Step-by-Step Solutions</span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#DBEAFE', color: '#1E40AF' }}>
+                  2-Column Paper-Saver Format
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#64748B', lineHeight: 1.4 }}>
+                Adds a compact 2-column worked-solutions booklet at the end of the question paper, minimizing Xerox paper consumption.
+                (Charged 1 extra credit only for questions with full solutions).
+              </p>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* STICKY BOTTOM ACTION DOCK */}
+      <div className="sticky-action-dock">
+        <div className="dock-meta">
+          <div className="dock-stat">
+            <span className="dock-stat-label">Total Questions</span>
+            <span className="dock-stat-val">{totalQuestions} Qs</span>
+          </div>
+          <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.15)' }} />
+          <div className="dock-stat">
+            <span className="dock-stat-label">Estimated Credits</span>
+            <span className="dock-stat-val" style={{ color: '#60A5FA' }}>
+              {includeSolutions ? `${totalQuestions} to ${totalQuestions * 2}` : totalQuestions} Cr
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ color: '#E2E8F0', borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.06)' }}
+            onClick={savePattern}
+            disabled={!examName || totalQuestions === 0}
+          >
+            Save Default Pattern
           </button>
-          <button className="btn btn-ghost" onClick={savePattern} disabled={!examName || totalQuestions === 0} type="button">
-            Save as {examName || 'exam'}'s default pattern
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '12px 28px', fontSize: 15, fontWeight: 700 }}
+            onClick={generate}
+            disabled={generating || totalQuestions === 0 || mixTotal !== 100}
+          >
+            {generating ? '⚙️ Assembling Paper...' : 'Generate & Preview Paper →'}
           </button>
         </div>
       </div>
@@ -618,22 +799,24 @@ export default function GeneratePaper() {
       {/* Save Custom Blueprint Modal */}
       {showSaveCustomModal && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(16,29,51,0.55)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
         }} onClick={() => setShowSaveCustomModal(false)}>
           <div style={{
-            background: '#fff', borderRadius: 12, width: '100%', maxWidth: 500, padding: 24,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+            background: '#FFFFFF', borderRadius: 20, width: '100%', maxWidth: 500, padding: 28,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0',
           }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 17, fontWeight: 700 }}>Save as Custom Blueprint Preset</h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px' }}>
-              Save the current subject question counts, chapter weightages, and difficulty mix as a reusable preset for {examName}.
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
+              Save Custom Blueprint Preset
+            </h3>
+            <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Save current question counts, chapter distributions, and difficulty mix as a reusable one-click preset for {examName}.
             </p>
             <div className="field">
               <label>Preset Name</label>
               <input
                 type="text"
-                placeholder={`e.g. Apex Pre-Final ${examName} Blueprint (${totalQuestions} Qs)`}
+                placeholder={`e.g. Apex Pre-Final ${examName} (${totalQuestions} Qs)`}
                 value={customBlueprintName}
                 onChange={(e) => setCustomBlueprintName(e.target.value)}
               />
@@ -642,12 +825,12 @@ export default function GeneratePaper() {
               <label>Short Description (Optional)</label>
               <input
                 type="text"
-                placeholder="e.g. Weighted mock for final revision batch"
+                placeholder="e.g. Heavy Mechanics & Organic Chemistry focus"
                 value={customBlueprintDesc}
                 onChange={(e) => setCustomBlueprintDesc(e.target.value)}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setShowSaveCustomModal(false)}>Cancel</button>
               <button type="button" className="btn btn-primary" onClick={handleSaveCustomBlueprint}>Save Preset</button>
             </div>

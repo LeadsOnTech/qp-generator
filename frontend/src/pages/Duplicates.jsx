@@ -59,20 +59,44 @@ export default function Duplicates() {
   }
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 60 }}>
-      <div className="page-header" style={{ marginBottom: 20 }}>
-        <p className="eyebrow" style={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: 11, color: '#6366f1', fontWeight: 700 }}>
-          Bank Hygiene & Quality Assurance
-        </p>
-        <h1 className="page-title" style={{ fontSize: 26, fontWeight: 700, margin: '4px 0 8px 0' }}>
-          Smart Duplicate Detection
-        </h1>
-        <p className="page-sub" style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, maxWidth: 840, margin: 0 }}>
-          Identifies duplicate questions caused by re-uploading spreadsheets or files.
-          Our strict <strong>5-Point Composite Check</strong> ensures zero false alarms: questions are matched
-          only when they share the exact same <strong>Chapter</strong>, <strong>Question Text</strong>,{' '}
-          <strong>Diagram Image</strong>, and <strong>Options (A–D)</strong>.
-        </p>
+    <div style={{ maxWidth: 1180, margin: '0 auto', paddingBottom: 60 }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>⧉</span>
+              <span>Bank Hygiene &bull; Deduplication Engine</span>
+            </div>
+            <h1 className="studio-title">Smart Duplicate Detection</h1>
+            <p className="studio-sub">
+              Detects and removes duplicate questions from redundant file re-uploads. Strict <strong>5-Point Composite Matching</strong> inspects Chapter, Question Content, Diagram Images, and Options A–D with zero false alarms.
+            </p>
+          </div>
+          {data?.totalDuplicates > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700 }}
+              onClick={removeBulk}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Cleaning…' : `Purge All ${data.totalDuplicates} Duplicates`}
+            </button>
+          )}
+        </div>
+
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Duplicate Groups:</span> <strong>{data?.groupCount || 0}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Extra Copies:</span> <strong>{data?.totalDuplicates || 0}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Diagram Safety:</span> <strong>Active (Diagram-Sensitive)</strong>
+          </div>
+        </div>
       </div>
 
       {/* Safety Shield Banner */}

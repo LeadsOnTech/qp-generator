@@ -59,22 +59,53 @@ export default function Upload() {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 1 — Ingestion</p>
-        <h1 className="page-title">Upload Questions</h1>
-        <p className="page-sub">
-          Accepts typed <strong>.xlsx, .xls, .csv</strong> only — questions are saved directly to your 
-          live <strong>Question Bank</strong>. Export your question sets using the standard Excel format and upload here.
-        </p>
+    <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>⇧</span>
+              <span>Ingestion Suite &bull; Master Database</span>
+            </div>
+            <h1 className="studio-title">Upload Questions</h1>
+            <p className="studio-sub">
+              Batch import structured question files directly into the master PostgreSQL repository. 
+              Supports <strong>.xlsx, .xls, .csv</strong> with automatic schema checks, LaTeX math parsing, and instant indexing.
+            </p>
+          </div>
+          <Link
+            to="/questions"
+            className="btn btn-secondary"
+            style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700 }}
+          >
+            Explore Question Bank &rarr;
+          </Link>
+        </div>
+
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Accepted Formats:</span> <strong>Excel (.xlsx, .xls), CSV</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Destination:</span> <strong>Verified Question Bank</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Validation:</span> <strong>Zero Schema Bottlenecks</strong>
+          </div>
+        </div>
       </div>
 
       {examHint && (
-        <div className="alert alert-success" style={{ marginBottom: 16 }}>
-          Make sure your file's <strong>Exam</strong> column says exactly <strong>"{examHint}"</strong> so these questions land in the {examHint} bank.
+        <div className="alert alert-success" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 18 }}>💡</span>
+          <span>
+            Target Exam Active: Ensure your file&apos;s <strong>Exam</strong> column specifies <strong>&ldquo;{examHint}&rdquo;</strong> so these questions are mapped properly.
+          </span>
         </div>
       )}
 
+      {/* Modern Drag and Drop Dropzone */}
       <div
         className={`dropzone${dragActive ? ' active' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -82,14 +113,26 @@ export default function Upload() {
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
       >
-        <div className="dropzone-icon">⇧</div>
-        <p style={{ fontWeight: 600, marginBottom: 4 }}>
-          {uploading ? 'Uploading & adding to bank…' : 'Drag your file here, or click to browse'}
+        <div className="dropzone-icon">
+          {uploading ? '⏳' : '☁️'}
+        </div>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 6 }}>
+          {uploading ? 'Parsing & Indexing Questions...' : 'Drag and drop your spreadsheet here'}
+        </h3>
+        <p style={{ fontSize: 14, color: '#64748B', maxWidth: 480, margin: '0 auto 16px' }}>
+          Click to browse from your computer. System auto-extracts formulas, option keys, and chapter associations.
         </p>
-        <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-          Required columns: Question, OptionA–D, CorrectOption, Exam, Subject, Chapter.
-          Optional: Topic, Difficulty, Solution, ImageFilename / QuestionImage.
-        </p>
+        <div style={{ display: 'inline-flex', gap: 8 }}>
+          <span style={{ background: '#EFF6FF', color: '#1E40AF', padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 700, border: '1px solid #BFDBFE' }}>
+            .XLSX
+          </span>
+          <span style={{ background: '#F0FDF4', color: '#166534', padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 700, border: '1px solid #BBF7D0' }}>
+            .XLS
+          </span>
+          <span style={{ background: '#FAF5FF', color: '#6B21A8', padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 700, border: '1px solid #E9D5FF' }}>
+            .CSV
+          </span>
+        </div>
         <input
           ref={inputRef}
           type="file"
@@ -99,22 +142,34 @@ export default function Upload() {
         />
       </div>
 
-      {error && <div className="alert alert-danger" style={{ marginTop: 20 }}>{error}</div>}
+      {error && (
+        <div className="alert alert-danger" style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
 
+      {/* Upload Result Feedback */}
       {result && (
-        <div className="card card-pad" style={{ marginTop: 24 }}>
-          <div className="alert alert-success" style={{ marginBottom: 20 }}>
-            🎉 <strong>{result.fileName}</strong> uploaded! <strong>{result.successCount}</strong> of {result.totalRows} questions added directly to your Question Bank.
+        <div className="executive-card" style={{ marginTop: 24 }}>
+          <div className="alert alert-success" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 24 }}>🎉</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>Upload Successful: {result.fileName}</div>
+              <div style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>
+                <strong>{result.successCount}</strong> of {result.totalRows} questions imported directly into the Question Bank.
+              </div>
+            </div>
           </div>
           
           {result.successCount > 0 && (
             <div style={{ display: 'flex', gap: 12, marginBottom: result.errorCount > 0 ? 24 : 0 }}>
               <Link to="/questions" className="btn btn-primary">
-                Open Question Bank →
+                Open Question Bank &rarr;
               </Link>
               <button 
+                type="button"
                 className="btn btn-ghost" 
-                style={{ border: '1px solid var(--line)' }}
                 onClick={async () => {
                   try {
                     const blob = await api.previewBatch(result.batchId);
@@ -125,32 +180,36 @@ export default function Upload() {
                   }
                 }}
               >
-                Preview Question Paper (PDF)
+                📄 Preview Batch PDF
               </button>
             </div>
           )}
 
           {result.errorCount > 0 && (
-            <>
-              <h3 style={{ marginBottom: 10, fontSize: 16 }}>
-                {result.errorCount} row(s) need attention
-              </h3>
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 14 }}>
-                These rows were skipped — every other row imported successfully. Fix these
-                in your source file and re-upload just the corrected rows.
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #E2E8F0' }}>
+              <h4 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#991B1B' }}>
+                {result.errorCount} row(s) encountered validation errors
+              </h4>
+              <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 14px' }}>
+                Valid rows were successfully imported. Review the errors below, correct your spreadsheet, and re-upload the remaining rows.
               </p>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Row #</th><th>Issue(s)</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 90 }}>Row #</th>
+                      <th>Validation Issues</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {result.errors.map((e) => (
                       <tr key={e.row}>
-                        <td className="mono">{e.row}</td>
+                        <td className="mono" style={{ fontWeight: 700 }}>#{e.row}</td>
                         <td>
                           {e.errors.map((msg, i) => (
-                            <div key={i} className="badge badge-danger" style={{ marginBottom: 4, marginRight: 4 }}>
+                            <span key={i} className="badge badge-danger" style={{ marginRight: 6, marginBottom: 4, display: 'inline-block' }}>
                               {msg}
-                            </div>
+                            </span>
                           ))}
                         </td>
                       </tr>
@@ -158,64 +217,110 @@ export default function Upload() {
                   </tbody>
                 </table>
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
 
-      {/* Persistent Upload History Table */}
-      <div className="card card-pad" style={{ marginTop: 32 }}>
+      {/* Required Format Guide Card */}
+      <div className="executive-card" style={{ marginTop: 24 }}>
+        <h3 className="card-section-title" style={{ marginBottom: 12 }}>
+          <span>📋</span> Standard Spreadsheet Columns
+        </h3>
+        <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 16px' }}>
+          Format your Excel columns using these exact column names for automated schema mapping:
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+          <div style={{ background: '#F8FAFC', padding: '14px 16px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#2563EB', textTransform: 'uppercase', marginBottom: 6 }}>
+              Required Columns
+            </div>
+            <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.6 }}>
+              <code>Question</code>, <code>OptionA</code>, <code>OptionB</code>, <code>OptionC</code>, <code>OptionD</code>, <code>CorrectOption</code>, <code>Exam</code>, <code>Subject</code>, <code>Chapter</code>
+            </div>
+          </div>
+
+          <div style={{ background: '#F8FAFC', padding: '14px 16px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#16A34A', textTransform: 'uppercase', marginBottom: 6 }}>
+              Optional Add-ons
+            </div>
+            <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.6 }}>
+              <code>Topic</code>, <code>Difficulty</code> (EASY / MEDIUM / HARD), <code>Solution</code>, <code>QuestionImage</code>, <code>ImageFilename</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Batch Upload History */}
+      <div className="executive-card" style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ fontSize: 18, margin: 0 }}>Recent Upload History</h3>
-          <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-            {batches.length} batch(es) recorded
+          <div>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Recent Batch Ingestion Logs
+            </h3>
+            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0' }}>
+              Historical record of spreadsheet uploads and questions indexed into PostgreSQL.
+            </p>
+          </div>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '4px 12px', borderRadius: 9999 }}>
+            {batches.length} Batch(es)
           </span>
         </div>
 
         {loadingBatches ? (
-          <div className="skeleton" style={{ height: 160 }} />
+          <div className="skeleton" style={{ height: 180, borderRadius: 14 }} />
         ) : batches.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink-soft)' }}>
-            No files uploaded yet. Drag an Excel file above to get started.
+          <div style={{ padding: '36px 0', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
+            No uploads recorded yet. Drag an Excel spreadsheet above to import your first batch.
           </div>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>File Name</th>
-                  <th>Questions</th>
+                  <th>Spreadsheet Name</th>
+                  <th>Questions Added</th>
                   <th>Status</th>
-                  <th>Uploaded At</th>
+                  <th>Timestamp</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {batches.slice(0, 15).map((b) => (
                   <tr key={b.id}>
-                    <td style={{ fontWeight: 600 }}>{b.fileName}</td>
+                    <td style={{ fontWeight: 700, color: '#0F172A' }}>
+                      <span style={{ marginRight: 8 }}>📄</span>
+                      {b.fileName}
+                    </td>
+
                     <td>
-                      <span style={{ color: 'var(--ink)' }}>{b.successCount}</span>
+                      <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
                       {b.errorCount > 0 && (
-                        <span style={{ color: 'var(--danger)', fontSize: 12, marginLeft: 6 }}>
+                        <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
                           ({b.errorCount} skipped)
                         </span>
                       )}
                     </td>
+
                     <td>
-                      <span className="badge badge-success" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
-                        ✓ In Bank
-                      </span>
+                      <span className="badge badge-success">● Indexed</span>
                     </td>
-                    <td style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-                      {new Date(b.createdAt).toLocaleString(undefined, {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+
+                    <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
+                      {new Date(b.createdAt).toLocaleString('en-IN', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
                       })}
                     </td>
+
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button
+                        type="button"
                         className="btn btn-ghost"
-                        style={{ padding: '4px 10px', fontSize: 12, marginRight: 6 }}
+                        style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
                         onClick={async () => {
                           try {
                             const blob = await api.previewBatch(b.id);
@@ -231,18 +336,19 @@ export default function Upload() {
                       </button>
                       <Link
                         to="/questions"
-                        className="btn btn-ghost"
-                        style={{ padding: '4px 10px', fontSize: 12, marginRight: 8 }}
+                        className="btn btn-secondary"
+                        style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
                       >
-                        Browse Bank →
+                        Inspect Bank &rarr;
                       </Link>
                       <button
+                        type="button"
                         className="btn-danger-ghost"
-                        style={{ padding: '3px 8px', fontSize: 12 }}
+                        style={{ padding: '5px 10px', fontSize: 12 }}
                         onClick={() => handleDeleteBatch(b.id)}
                         title="Remove upload log"
                       >
-                        ✕
+                        Delete
                       </button>
                     </td>
                   </tr>

@@ -70,26 +70,55 @@ export default function AiTagging() {
   const totalPages = Math.max(Math.ceil(total / 25), 1);
 
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 2 — AI-Assisted Tagging</p>
-        <h1 className="page-title">Difficulty Tagging</h1>
-        <p className="page-sub">
-          The engine suggests Easy / Medium / Hard for every untagged question — nothing is final
-          until you accept it. Lowest-confidence suggestions are shown first, so your attention
-          goes where it matters most. Accepted tags can always be changed later in the Question Bank.
-        </p>
-      </div>
+    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>✦</span>
+              <span>AI Classifier &bull; Cognitive Tagging</span>
+            </div>
+            <h1 className="studio-title">Difficulty Tagging &amp; Review Queue</h1>
+            <p className="studio-sub">
+              Automated classification predicts cognitive difficulty (Easy, Medium, Hard) with confidence scores. Review low-confidence questions or batch-accept predictions with one click.
+            </p>
+          </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" onClick={runTagging} disabled={running}>
-          {running ? 'Tagging in progress…' : 'Run tagging on untagged questions'}
-        </button>
-        {total > 0 && (
-          <button className="btn btn-ghost" onClick={acceptAll}>
-            Accept all {total} suggestions
-          </button>
-        )}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700 }}
+              onClick={runTagging}
+              disabled={running}
+            >
+              {running ? '⚙️ Tagging in Progress…' : '⚡ Run AI Tagging'}
+            </button>
+            {total > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700 }}
+                onClick={acceptAll}
+              >
+                Accept All ({total})
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Pending Review:</span> <strong>{total} Questions</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Confidence Threshold:</span> <strong>70% High / 50% Medium</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Engine:</span> <strong>Gemini 2.5 Pro Classifier</strong>
+          </div>
+        </div>
       </div>
 
       {message && <div className="alert alert-success">{message}</div>}

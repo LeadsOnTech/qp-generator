@@ -307,116 +307,118 @@ export default function Recharge() {
 
   return (
     <div style={{ maxWidth: 1040, margin: '0 auto', padding: '0 8px' }}>
-      {/* HEADER & DUAL BALANCE RIBBON */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-          marginBottom: 20,
-          paddingBottom: 18,
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <div>
-          <p className="eyebrow" style={{ color: 'var(--premium-blue)', margin: 0, fontWeight: 800, fontSize: 12 }}>
-            BILLING &amp; ACADEMIC OPERATIONS
-          </p>
-          <h1 className="page-title" style={{ margin: '4px 0 2px', fontSize: 28, fontWeight: 800, color: NAVY }}>
-            Recharge &amp; Account Balances
-          </h1>
-          <p className="page-sub" style={{ margin: 0, fontSize: 13.5, color: 'var(--ink-soft)' }}>
-            Manage Question Paper Generation credits &amp; official WhatsApp messaging balance in one place.
-          </p>
-        </div>
-
-        {/* Live Institute Dual Balances */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {/* Paper Credits Card */}
-          <div
-            onClick={() => setActiveCategory('credits')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              background: 'linear-gradient(135deg, #07154A 0%, #0F1E68 100%)',
-              color: '#ffffff',
-              padding: '10px 18px',
-              borderRadius: 14,
-              boxShadow: '0 4px 14px rgba(7, 21, 74, 0.15)',
-              cursor: 'pointer',
-              border: activeCategory === 'credits' ? '2.5px solid #F6C84C' : '2.5px solid transparent',
-              transition: 'all 0.15s ease',
-            }}
-            title="Click to manage Paper Credits"
-          >
-            <div>
-              <div style={{ fontSize: 10, color: '#93C5FD', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Paper Engine Credits
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#F6C84C', lineHeight: 1.1 }}>
-                {currentCredits.toLocaleString('en-IN')}{' '}
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#ffffff' }}>Cr</span>
-              </div>
+      {/* EXECUTIVE HERO BANNER */}
+      <div className="studio-hero" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>💳</span>
+              <span>Billing &bull; Academic Balances</span>
             </div>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'rgba(246, 200, 76, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 16,
-              }}
-            >
-              ⚡
-            </div>
+            <h1 className="studio-title">Recharge &amp; Account Balances</h1>
+            <p className="studio-sub">
+              Manage Question Paper Generation credits and official WhatsApp parent scorecard delivery in one unified dashboard.
+            </p>
           </div>
 
-          {/* WhatsApp Wallet Card */}
-          <div
-            onClick={() => setActiveCategory('whatsapp')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
-              color: '#ffffff',
-              padding: '10px 18px',
-              borderRadius: 14,
-              boxShadow: '0 4px 14px rgba(6, 78, 59, 0.15)',
-              cursor: 'pointer',
-              border: activeCategory === 'whatsapp' ? '2.5px solid #34D399' : '2.5px solid transparent',
-              transition: 'all 0.15s ease',
-            }}
-            title="Click to manage WhatsApp Messaging Wallet"
-          >
-            <div>
-              <div style={{ fontSize: 10, color: '#A7F3D0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                WhatsApp Wallet
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#ffffff', lineHeight: 1.1 }}>
-                ₹{currentWaBalance.toFixed(2)}
-              </div>
-            </div>
+          {/* Live Institute Dual Balances */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {/* Paper Credits Card */}
             <div
+              onClick={() => setActiveCategory('credits')}
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'rgba(52, 211, 153, 0.25)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 16,
+                gap: 12,
+                background: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                padding: '10px 18px',
+                borderRadius: 14,
+                cursor: 'pointer',
+                border: activeCategory === 'credits' ? '2px solid #60A5FA' : '1px solid rgba(255, 255, 255, 0.15)',
+                transition: 'all 0.15s ease',
               }}
+              title="Click to manage Paper Credits"
             >
-              💬
+              <div>
+                <div style={{ fontSize: 10, color: '#93C5FD', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Paper Engine
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#FCD34D', lineHeight: 1.1 }}>
+                  {currentCredits.toLocaleString('en-IN')}{' '}
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#ffffff' }}>Cr</span>
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: 'rgba(246, 200, 76, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 16,
+                }}
+              >
+                ⚡
+              </div>
             </div>
+
+            {/* WhatsApp Wallet Card */}
+            <div
+              onClick={() => setActiveCategory('whatsapp')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                background: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                padding: '10px 18px',
+                borderRadius: 14,
+                cursor: 'pointer',
+                border: activeCategory === 'whatsapp' ? '2px solid #4ADE80' : '1px solid rgba(255, 255, 255, 0.15)',
+                transition: 'all 0.15s ease',
+              }}
+              title="Click to top-up WhatsApp Wallet"
+            >
+              <div>
+                <div style={{ fontSize: 10, color: '#86EFAC', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  WhatsApp Wallet
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#4ADE80', lineHeight: 1.1 }}>
+                  ₹{(whatsAppData?.walletBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: 'rgba(34, 197, 94, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 16,
+                }}
+              >
+                💬
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Active View:</span> <strong>{activeCategory === 'credits' ? 'Paper Engine Credits' : 'WhatsApp Delivery Wallet'}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Payment Methods:</span> <strong>Razorpay Instant Checkout &bull; UPI Direct</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Bonus Structure:</span> <strong>Up to 25% Free Credits on High Tiers</strong>
           </div>
         </div>
       </div>

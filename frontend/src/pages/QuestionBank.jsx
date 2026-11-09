@@ -7,7 +7,6 @@ import EditQuestionModal from '../components/EditQuestionModal';
 
 const DIFFICULTIES = ['UNTAGGED', 'EASY', 'MEDIUM', 'HARD'];
 
-
 function formatChemicals(text) {
   if (!text) return text;
   const chemRegexGlob = /\b(\d*)((?:[A-Z][a-z]?|[()[\]]|\d)+)\b/g;
@@ -33,7 +32,7 @@ function formatHeadingText(text) {
   
   const parts = formattedText.split(regex);
   return parts.map((part, i) => {
-    if (i % 2 === 1) return <strong key={i}>{part}</strong>;
+    if (i % 2 === 1) return <strong key={i} style={{ color: '#0F172A' }}>{part}</strong>;
     return part.split('\n').map((line, j) => <React.Fragment key={`${i}-${j}`}>{j > 0 && <br/>}{line}</React.Fragment>);
   });
 }
@@ -67,7 +66,6 @@ export default function QuestionBank() {
   function updateFilter(field, value) {
     setFilters((f) => {
       const next = { ...f, [field]: value };
-      // Cascading reset: changing a higher-level filter clears the ones below it
       if (field === 'exam') { next.subject = ''; next.chapter = ''; next.topic = ''; }
       if (field === 'subject') { next.chapter = ''; next.topic = ''; }
       if (field === 'chapter') { next.topic = ''; }
@@ -107,80 +105,145 @@ export default function QuestionBank() {
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 1 — Verified Bank</p>
-        <h1 className="page-title">Question Bank</h1>
-        <p className="page-sub">
-          {isAdmin
-            ? <>Browse, filter, and tag every question. Chapters marked <em>Removed</em> in the Syllabus Master are automatically excluded from paper generation — you don't need to touch them here.</>
-            : <>Browse the shared question bank to see what's available before generating a paper — filter by exam, subject, chapter, and difficulty.</>}
-        </p>
+    <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>▤</span>
+              <span>Verified Bank &bull; Master Repository</span>
+            </div>
+            <h1 className="studio-title">Question Bank</h1>
+            <p className="studio-sub">
+              {isAdmin
+                ? 'Curate, inspect, and classify questions. Chapters excluded in the Syllabus Master are automatically blocked from paper generation.'
+                : 'Explore the shared repository of curated questions across exams, subjects, and difficulty tiers.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700 }}
+            onClick={() => setShowSearchModal(true)}
+          >
+            <span>📷</span> Visual Screenshot Search
+          </button>
+        </div>
+
+        {/* Live Metrics Ribbon */}
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Indexed Questions:</span> <strong>{total.toLocaleString()}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Filter Match:</span> <strong>Page {page} of {totalPages}</strong>
+          </div>
+          {filters.exam && (
+            <div className="studio-chip">
+              <span>Exam:</span> <strong>{filters.exam}</strong>
+            </div>
+          )}
+          {filters.subject && (
+            <div className="studio-chip">
+              <span>Subject:</span> <strong>{filters.subject}</strong>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Admin Bulk Tools */}
       {isAdmin && <BulkRemovePanel tree={tree} onDone={load} />}
 
-      <div className="filter-bar">
-        <div className="field">
-          <label>Exam</label>
+      {/* Filter and Search Bar */}
+      <div className="filter-strip">
+        <div className="field" style={{ minWidth: 140, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Exam</label>
           <select value={filters.exam} onChange={(e) => updateFilter('exam', e.target.value)}>
-            <option value="">All</option>
+            <option value="">All Exams</option>
             {examOptions.map((e) => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
-        <div className="field">
-          <label>Subject</label>
+
+        <div className="field" style={{ minWidth: 140, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Subject</label>
           <select value={filters.subject} onChange={(e) => updateFilter('subject', e.target.value)} disabled={!filters.exam}>
-            <option value="">All</option>
+            <option value="">All Subjects</option>
             {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
-        <div className="field">
-          <label>Chapter</label>
+
+        <div className="field" style={{ minWidth: 160, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Chapter</label>
           <select value={filters.chapter} onChange={(e) => updateFilter('chapter', e.target.value)} disabled={!filters.subject}>
-            <option value="">All</option>
+            <option value="">All Chapters</option>
             {chapterOptions.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="field">
-          <label>Topic</label>
+
+        <div className="field" style={{ minWidth: 140, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Topic</label>
           <select value={filters.topic} onChange={(e) => updateFilter('topic', e.target.value)} disabled={!filters.chapter || topicOptions.length === 0}>
-            <option value="">All</option>
+            <option value="">All Topics</option>
             {topicOptions.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-        <div className="field">
-          <label>Difficulty</label>
+
+        <div className="field" style={{ minWidth: 130, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Difficulty</label>
           <select
             value={filters.difficulty}
             onChange={(e) => { setFilters((f) => ({ ...f, difficulty: e.target.value })); setPage(1); }}
           >
-            <option value="">All</option>
+            <option value="">All Levels</option>
             {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
-        <div className="field" style={{ flex: 1, minWidth: 220 }}>
-          <label>Search question text</label>
-          <div style={{display: 'flex', gap: '8px'}}>
-            <input
+
+        <div className="field" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
+          <label style={{ fontSize: 12, color: '#64748B' }}>Keyword Search</label>
+          <input
             type="text"
-            placeholder="Search…"
+            placeholder="Search question text or formulas..."
             value={filters.search}
             onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(1); }}
           />
-          <button className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }} onClick={() => setShowSearchModal(true)}>📷 Search by Screenshot</button>
-          </div>
         </div>
+
+        {(filters.exam || filters.subject || filters.chapter || filters.topic || filters.difficulty || filters.search) && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ padding: '10px 14px', fontSize: 12.5 }}
+            onClick={() => {
+              setFilters({ exam: '', subject: '', chapter: '', topic: '', difficulty: '', search: '' });
+              setPage(1);
+            }}
+          >
+            Reset Filters
+          </button>
+        )}
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && (
+        <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
 
+      {/* Main Content */}
       {loading ? (
-        <div className="skeleton" style={{ height: 400 }} />
+        <div className="skeleton" style={{ height: 400, borderRadius: 20 }} />
       ) : items.length === 0 ? (
-        <div className="card empty-state">
-          <h3>No questions match these filters</h3>
-          <p>Try clearing a filter, or upload a new batch from the Upload page.</p>
+        <div className="executive-card" style={{ textAlign: 'center', padding: '60px 24px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🔍</div>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 6 }}>
+            No questions match these filters
+          </h3>
+          <p style={{ fontSize: 14, color: '#64748B', maxWidth: 440, margin: '0 auto 18px' }}>
+            Try clearing one of your filter dropdowns or upload new question batches from the Ingestion portal.
+          </p>
         </div>
       ) : (
         <>
@@ -188,92 +251,184 @@ export default function QuestionBank() {
             <table>
               <thead>
                 <tr>
-                  <th>Question</th>
+                  <th style={{ width: '42%' }}>Question Content</th>
                   <th>Exam / Subject</th>
                   <th>Chapter</th>
                   <th>Syllabus</th>
                   <th>Difficulty</th>
-                  <th>Source</th>
-                  <th></th>
+                  <th>Verification</th>
+                  {isAdmin && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {items.map((q) => (
                   <tr key={q.id}>
-                    <td className="q-text">
+                    <td className="q-text" style={{ padding: '18px 20px', verticalAlign: 'top' }}>
                       {q.imageUrl && (
                         <img
                           src={`${api.imageBase()}${q.imageUrl}`}
-                          alt=""
-                          style={{ width: 60, height: 40, objectFit: 'contain', float: 'right', marginLeft: 8, borderRadius: 4, background: 'var(--paper-dim)' }}
+                          alt="Question diagram"
+                          style={{
+                            width: 72,
+                            height: 48,
+                            objectFit: 'contain',
+                            float: 'right',
+                            marginLeft: 12,
+                            borderRadius: 6,
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                          }}
                         />
                       )}
-                      {formatHeadingText(q.questionText)}
+                      <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#1E293B' }}>
+                        {formatHeadingText(q.questionText)}
+                      </div>
+
                       {q.optionImageUrls && Object.values(q.optionImageUrls).some(Boolean) && (
-                        <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                           {['A', 'B', 'C', 'D'].map((key) => q.optionImageUrls[key] ? (
-                            <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-                              <strong>({key})</strong>
+                            <span key={key} style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 11,
+                              background: '#F8FAFC',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              border: '1px solid #E2E8F0'
+                            }}>
+                              <strong style={{ color: '#0F172A' }}>({key})</strong>
                               <img src={`${api.imageBase()}${q.optionImageUrls[key]}`} alt={key} style={{ maxHeight: 28, maxWidth: 50, objectFit: 'contain' }} />
                             </span>
                           ) : null)}
                         </div>
                       )}
                     </td>
-                    <td>{q.exam} / {q.subject}</td>
-                    <td>{q.chapter}</td>
-                    <td>
-                      {q.syllabusStatus === 'REMOVED'
-                        ? <span className="badge badge-danger">Removed</span>
-                        : q.syllabusStatus === 'MODIFIED'
-                        ? <span className="badge badge-warn">Modified</span>
-                        : <span className="badge badge-success">Active</span>}
+
+                    <td style={{ verticalAlign: 'top', paddingTop: 18 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#0F172A' }}>{q.exam}</div>
+                      <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{q.subject}</div>
                     </td>
-                    <td>
+
+                    <td style={{ verticalAlign: 'top', paddingTop: 18 }}>
+                      <div style={{ fontSize: 13, color: '#334155', maxWidth: 180 }}>{q.chapter}</div>
+                    </td>
+
+                    <td style={{ verticalAlign: 'top', paddingTop: 18 }}>
+                      {q.syllabusStatus === 'REMOVED' ? (
+                        <span className="badge badge-danger">Excluded</span>
+                      ) : q.syllabusStatus === 'MODIFIED' ? (
+                        <span className="badge badge-warn">Modified</span>
+                      ) : (
+                        <span className="badge badge-success">Active</span>
+                      )}
+                    </td>
+
+                    <td style={{ verticalAlign: 'top', paddingTop: 18 }}>
                       {isAdmin ? (
                         <select
                           className="status-select"
                           value={q.difficulty}
                           onChange={(e) => setDifficulty(q.id, e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            borderRadius: 8,
+                            borderColor: '#CBD5E1',
+                            background: '#FFFFFF',
+                          }}
                         >
                           {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
                         </select>
                       ) : (
-                        <span className="badge badge-neutral">{q.difficulty}</span>
+                        <span className={`badge ${
+                          q.difficulty === 'EASY' ? 'badge-success' :
+                          q.difficulty === 'MEDIUM' ? 'badge-warn' :
+                          q.difficulty === 'HARD' ? 'badge-danger' : 'badge-neutral'
+                        }`}>
+                          {q.difficulty}
+                        </span>
                       )}
                     </td>
-                    <td>
-                      {q.verificationLevel === 'AIA_VERIFIED'
-                        ? <span className="badge badge-gold">AIA Verified</span>
-                        : <span className="badge badge-neutral">Community</span>}
+
+                    <td style={{ verticalAlign: 'top', paddingTop: 18 }}>
+                      {q.verificationLevel === 'AIA_VERIFIED' ? (
+                        <span className="badge badge-gold">★ AIA Verified</span>
+                      ) : (
+                        <span className="badge badge-neutral">Standard</span>
+                      )}
                     </td>
-                    <td>
-                      {isAdmin && (
-                        <div style={{display: 'flex', gap: '8px'}}>
-                          <button className="btn-secondary-ghost" style={{marginRight: '8px'}} onClick={() => setEditingQuestion(q)}>Edit</button>
-                          <button className="btn-danger-ghost" onClick={() => removeQuestion(q.id)}>
-                          Remove
+
+                    {isAdmin && (
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'top', paddingTop: 18 }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ padding: '5px 10px', fontSize: 12, marginRight: 6 }}
+                          onClick={() => setEditingQuestion(q)}
+                        >
+                          Edit
                         </button>
-                        </div>
-                      )}
-                    </td>
+                        <button
+                          type="button"
+                          className="btn-danger-ghost"
+                          style={{ padding: '5px 8px', fontSize: 12 }}
+                          onClick={() => removeQuestion(q.id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-            <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-              {total} question{total !== 1 ? 's' : ''} total — page {page} of {totalPages}
+          {/* Pagination Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, padding: '0 4px' }}>
+            <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>
+              Showing {items.length} of {total.toLocaleString()} questions &bull; Page {page} of {totalPages}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
-              <button className="btn btn-ghost" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                style={{ padding: '8px 16px', fontSize: 13 }}
+              >
+                &larr; Previous
+              </button>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0 12px',
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#0F172A',
+                background: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: 10
+              }}>
+                {page} / {totalPages}
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                style={{ padding: '8px 16px', fontSize: 13 }}
+              >
+                Next &rarr;
+              </button>
             </div>
           </div>
         </>
       )}
+
+      {/* Screenshot Search Modal */}
       {showSearchModal && (
         <SearchImageModal
           onClose={() => setShowSearchModal(false)}
@@ -281,6 +436,8 @@ export default function QuestionBank() {
           onDelete={() => { load(); }}
         />
       )}
+
+      {/* Edit Question Modal */}
       {editingQuestion && (
         <EditQuestionModal
           question={editingQuestion}

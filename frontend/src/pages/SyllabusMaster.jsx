@@ -68,105 +68,167 @@ export default function SyllabusMaster() {
     return true;
   });
 
+  // Totals across tree
+  const totalActiveChapters = tree.reduce((sum, e) => sum + e.subjects.reduce((s2, sub) => s2 + sub.chapters.filter(c => c.syllabusStatus === 'ACTIVE').length, 0), 0);
+  const totalRemovedChapters = tree.reduce((sum, e) => sum + e.subjects.reduce((s2, sub) => s2 + sub.chapters.filter(c => c.syllabusStatus === 'REMOVED').length, 0), 0);
+  const totalMissingChapters = tree.reduce((sum, e) => sum + e.subjects.reduce((s2, sub) => s2 + sub.chapters.filter(c => c.questionCount === 0 && c.syllabusStatus !== 'REMOVED').length, 0), 0);
+
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 1 — Rule-Based Filtering</p>
-        <h1 className="page-title">Syllabus Master</h1>
-        <p className="page-sub">
-          The single control point for managing official syllabus and tracking question coverage. 
-          Mark outdated chapters as <strong>Removed</strong> to exclude them from papers, or filter by 
-          <strong>"Missing Questions"</strong> to see which chapters need new uploads.
-        </p>
-      </div>
+    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>✓</span>
+              <span>Syllabus Master &bull; Curriculum Governance</span>
+            </div>
+            <h1 className="studio-title">Syllabus Master</h1>
+            <p className="studio-sub">
+              Centralized authority for official entrance exam curricula. Mark obsolete topics as <strong>Excluded</strong> to permanently block them from paper generation, or track chapters with zero bank questions.
+            </p>
+          </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-      {importMessage && <div className="alert alert-success">{importMessage}</div>}
-
-      {/* Exam & Status Filter Bar */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20, background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--line)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Select Exam:</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {examsList.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                className={`btn ${selectedExam === ex ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '6px 12px', fontSize: 12.5 }}
-                onClick={() => setSelectedExam(ex)}
-              >
-                {ex === 'ALL' ? 'All Exams' : ex}
-              </button>
-            ))}
+          <div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImport}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '11px 20px', fontSize: 13.5, fontWeight: 700 }}
+              disabled={importing}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {importing ? 'Importing Syllabus…' : '📥 Import Syllabus (Excel / CSV)'}
+            </button>
           </div>
         </div>
 
-        <div style={{ width: 1, height: 24, background: 'var(--line)', margin: '0 4px' }} />
+        {/* Live Metrics Ribbon */}
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Active Chapters:</span> <strong style={{ color: '#4ADE80' }}>{totalActiveChapters}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Syllabus Excluded:</span> <strong style={{ color: '#F87171' }}>{totalRemovedChapters}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Needs Uploads:</span> <strong style={{ color: '#FBBF24' }}>{totalMissingChapters}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Exam Scope:</span> <strong>{selectedExam === 'ALL' ? 'All Entrance Exams' : selectedExam}</strong>
+          </div>
+        </div>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {error && (
+        <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <span>⚠️</span><span>{error}</span>
+        </div>
+      )}
+      {importMessage && (
+        <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <span>🎉</span><span>{importMessage}</span>
+        </div>
+      )}
+
+      {/* Filter Strip */}
+      <div className="filter-strip" style={{ alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginRight: 4 }}>
+            Exam:
+          </span>
+          {examsList.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              className={`btn ${selectedExam === ex ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '6px 14px', fontSize: 12.5 }}
+              onClick={() => setSelectedExam(ex)}
+            >
+              {ex === 'ALL' ? 'All Exams' : ex}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ width: 1, height: 24, background: '#E2E8F0', margin: '0 8px' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <button
             type="button"
             className={`btn ${filterMode === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ padding: '6px 10px', fontSize: 12 }}
+            style={{ padding: '6px 12px', fontSize: 12 }}
             onClick={() => setFilterMode('ALL')}
           >
             Show All
           </button>
           <button
             type="button"
-            className={`btn ${filterMode === 'MISSING' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ padding: '6px 10px', fontSize: 12, background: filterMode === 'MISSING' ? '#b45309' : undefined, color: filterMode === 'MISSING' ? '#fff' : undefined }}
+            className="btn btn-ghost"
+            style={{
+              padding: '6px 12px',
+              fontSize: 12,
+              background: filterMode === 'MISSING' ? '#FEF3C7' : '#FFFFFF',
+              color: filterMode === 'MISSING' ? '#92400E' : '#475569',
+              borderColor: filterMode === 'MISSING' ? '#FCD34D' : '#CBD5E1',
+              fontWeight: filterMode === 'MISSING' ? 700 : 500,
+            }}
             onClick={() => setFilterMode('MISSING')}
           >
             ⚠️ Missing Questions (0 in Bank)
           </button>
           <button
             type="button"
-            className={`btn ${filterMode === 'REMOVED' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ padding: '6px 10px', fontSize: 12, background: filterMode === 'REMOVED' ? '#dc2626' : undefined, color: filterMode === 'REMOVED' ? '#fff' : undefined }}
+            className="btn btn-ghost"
+            style={{
+              padding: '6px 12px',
+              fontSize: 12,
+              background: filterMode === 'REMOVED' ? '#FEE2E2' : '#FFFFFF',
+              color: filterMode === 'REMOVED' ? '#991B1B' : '#475569',
+              borderColor: filterMode === 'REMOVED' ? '#FCA5A5' : '#CBD5E1',
+              fontWeight: filterMode === 'REMOVED' ? 700 : 500,
+            }}
             onClick={() => setFilterMode('REMOVED')}
           >
-            ⛔ Removed Chapters
-          </button>
-        </div>
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".xlsx,.xls,.csv"
-            onChange={handleImport}
-            style={{ display: 'none' }}
-          />
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ padding: '6px 14px', fontSize: 12.5 }}
-            disabled={importing}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {importing ? 'Importing Syllabus…' : '📥 Import Syllabus (Excel / CSV)'}
+            ⛔ Excluded Chapters
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="skeleton" style={{ height: 300 }} />
+        <div className="skeleton" style={{ height: 400, borderRadius: 20 }} />
       ) : filteredTree.length === 0 ? (
-        <div className="card empty-state">
-          <h3>No syllabus data found</h3>
-          <p>No exams or chapters match your selected filters.</p>
+        <div className="executive-card" style={{ textAlign: 'center', padding: '60px 24px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>📚</div>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginBottom: 6 }}>
+            No syllabus data found
+          </h3>
+          <p style={{ fontSize: 14, color: '#64748B', maxWidth: 440, margin: '0 auto' }}>
+            No exams or chapters match your selected filters. Try switching exam or filter mode.
+          </p>
         </div>
       ) : (
         filteredTree.map((exam) => (
-          <div key={exam.id} className="syllabus-exam" style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h2 style={{ fontSize: 22, margin: 0 }}>{exam.name} Syllabus</h2>
-              <span className="badge badge-gold" style={{ fontSize: 12 }}>
+          <div key={exam.id} className="executive-card" style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #F1F5F9' }}>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  {exam.name} Syllabus Hierarchy
+                </h2>
+                <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4 }}>
+                  {exam.subjects.length} Subjects &bull; {exam.subjects.reduce((sum, s) => sum + s.chapters.length, 0)} Total Chapters
+                </div>
+              </div>
+              <span className="badge badge-success" style={{ fontSize: 12, padding: '4px 12px' }}>
                 {exam.subjects.reduce((sum, s) => sum + s.chapters.filter(c => c.syllabusStatus === 'ACTIVE').length, 0)} Active Chapters
               </span>
             </div>
+
             {exam.subjects.map((subj) => {
               const visibleChapters = subj.chapters.filter((ch) => {
                 if (filterMode === 'MISSING') return ch.questionCount === 0 && ch.syllabusStatus !== 'REMOVED';
@@ -178,69 +240,120 @@ export default function SyllabusMaster() {
               if (visibleChapters.length === 0 && filterMode !== 'ALL') return null;
 
               return (
-                <div key={subj.id} className="syllabus-subject">
-                  <div className="syllabus-subject-name">{subj.name} ({visibleChapters.length} chapters)</div>
-                  {visibleChapters.map((ch) => (
-                    <div key={ch.id} className={`chapter-row${ch.syllabusStatus === 'REMOVED' ? ' removed' : ''}`}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span className="chapter-name" style={{ textDecoration: ch.syllabusStatus === 'REMOVED' ? 'line-through' : 'none', color: ch.syllabusStatus === 'REMOVED' ? 'var(--ink-soft)' : 'inherit' }}>
-                            {ch.name}
-                          </span>
-                          {ch.syllabusStatus === 'REMOVED' ? (
-                            <span style={{ fontSize: 11, background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
-                              ⛔ Removed from Syllabus
+                <div key={subj.id} style={{ marginBottom: 20 }}>
+                  <div style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: '#1E40AF',
+                    background: '#EFF6FF',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    marginBottom: 10,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>{subj.name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6' }}>
+                      {visibleChapters.length} Chapters
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {visibleChapters.map((ch) => (
+                      <div
+                        key={ch.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 16px',
+                          borderRadius: 10,
+                          background: ch.syllabusStatus === 'REMOVED' ? '#F8FAFC' : '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          opacity: ch.syllabusStatus === 'REMOVED' ? 0.6 : 1,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{
+                              fontWeight: 700,
+                              fontSize: 13.5,
+                              color: ch.syllabusStatus === 'REMOVED' ? '#94A3B8' : '#0F172A',
+                              textDecoration: ch.syllabusStatus === 'REMOVED' ? 'line-through' : 'none'
+                            }}>
+                              {ch.name}
                             </span>
-                          ) : ch.questionCount === 0 ? (
-                            <span style={{ fontSize: 11, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
-                              ⚠️ 0 Questions (Needs Upload)
-                            </span>
+                            {ch.syllabusStatus === 'REMOVED' ? (
+                              <span className="badge badge-danger" style={{ fontSize: 11 }}>
+                                ⛔ Excluded from Papers
+                              </span>
+                            ) : ch.questionCount === 0 ? (
+                              <span className="badge badge-warn" style={{ fontSize: 11 }}>
+                                ⚠️ 0 Questions (Needs Upload)
+                              </span>
+                            ) : (
+                              <span className="badge badge-success" style={{ fontSize: 11 }}>
+                                ✓ {ch.questionCount} Questions in Bank
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                            {ch.questionCount} questions ({ch.mcqCount || 0} MCQ, {ch.nvqCount || 0} NVQ)
+                            {ch.statusNote ? ` &bull; Note: ${ch.statusNote}` : ''}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <Link
+                            to={`/analytics/${ch.id}`}
+                            className="btn btn-ghost"
+                            style={{ padding: '6px 12px', fontSize: 12.5 }}
+                          >
+                            Analytics
+                          </Link>
+
+                          {ch.syllabusStatus === 'ACTIVE' ? (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: '6px 12px', fontSize: 12, color: '#DC2626', borderColor: '#FCA5A5' }}
+                              onClick={() => changeStatus(ch.id, exam.id, subj.id, 'REMOVED')}
+                            >
+                              Exclude Topic
+                            </button>
                           ) : (
-                            <span style={{ fontSize: 11, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
-                              ✓ {ch.questionCount} Questions in Bank
-                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: '6px 12px', fontSize: 12, color: '#16A34A', borderColor: '#86EFAC' }}
+                              onClick={() => changeStatus(ch.id, exam.id, subj.id, 'ACTIVE')}
+                            >
+                              Restore Topic
+                            </button>
                           )}
-                        </div>
-                        <div className="chapter-meta">
-                          {ch.questionCount} questions ({ch.mcqCount || 0} MCQ, {ch.nvqCount || 0} NVQ)
-                          {ch.statusNote ? ` · Note: ${ch.statusNote}` : ''}
+
+                          <select
+                            value={ch.syllabusStatus}
+                            onChange={(e) => changeStatus(ch.id, exam.id, subj.id, e.target.value)}
+                            style={{
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              borderRadius: 8,
+                              borderColor: '#CBD5E1',
+                              background: '#FFFFFF',
+                            }}
+                          >
+                            <option value="ACTIVE">Active</option>
+                            <option value="MODIFIED">Modified</option>
+                            <option value="REMOVED">Removed</option>
+                          </select>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <Link to={`/analytics/${ch.id}`} className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12.5 }}>
-                          Analytics
-                        </Link>
-                        {ch.syllabusStatus === 'ACTIVE' ? (
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: '6px 10px', fontSize: 12, color: '#dc2626', borderColor: '#fca5a5' }}
-                            onClick={() => changeStatus(ch.id, exam.id, subj.id, 'REMOVED')}
-                          >
-                            Mark Removed
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: '6px 10px', fontSize: 12, color: '#16a34a', borderColor: '#86efac' }}
-                            onClick={() => changeStatus(ch.id, exam.id, subj.id, 'ACTIVE')}
-                          >
-                            Restore Active
-                          </button>
-                        )}
-                        <select
-                          className="status-select"
-                          value={ch.syllabusStatus}
-                          onChange={(e) => changeStatus(ch.id, exam.id, subj.id, e.target.value)}
-                        >
-                          <option value="ACTIVE">Active</option>
-                          <option value="MODIFIED">Modified</option>
-                          <option value="REMOVED">Removed</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               );
             })}

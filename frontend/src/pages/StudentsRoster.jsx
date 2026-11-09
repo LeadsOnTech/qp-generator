@@ -422,30 +422,60 @@ export default function StudentsRoster() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.headerRow}>
-        <div>
-          <p style={styles.eyebrow}>ACADEMIC ROSTER & DEMOGRAPHIC DIRECTORY</p>
-          <h1 style={styles.title}>👨‍🎓 Student Directory & Profiles</h1>
-          <p style={styles.subtitle}>
-            Manage student academic profiles, passport photographs, target courses (NEET/JEE/EAPCET), native village/town, hostel status, and parent WhatsApp numbers.
-          </p>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>👨‍🎓</span>
+              <span>Demographic Directory &bull; Student Records</span>
+            </div>
+            <h1 className="studio-title">Student Directory &amp; Academic Profiles</h1>
+            <p className="studio-sub">
+              Manage student enrollment, passport photos, entrance target courses (NEET/JEE/EAPCET), hostel status, and automated parent WhatsApp scorecard dispatch.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={handleExportRoster}
+              disabled={exportingRoster}
+              className="btn btn-secondary"
+              style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700 }}
+              title="Download complete enrolled student directory as CSV"
+            >
+              {exportingRoster ? 'Exporting…' : '📤 Export CSV'}
+            </button>
+            <button
+              onClick={() => setBulkModal(true)}
+              className="btn btn-secondary"
+              style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700 }}
+            >
+              📥 Bulk Import
+            </button>
+            <button
+              onClick={openAddModal}
+              className="btn btn-primary"
+              style={{ padding: '10px 18px', fontSize: 13, fontWeight: 700 }}
+            >
+              + Add Student
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            onClick={handleExportRoster}
-            disabled={exportingRoster}
-            style={styles.secondaryBtn}
-            title="Download complete enrolled student directory as CSV"
-          >
-            {exportingRoster ? 'Exporting…' : '📤 Export Roster CSV'}
-          </button>
-          <button onClick={() => setBulkModal(true)} style={styles.secondaryBtn}>
-            📥 Bulk Import CSV
-          </button>
-          <button onClick={openAddModal} style={styles.primaryBtn}>
-            + Add Student
-          </button>
+
+        {/* Live Metrics Ribbon */}
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Enrolled Students:</span> <strong>{totalStudents}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Parent WhatsApp:</span> <strong style={{ color: '#4ADE80' }}>{withPhoneCount} ({coveragePercent}%)</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Day Scholars:</span> <strong>{dayScholarCount}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Hostelers:</span> <strong style={{ color: '#A78BFA' }}>{hostelerCount}</strong>
+          </div>
         </div>
       </div>
 

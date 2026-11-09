@@ -438,30 +438,43 @@ export default function CollegeSubscriptionPlans() {
   }
 
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto', padding: '24px 16px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            College Administration Portal
-          </p>
-          <h1 style={{ margin: '0 0 6px', fontSize: 28, fontWeight: 800, color: NAVY }}>
-            Plans &amp; Modular Subscriptions
-          </h1>
-          <p style={{ margin: 0, fontSize: 14, color: '#64748b', maxWidth: 680 }}>
-            Manage your optional institutional add-on licenses. Activate individual modules or the Complete Bundle with instant online payment via Razorpay. Question Paper Generation credits remain completely independent.
-          </p>
+    <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 16px' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>🏷️</span>
+              <span>Institutional Licensing &bull; Add-on Modules</span>
+            </div>
+            <h1 className="studio-title">Plans &amp; Modular Subscriptions</h1>
+            <p className="studio-sub">
+              Expand your institutional capabilities with dedicated digital modules. Activate individual add-ons or unlock the Complete Bundle with instant online verification. Paper Generation credits operate independently.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadData}
+            disabled={loading}
+            className="btn btn-secondary"
+            style={{ padding: '10px 18px', fontSize: 13, fontWeight: 700 }}
+          >
+            {loading ? 'Refreshing...' : '🔄 Refresh Status'}
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={loadData}
-          disabled={loading}
-          className="btn btn-ghost"
-          style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700 }}
-        >
-          {loading ? 'Refreshing...' : '🔄 Refresh Status'}
-        </button>
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Billing Cycles:</span> <strong>Monthly &amp; Annual (2 Months Free)</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Payment Gateway:</span> <strong>Automated Instant Activation</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Paper Generation:</span> <strong>Independent Credit Balance</strong>
+          </div>
+        </div>
       </div>
 
       {/* Notifications */}

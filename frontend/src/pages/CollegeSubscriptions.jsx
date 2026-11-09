@@ -380,65 +380,66 @@ export default function CollegeSubscriptions() {
   }
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto', padding: '24px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ maxWidth: 1320, margin: '0 auto', padding: '16px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* =========================================================================
-          PAGE HEADER
+          PAGE HERO BANNER
           ========================================================================= */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <p style={{ margin: '0 0 4px', fontSize: 12.5, fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            SUPER ADMIN PLATFORM COMMAND
-          </p>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: NAVY }}>
-            College Subscriptions &amp; Add-on Licensing
-          </h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: '#64748b' }}>
-            Verify institutional subscription requests, manage active module entitlements, monitor renewals, and inspect recurring revenue.
-          </p>
+      <div className="studio-hero">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>🏷️</span>
+              <span>Platform Command &bull; Subscriptions &amp; Licensing</span>
+            </div>
+            <h1 className="studio-title">College Subscriptions &amp; Add-on Licensing</h1>
+            <p className="studio-sub">
+              Verify institutional subscription requests, manage active module entitlements, monitor renewals, and inspect recurring revenue.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => openProvisionModal()}
+              className="btn btn-primary"
+              style={{
+                padding: '11px 20px',
+                fontWeight: 800,
+                fontSize: 13.5,
+              }}
+            >
+              <span>＋</span> Provision Module / Bundle
+            </button>
+
+            <button
+              type="button"
+              onClick={loadData}
+              className="btn btn-secondary"
+              style={{
+                padding: '10px 18px',
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              🔄 Refresh Data
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => openProvisionModal()}
-            style={{
-              padding: '10px 18px',
-              background: NAVY,
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 10,
-              fontWeight: 800,
-              fontSize: 13.5,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              boxShadow: '0 2px 8px rgba(7, 21, 74, 0.25)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>＋</span> Provision Module / Bundle
-          </button>
-
-          <button
-            type="button"
-            onClick={loadData}
-            style={{
-              padding: '9px 16px',
-              background: '#f8fafc',
-              color: '#475569',
-              border: '1px solid #cbd5e1',
-              borderRadius: 10,
-              fontWeight: 700,
-              fontSize: 13,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            🔄 Refresh Data
-          </button>
+        {/* Live Metrics Ribbon */}
+        <div className="studio-chips">
+          <div className="studio-chip">
+            <span>Colleges:</span> <strong>{summary.totalColleges}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Active Modules:</span> <strong style={{ color: '#4ADE80' }}>{summary.activeSubscriptionsCount}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Pending Approvals:</span> <strong style={{ color: summary.pendingRequestsCount > 0 ? '#FBBF24' : '#94A3B8' }}>{summary.pendingRequestsCount}</strong>
+          </div>
+          <div className="studio-chip">
+            <span>Monthly Run Rate:</span> <strong style={{ color: '#60A5FA' }}>₹{summary.totalMrr.toLocaleString('en-IN')}</strong>
+          </div>
         </div>
       </div>
 

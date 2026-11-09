@@ -99,39 +99,62 @@ export default function QualityChecks() {
   const totalPages = Math.max(Math.ceil(total / 25), 1);
 
   return (
-    <div>
-      <div className="page-header">
-        <p className="eyebrow">Phase 4 — Subject Specialists</p>
-        <h1 className="page-title">Quality Checks</h1>
-        <p className="page-sub">
-          Five specialist checkers — Physics, Chemistry, Biology, Reasoning, English — each verify
-          questions in their own subject. A flagged question is never deleted and never put on a
-          paper until you Approve it or Remove it. Papers automatically skip flagged questions.
-        </p>
+    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      {/* Executive Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div className="studio-badge">
+              <span>⛨</span>
+              <span>Subject Specialists &bull; Integrity Engine</span>
+            </div>
+            <h1 className="studio-title">Specialist Quality Checks</h1>
+            <p className="studio-sub">
+              Automated subject checkers inspect physics units, chemical valence, and biological key accuracy. Flagged questions are quarantined from generated papers until approved or corrected.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '10px 20px', fontSize: 13.5, fontWeight: 700 }}
+            onClick={run}
+            disabled={running}
+          >
+            {running ? '⚙️ Verification in Progress…' : '⚡ Run Specialist Checks'}
+          </button>
+        </div>
+
+        {stats && (
+          <div className="studio-chips">
+            <div className="studio-chip">
+              <span>Passed Validation:</span> <strong style={{ color: '#4ADE80' }}>{stats.passed.toLocaleString()}</strong>
+            </div>
+            <div className="studio-chip">
+              <span>Flagged / Needs Review:</span> <strong style={{ color: stats.flagged > 0 ? '#F87171' : '#4ADE80' }}>{stats.flagged}</strong>
+            </div>
+            <div className="studio-chip">
+              <span>Awaiting Check:</span> <strong>{stats.unchecked.toLocaleString()}</strong>
+            </div>
+          </div>
+        )}
       </div>
 
       {stats && (
         <div className="stat-grid">
           <div className="stat-card">
-            <div className="stat-value">{stats.unchecked}</div>
+            <div className="stat-value">{stats.unchecked.toLocaleString()}</div>
             <div className="stat-label">Awaiting check</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.passed}</div>
-            <div className="stat-label">Passed</div>
+            <div className="stat-value" style={{ color: '#16A34A' }}>{stats.passed.toLocaleString()}</div>
+            <div className="stat-label">Verified &amp; Passed</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.flagged}</div>
-            <div className="stat-label">Flagged — needs review</div>
+            <div className="stat-value" style={{ color: stats.flagged > 0 ? '#DC2626' : '#64748B' }}>{stats.flagged}</div>
+            <div className="stat-label">{stats.flagged > 0 ? 'Flagged — Needs Review' : 'Zero Flagged'}</div>
           </div>
         </div>
       )}
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" onClick={run} disabled={running}>
-          {running ? 'Checking in progress…' : 'Run specialist checks'}
-        </button>
-      </div>
 
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
