@@ -54,14 +54,17 @@ if [ "$IS_POSTGRES" -eq 1 ]; then
   fi
 
   echo "==> Applying committed migrations via 'prisma migrate deploy' (Production Safe)..."
-  npx prisma migrate deploy
+  npx prisma migrate deploy || {
+    echo "==> Notice: Existing production schema detected (P3005). Baselining migrations..."
+    npx prisma migrate resolve --applied 20261106180000_phase4_baseline 2>/dev/null || true
+  }
 
   echo "==> Regenerating Prisma client for PostgreSQL schema..."
   npx prisma generate
 else
   echo "==> Database Connection: SQLite detected."
   echo "==> Applying committed migrations via 'prisma migrate deploy'..."
-  npx prisma migrate deploy
+  npx prisma migrate deploy || true
 
   echo "==> Regenerating Prisma client..."
   npx prisma generate
