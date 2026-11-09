@@ -72,6 +72,9 @@ export default function InstituteDashboard() {
       <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
         <Link to="/generate" className="btn btn-primary">Generate a Paper</Link>
         <Link to="/papers" className="btn btn-ghost">All My Papers</Link>
+        <Link to="/subscriptions" className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, borderColor: '#6366f1', color: '#6366f1' }}>
+          <span>🏷️</span> Plans &amp; Modules
+        </Link>
         <Link to="/my-institute" className="btn btn-ghost">Edit My Institute Profile</Link>
         <Link to="/questions" className="btn btn-ghost">Browse Question Bank</Link>
       </div>

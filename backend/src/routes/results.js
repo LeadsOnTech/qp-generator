@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const prisma = require('../db');
+const { requireModuleAccess, MODULE_KEYS } = require('../lib/subscriptions');
 
 // Setup upload folder for student passport photos
 const STUDENT_UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'students');
@@ -352,7 +353,7 @@ router.post('/generate-from-cbt/:cbtTestId', async (req, res) => {
  * POST /api/results/offline-upload
  * Creates ExamResult records from an offline OMR / Excel / CSV marksheet.
  */
-router.post('/offline-upload', async (req, res) => {
+router.post('/offline-upload', requireModuleAccess(MODULE_KEYS.OMR), async (req, res) => {
   try {
     const { paperId, examName, examDate, records = [], positiveMarks = 4.0, negativeMarks = 1.0 } = req.body;
     const instituteId = req.user.role === 'ADMIN' ? req.body.instituteId : req.user.instituteId;
@@ -368,6 +369,11 @@ router.post('/offline-upload', async (req, res) => {
 
     if (!paper) {
       return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    // Cross-college access safeguard
+    if (req.user.role !== 'ADMIN' && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'That paper does not belong to your institute account.' });
     }
 
     const targetInstituteId = paper.instituteId || instituteId;
@@ -774,7 +780,7 @@ router.get('/:resultId/pdf', async (req, res) => {
  * GET /api/results/:resultId/whatsapp-preview
  * Previews the compiled WhatsApp notification message and estimated cost.
  */
-router.get('/:resultId/whatsapp-preview', async (req, res) => {
+router.get('/:resultId/whatsapp-preview', requireModuleAccess(MODULE_KEYS.WHATSAPP), async (req, res) => {
   try {
     const { resultId } = req.params;
 
@@ -841,7 +847,7 @@ router.get('/:resultId/whatsapp-preview', async (req, res) => {
  * POST /api/results/:resultId/whatsapp-send
  * Dispatches WhatsApp notification for an individual student.
  */
-router.post('/:resultId/whatsapp-send', async (req, res) => {
+router.post('/:resultId/whatsapp-send', requireModuleAccess(MODULE_KEYS.WHATSAPP), async (req, res) => {
   try {
     const { resultId } = req.params;
     const { forceRetry = false } = req.body;
@@ -952,7 +958,7 @@ router.patch('/:resultId/parent-phone', async (req, res) => {
  * POST /api/results/paper/:paperId/batch-whatsapp-send
  * Dispatches WhatsApp notifications in bulk to all approved students in an examination.
  */
-router.post('/paper/:paperId/batch-whatsapp-send', async (req, res) => {
+router.post('/paper/:paperId/batch-whatsapp-send', requireModuleAccess(MODULE_KEYS.WHATSAPP), async (req, res) => {
   try {
     const { paperId } = req.params;
     const { batchName, forceRetry = false } = req.body;
@@ -1038,7 +1044,7 @@ router.post('/paper/:paperId/batch-whatsapp-send', async (req, res) => {
  * GET /api/results/whatsapp-ledger
  * Returns the institute's WhatsApp usage history, wallet balance, and message logs.
  */
-router.get('/whatsapp/ledger', async (req, res) => {
+router.get('/whatsapp/ledger', requireModuleAccess(MODULE_KEYS.WHATSAPP), async (req, res) => {
   try {
     let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
     if (!instituteId && req.user.role === 'ADMIN') {
@@ -1100,7 +1106,7 @@ router.get('/whatsapp/ledger', async (req, res) => {
  * POST /api/results/whatsapp/wallet-recharge
  * Adds credits/rupees to the institute's WhatsApp messaging balance.
  */
-router.post('/whatsapp/wallet-recharge', async (req, res) => {
+router.post('/whatsapp/wallet-recharge', requireModuleAccess(MODULE_KEYS.WHATSAPP), async (req, res) => {
   try {
     const { amountRupees } = req.body;
     let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id']) : req.user.instituteId;

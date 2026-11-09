@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredToken } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import '../college-builder.css';
 
 function getAuthToken() {
@@ -1215,6 +1216,7 @@ function FaqsVisualEditor({ value, onChange }) {
 }
 
 export default function CollegeWebsiteBuilder() {
+  const { user, hasModuleAccess } = useAuth();
   const [website, setWebsite] = useState(null);
   const [institute, setInstitute] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1585,6 +1587,105 @@ export default function CollegeWebsiteBuilder() {
           <div style={{ width: 44, height: 44, border: '4px solid #1e3a8a', borderTopColor: 'transparent', borderRadius: '50%', animation: 'cwbPulse 1s infinite linear', margin: '0 auto 16px auto' }} />
           <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>Loading College Website Studio...</h3>
           <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Retrieving your institutional branding, sections, and academic catalogue</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isSubscriptionLocked =
+    (user?.role === 'INSTITUTE' && !hasModuleAccess('COLLEGE_WEBSITE')) ||
+    (error && (error.includes('MODULE_SUBSCRIPTION_REQUIRED') || error.includes('not active for your institution')));
+
+  if (isSubscriptionLocked) {
+    return (
+      <div style={{ maxWidth: 760, margin: '40px auto', padding: '0 16px' }}>
+        <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #07154A 0%, #1e3a8a 100%)', padding: '32px', color: '#ffffff' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255, 255, 255, 0.2)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+              <span>🌐</span> OPTIONAL ADD-ON MODULE
+            </div>
+            <h1 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: '#ffffff' }}>
+              Dynamic College Website & Portal
+            </h1>
+            <p style={{ margin: 0, fontSize: 14, color: '#bfdbfe', maxWidth: 620, lineHeight: 1.5 }}>
+              Launch your official, fully branded institutional website with course catalogs, faculty recruitment, student admission enquiry capture, and online exam listings.
+            </p>
+          </div>
+
+          <div style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '20px', borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Module Subscription
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 800, color: '#07154A', marginTop: 4 }}>
+                  ₹1,499 <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ month</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, color: '#8b5cf6', fontWeight: 700 }}>
+                  OR ALL 4 MODULES IN BUNDLE
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
+                  ₹4,499 / mo <span style={{ color: '#16a34a', fontSize: 12 }}>(Save ₹497)</span>
+                </div>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1e293b', marginBottom: 12, textTransform: 'uppercase' }}>
+              Included Features:
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 28 }}>
+              <div style={{ display: 'flex', gap: 8, fontSize: 13, color: '#475569' }}>
+                <span style={{ color: '#16a34a', fontWeight: 800 }}>✓</span>
+                <span>White-label public website at your college domain/slug</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 13, color: '#475569' }}>
+                <span style={{ color: '#16a34a', fontWeight: 800 }}>✓</span>
+                <span>Course offerings, fee structure & syllabus details</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 13, color: '#475569' }}>
+                <span style={{ color: '#16a34a', fontWeight: 800 }}>✓</span>
+                <span>Faculty careers & recruitment resume upload management</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 13, color: '#475569' }}>
+                <span style={{ color: '#16a34a', fontWeight: 800 }}>✓</span>
+                <span>Direct student lead and parent enquiry capture CRM</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <Link
+                to="/subscriptions"
+                style={{
+                  padding: '12px 24px',
+                  background: '#07154A',
+                  color: '#ffffff',
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                }}
+              >
+                View Plans & Activate Module →
+              </Link>
+              <Link
+                to="/recharge"
+                style={{
+                  padding: '12px 20px',
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                }}
+              >
+                Recharge via UPI / NEFT
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );

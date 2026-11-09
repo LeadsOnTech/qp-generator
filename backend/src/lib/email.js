@@ -3,10 +3,8 @@ const nodemailer = require('nodemailer');
 // ---------------------------------------------------------------------------
 // Email sending — used only for password-reset links right now.
 //
-// If real SMTP credentials are configured (via .env), this actually sends
-// the email. If not, it safely falls back to returning the link directly
-// instead of failing — clearly flagged as dev/testing mode, never silently
-// pretending an email went out when it didn't.
+// Sends email via nodemailer when SMTP credentials are configured.
+// Never exposes tokens or passwords in server logs or API responses.
 // ---------------------------------------------------------------------------
 
 function hasEmailConfigured() {
@@ -28,35 +26,41 @@ function getTransporter() {
 }
 
 /**
- * Sends a password-reset email if SMTP is configured. If not, returns
- * { sent: false, devResetLink } so the caller (in non-production setups)
- * can show the link directly — this is what lets the whole flow be tested
- * today without any email account, and it self-upgrades to real sending
- * the moment SMTP_HOST/SMTP_USER/SMTP_PASS are added to .env, no code
- * changes required.
+ * Sends a password-reset email if SMTP is configured.
+ * Logs failures server-side without exposing reset tokens or passwords.
+ * Never returns reset tokens or links to the caller.
  */
 async function sendPasswordResetEmail(toEmail, resetLink) {
   if (!hasEmailConfigured()) {
-    console.log(`[No SMTP configured] Password reset link for ${toEmail}: ${resetLink}`);
-    return { sent: false, devResetLink: resetLink };
+    console.warn(`[EMAIL] Password reset requested for ${toEmail}, but SMTP is not configured. Email not sent.`);
+    return { sent: false, reason: 'SMTP_NOT_CONFIGURED' };
   }
 
-  const mailer = getTransporter();
-  await mailer.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: toEmail,
-    subject: 'Reset your QuestionStudio password',
-    text: `We received a request to reset your QuestionStudio password.\n\n` +
-          `Click this link to set a new password (valid for 1 hour):\n${resetLink}\n\n` +
-          `If you didn't request this, you can safely ignore this email.`,
-    html: `
-      <p>We received a request to reset your QuestionStudio password.</p>
-      <p><a href="${resetLink}" style="background:#101d33;color:#d9ae4e;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Reset my password</a></p>
-      <p>This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.</p>
-    `,
-  });
+  try {
+    const mailer = getTransporter();
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: toEmail,
+      subject: 'Reset your QuestionStudio password',
+      text: `We received a request to reset your QuestionStudio password.\n\n` +
+            `Click this link to set a new password (valid for 1 hour):\n${resetLink}\n\n` +
+            `If you didn't request this, you can safely ignore this email.`,
+      html: `
+        <p>We received a request to reset your QuestionStudio password.</p>
+        <p><a href="${resetLink}" style="background:#101d33;color:#d9ae4e;padding:10px 18px;text-decoration:none;border-radius:6px;display:inline-block;">Reset my password</a></p>
+        <p>This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.</p>
+      `,
+    });
 
-  return { sent: true };
+    return { sent: true };
+  } catch (err) {
+    console.error(`[EMAIL] Failed to send password reset email to ${toEmail}. Error: ${err.message}`);
+    return { sent: false, reason: 'SMTP_SEND_FAILED' };
+  }
 }
 
-module.exports = { hasEmailConfigured, sendPasswordResetEmail };
+function _resetTransporter() {
+  transporter = null;
+}
+
+module.exports = { hasEmailConfigured, sendPasswordResetEmail, _resetTransporter };

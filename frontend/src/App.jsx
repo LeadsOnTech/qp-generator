@@ -50,6 +50,8 @@ import StudentsRoster from './pages/StudentsRoster';
 import PublicCollegePortal from './pages/PublicCollegePortal';
 import CollegeWebsiteBuilder from './pages/CollegeWebsiteBuilder';
 import SuperAdminWebsites from './pages/SuperAdminWebsites';
+import CollegeSubscriptions from './pages/CollegeSubscriptions';
+import CollegeSubscriptionPlans from './pages/CollegeSubscriptionPlans';
 
 export default function App() {
   return (
@@ -107,6 +109,7 @@ export default function App() {
               <Route path="/institute-dashboard" element={<InstituteDashboard />} />
               <Route path="/website-builder" element={<CollegeWebsiteBuilder />} />
               <Route path="/my-institute" element={<MyInstituteProfile />} />
+              <Route path="/subscriptions" element={<CollegeSubscriptionPlans />} />
               <Route path="/recharge" element={<Recharge />} />
               <Route path="/security" element={<SecuritySettings />} />
 
@@ -124,6 +127,7 @@ export default function App() {
                 <Route path="/analytics/:chapterId" element={<ChapterAnalytics />} />
                 <Route path="/institutes" element={<Institutes />} />
                 <Route path="/admin/websites" element={<SuperAdminWebsites />} />
+                <Route path="/admin/subscriptions" element={<CollegeSubscriptions />} />
                 <Route path="/trial-accounts" element={<TrialAccounts />} />
                 <Route path="/recharge-approvals" element={<RechargeApprovals />} />
                 <Route path="/admin/registrations" element={<RegistrationApprovals />} />

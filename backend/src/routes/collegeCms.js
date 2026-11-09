@@ -5,9 +5,11 @@ const path = require('path');
 const crypto = require('crypto');
 const prisma = require('../db');
 const { requireAuth } = require('../lib/auth');
+const { requireModuleAccess, MODULE_KEYS } = require('../lib/subscriptions');
 
 const router = express.Router();
 router.use(requireAuth);
+router.use(requireModuleAccess(MODULE_KEYS.COLLEGE_WEBSITE));
 
 // Ensure directories exist
 const IMAGES_DIR = path.join(__dirname, '..', '..', 'uploads', 'images');

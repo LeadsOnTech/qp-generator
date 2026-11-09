@@ -6,19 +6,16 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
-  const [devResetLink, setDevResetLink] = useState(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    setDevResetLink(null);
     setLoading(true);
     try {
       const res = await api.forgotPassword(email.trim());
       setMessage(res.message);
-      if (res.devResetLink) setDevResetLink(res.devResetLink);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,14 +38,6 @@ export default function ForgotPassword() {
 
         {error && <div className="alert alert-danger">{error}</div>}
         {message && <div className="alert alert-success">{message}</div>}
-
-        {devResetLink && (
-          <div className="alert alert-danger" style={{ background: 'var(--warn-bg)', color: 'var(--warn)', border: '1px solid #f0dca8' }}>
-            <strong>No email service configured yet (testing mode).</strong><br />
-            Use this link directly: <br />
-            <a href={devResetLink} style={{ wordBreak: 'break-all', color: 'var(--warn)' }}>{devResetLink}</a>
-          </div>
-        )}
 
         {!message && (
           <form onSubmit={handleSubmit}>

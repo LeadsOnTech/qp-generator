@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const emptyForm = { name: '', phone: '', address: '', tagline: '', logoFilename: '', email: '', password: '', initialCredits: '' };
@@ -187,13 +188,32 @@ export default function Institutes() {
 
   return (
     <div>
-      <div className="page-header">
-        <p className="eyebrow">White-Label Branding</p>
-        <h1 className="page-title">Institutes</h1>
-        <p className="page-sub">
-          Save each college's logo, phone, and address once — every paper generated for that
-          institute automatically carries the correct letterhead, no retyping needed.
-        </p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <p className="eyebrow">White-Label Branding</p>
+          <h1 className="page-title">Institutes</h1>
+          <p className="page-sub">
+            Save each college's logo, phone, and address once — every paper generated for that
+            institute automatically carries the correct letterhead, no retyping needed.
+          </p>
+        </div>
+        <Link
+          to="/admin/subscriptions"
+          className="btn btn-ghost"
+          style={{
+            padding: '9px 18px',
+            fontWeight: 800,
+            color: '#7c3aed',
+            borderColor: '#c4b5fd',
+            background: '#f5f3ff',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: '0 2px 6px rgba(124, 58, 237, 0.1)',
+          }}
+        >
+          <span>🏷️</span> College Subscriptions &amp; Modules &rarr;
+        </Link>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -313,6 +333,7 @@ export default function Institutes() {
                 <button className="btn-danger-ghost" onClick={() => remove(inst.id, inst.name)}>Delete</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => openRecharge(inst)}>+ Credits</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#047857', fontWeight: 700 }} onClick={() => openWaRecharge(inst)}>💬 + WA ₹</button>
+                <Link to="/admin/subscriptions" className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#7c3aed', fontWeight: 700 }}>🏷️ Subscriptions</Link>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#2563eb', fontWeight: 600 }} onClick={() => openLoginModal(inst)}>🔑 Login</button>
               </div>
             </div>

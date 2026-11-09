@@ -15,22 +15,59 @@ cd /app/backend 2>/dev/null || cd backend 2>/dev/null || true
 # Ensure persistent directories exist
 mkdir -p /app/backend/prisma /app/backend/uploads/images /app/backend/uploads/cards ./prisma ./uploads/images ./uploads/cards 2>/dev/null || true
 
-# Synchronize fresh schema.prisma and seed.js from image template into persistent volume directory
+# Synchronize fresh schema.prisma, migrations, and seed.js from image template into persistent volume directory
 if [ -d "/app/backend/prisma-template" ]; then
-  echo "Syncing latest schema.prisma and seed.js to persistent volume..."
+  echo "Syncing latest schema.prisma, migrations, and seed.js to persistent volume..."
   cp -f /app/backend/prisma-template/schema.prisma /app/backend/prisma/schema.prisma 2>/dev/null || true
   cp -f /app/backend/prisma-template/seed.js /app/backend/prisma/seed.js 2>/dev/null || true
+  cp -rf /app/backend/prisma-template/migrations /app/backend/prisma/ 2>/dev/null || true
+  cp -rf /app/backend/prisma-template/migrations_postgresql /app/backend/prisma/ 2>/dev/null || true
   cp -f /app/backend/prisma-template/schema.prisma ./prisma/schema.prisma 2>/dev/null || true
   cp -f /app/backend/prisma-template/seed.js ./prisma/seed.js 2>/dev/null || true
+  cp -rf /app/backend/prisma-template/migrations ./prisma/ 2>/dev/null || true
+  cp -rf /app/backend/prisma-template/migrations_postgresql ./prisma/ 2>/dev/null || true
 fi
 
-echo "Applying database schema..."
-npx prisma db push --accept-data-loss --skip-generate || true
+# Detect database provider from connection string
+IS_POSTGRES=0
+case "$DATABASE_URL" in
+  postgres://*|postgresql://*)
+    IS_POSTGRES=1
+    ;;
+esac
 
-echo "Regenerating Prisma client against live schema..."
-npx prisma generate || true
+if [ "$IS_POSTGRES" -eq 1 ]; then
+  echo "==> Production Database Connection: PostgreSQL detected."
+  # Adjust provider to postgresql if needed in schema.prisma
+  if grep -q 'provider = "sqlite"' prisma/schema.prisma 2>/dev/null; then
+    echo "Configuring Prisma provider to 'postgresql' for PostgreSQL datasource..."
+    sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma 2>/dev/null || true
+    [ -f "/app/backend/prisma/schema.prisma" ] && sed -i 's/provider = "sqlite"/provider = "postgresql"/' /app/backend/prisma/schema.prisma 2>/dev/null || true
+  fi
 
-echo "Seeding default admin and starter syllabus..."
+  # Switch to PostgreSQL migrations directory if available
+  if [ -d "prisma/migrations_postgresql" ]; then
+    echo "Switching to PostgreSQL version-controlled migrations..."
+    rm -rf prisma/migrations_backup 2>/dev/null || true
+    mv prisma/migrations prisma/migrations_backup 2>/dev/null || true
+    cp -rf prisma/migrations_postgresql prisma/migrations 2>/dev/null || true
+  fi
+
+  echo "==> Applying committed migrations via 'prisma migrate deploy' (Production Safe)..."
+  npx prisma migrate deploy
+
+  echo "==> Regenerating Prisma client for PostgreSQL schema..."
+  npx prisma generate
+else
+  echo "==> Database Connection: SQLite detected."
+  echo "==> Applying committed migrations via 'prisma migrate deploy'..."
+  npx prisma migrate deploy
+
+  echo "==> Regenerating Prisma client..."
+  npx prisma generate
+fi
+
+echo "Seeding default admin and starter syllabus (idempotent)..."
 node prisma/seed.js || true
 
 echo "Syncing common entrance exams and mappings..."

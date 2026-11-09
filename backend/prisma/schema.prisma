@@ -104,6 +104,14 @@ model Institute {
 
   // Multi-College Public Website & Portal
   website              CollegeWebsite?
+
+  // Modular SaaS Subscriptions (Phase 2A)
+  subscriptions        CollegeSubscription[]
+  subscriptionHistory  SubscriptionHistory[]
+
+  // Online Subscription Payments & Invoices (Phase 3B)
+  subscriptionPayments SubscriptionPayment[]
+  subscriptionInvoices SubscriptionInvoice[]
 }
 
 // ---------- Credit ledger ----------
@@ -927,4 +935,223 @@ model CollegeJobApplication {
   internalNotes   String?
   createdAt       DateTime          @default(now())
 }
+
+// ============================================================================
+// MODULAR SAAS SUBSCRIPTION SYSTEM (Phase 2A)
+// ============================================================================
+// Manages optional monthly/annual add-on modules per college:
+// 1. OMR & Answer Key Generator (₹999/mo)
+// 2. Online Examination CBT (₹1,999/mo)
+// 3. Dynamic College Website & Portal (₹1,499/mo)
+// 4. WhatsApp Automation & Parent Communication (₹499/mo)
+// 5. Complete Add-on Bundle (₹4,499/mo)
+//
+// NOTE: Question Paper Generation credits (₹1/Q, lifetime validity) remain
+// completely independent in Institute.creditBalance & CreditTransaction.
+// ============================================================================
+
+model CollegeSubscription {
+  id                  String                @id @default(cuid())
+  instituteId         String
+  institute           Institute             @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  
+  // Module identifier: "OMR" | "CBT" | "COLLEGE_WEBSITE" | "WHATSAPP" | "COMPLETE_BUNDLE"
+  moduleKey           String
+  
+  // Subscription state: "ACTIVE" | "EXPIRED" | "CANCELLED" | "PENDING_VERIFICATION" | "SUSPENDED"
+  status              String                @default("ACTIVE")
+  isActive            Boolean               @default(true)
+  
+  // Billing frequency: "MONTHLY" | "ANNUAL"
+  billingCycle        String                @default("MONTHLY")
+  
+  // Historical price snapshot in Indian Rupees at time of subscription/renewal
+  priceRupeesSnapshot Int
+  
+  // Subscription timeline
+  startsAt            DateTime              @default(now())
+  renewalDate         DateTime
+  expiresAt           DateTime?
+  autoRenew           Boolean               @default(false)
+  
+  // Payment tracking reference (for manual UPI / NEFT / admin verification)
+  paymentMethod       String?               // "MANUAL_UPI" | "BANK_TRANSFER" | "CHEQUE" | "ADMIN_COMPLIMENTARY"
+  paymentRef          String?               // UTR, transaction ID, or receipt reference
+  activatedByEmail    String?               // Admin email who approved or activated
+  note                String?
+  
+  // Audit trail
+  history             SubscriptionHistory[]
+  
+  // Payment transactions linked to this subscription (Phase 3B)
+  payments            SubscriptionPayment[]
+  
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  // Each college has at most one current standing record per module/bundle
+  @@unique([instituteId, moduleKey])
+  @@index([instituteId])
+  @@index([moduleKey, status])
+  @@index([status])
+}
+
+model SubscriptionHistory {
+  id                  String               @id @default(cuid())
+  subscriptionId      String?
+  subscription        CollegeSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  instituteId         String
+  institute           Institute            @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  
+  moduleKey           String               // "OMR" | "CBT" | "COLLEGE_WEBSITE" | "WHATSAPP" | "COMPLETE_BUNDLE"
+  action              String               // "ACTIVATED" | "RENEWED" | "EXPIRED" | "DEACTIVATED" | "CANCELLED" | "PLAN_CHANGED"
+  
+  billingCycle        String               @default("MONTHLY") // "MONTHLY" | "ANNUAL"
+  priceRupeesSnapshot Int                  // Price snapshot at this event
+  
+  periodStart         DateTime
+  periodEnd           DateTime
+  
+  paymentMethod       String?              // "MANUAL_UPI" | "BANK_TRANSFER" | "CHEQUE" | "ADMIN_COMPLIMENTARY"
+  paymentRef          String?              // UTR or transaction reference
+  performedByEmail    String?              // Admin/user who performed the action
+  note                String?
+  
+  createdAt           DateTime             @default(now())
+
+  @@index([instituteId])
+  @@index([subscriptionId])
+  @@index([moduleKey])
+}
+
+// ============================================================================
+// Phase 3B: Online Subscription Payments, Invoices & Webhook Audits
+// ============================================================================
+
+model SubscriptionPayment {
+  id                  String               @id @default(cuid())
+  instituteId         String
+  institute           Institute            @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  subscriptionId      String?
+  subscription        CollegeSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  // Module identifier: "OMR" | "CBT" | "COLLEGE_WEBSITE" | "WHATSAPP" | "COMPLETE_BUNDLE"
+  moduleKey           String
+  billingCycle        String               // "MONTHLY" | "ANNUAL"
+
+  // Exact Monetary Breakdown in Integer Paise (₹1 = 100 paise)
+  baseAmountPaise     Int                  // Base subscription catalog price in paise (e.g. 449900 for ₹4,499)
+  taxAmountPaise      Int                  @default(0) // Calculated tax in paise (e.g. 80982 for ₹809.82)
+  totalAmountPaise    Int                  // Total amount charged to college in paise (e.g. 530882 for ₹5,308.82)
+  currency            String               @default("INR")
+
+  // Gateway metadata
+  gatewayProvider     String               @default("RAZORPAY") // "RAZORPAY" | "MANUAL_BANK"
+  gatewayOrderId      String               @unique // Razorpay order_id
+  gatewayPaymentId    String?              @unique // Razorpay pay_id
+  gatewaySignature    String?
+  paymentMethod       String?              // "upi" | "card" | "netbanking"
+  gatewayFeePaise     Int?                 // Gateway transaction fee deduction in paise
+  netSettledPaise     Int?                 // Net payout amount received in paise
+
+  // Payment status: "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED"
+  status              String               @default("PENDING")
+  paidAt              DateTime?
+  failureReason       String?
+
+  // Refund tracking (all in integer paise)
+  refundReference     String?
+  refundStatus        String?              // "PENDING" | "PROCESSED" | "FAILED" | null
+  refundAmountPaise   Int?
+  refundedAt          DateTime?
+
+  // Idempotency & audit identifiers
+  idempotencyKey      String?              @unique
+  receiptNumber       String?              @unique
+  requestedByEmail    String?
+  notes               String?
+
+  // Linked invoice
+  invoice             SubscriptionInvoice?
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([instituteId])
+  @@index([status])
+  @@index([moduleKey])
+  @@index([gatewayOrderId])
+  @@index([createdAt])
+}
+
+model SubscriptionInvoice {
+  id                  String              @id @default(cuid())
+  invoiceNumber       String              @unique // e.g. "QS/2026-27/INV-0001"
+  
+  instituteId         String
+  institute           Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  paymentId           String              @unique
+  payment             SubscriptionPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  invoiceDate         DateTime            @default(now())
+
+  // Exact Monetary Breakdown in Integer Paise
+  baseAmountPaise     Int
+  taxableAmountPaise  Int
+  
+  // Tax Rate in Integer Basis Points (100 bps = 1%, 1800 bps = 18%)
+  taxRateBps          Int                 @default(0) // Configurable GST rate in basis points (e.g. 1800 for 18%)
+  taxAmountPaise      Int                 @default(0) // Total tax in paise
+  cgstAmountPaise     Int                 @default(0) // Intra-state CGST in paise (e.g. 900 bps)
+  sgstAmountPaise     Int                 @default(0) // Intra-state SGST in paise (e.g. 900 bps)
+  igstAmountPaise     Int                 @default(0) // Inter-state IGST in paise (e.g. 1800 bps)
+  totalAmountPaise    Int                 // Gross invoice total in paise
+
+  // Status: "ISSUED" | "PAID" | "VOID" | "REFUNDED"
+  status              String              @default("ISSUED")
+
+  // Tax compliance & PDF reference (neutral accounting classification)
+  sacCode             String?
+  collegeGstin        String?
+  billingAddress      String?
+  pdfPath             String?
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([instituteId])
+  @@index([invoiceNumber])
+  @@index([invoiceDate])
+  @@index([status])
+}
+
+model PaymentWebhookLog {
+  id                  String              @id @default(cuid())
+  gatewayProvider     String              @default("RAZORPAY")
+  eventId             String              @unique // Gateway event ID (e.g. x-razorpay-event-id)
+  eventType           String              // e.g. "payment.captured", "payment.failed", "refund.processed"
+
+  gatewayOrderId      String?
+  gatewayPaymentId    String?
+
+  // Processing state: "RECEIVED" | "PROCESSED" | "FAILED" | "IGNORED"
+  processingStatus    String              @default("RECEIVED")
+  receivedAt          DateTime            @default(now())
+  processedAt         DateTime?
+  errorDetails        String?
+
+  // Redacted payload for audit and dispute resolution
+  payload             String
+
+  createdAt           DateTime            @default(now())
+
+  @@index([gatewayOrderId])
+  @@index([gatewayPaymentId])
+  @@index([processingStatus])
+  @@index([receivedAt])
+}
+
+
 

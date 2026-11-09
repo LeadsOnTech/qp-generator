@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function CbtLaunchModal({ paper, onClose, onOpenDashboard }) {
+  const { user, hasModuleAccess } = useAuth();
+  const navigate = useNavigate();
+  const hasCbtAccess = user?.role === 'ADMIN' || hasModuleAccess('CBT');
+
   const isEapcet = paper?.examName?.toUpperCase().includes('EAPCET') || paper?.examName?.toUpperCase().includes('EAMCET');
 
   const [activeTests, setActiveTests] = useState([]);
@@ -87,6 +93,105 @@ export default function CbtLaunchModal({ paper, onClose, onOpenDashboard }) {
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
+
+  if (!hasCbtAccess) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+          fontFamily: 'system-ui, sans-serif',
+        }}
+        onClick={onClose}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxWidth: 520,
+            width: '100%',
+            borderRadius: 16,
+            overflow: 'hidden',
+            padding: 0,
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            background: '#ffffff',
+          }}
+        >
+          <div style={{ background: '#07154A', color: '#fff', padding: '24px', position: 'relative' }}>
+            <button
+              onClick={onClose}
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                fontSize: 16,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+            <div style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 20, display: 'inline-block', marginBottom: 8 }}>
+              💻 OPTIONAL ADD-ON MODULE
+            </div>
+            <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: '#ffffff' }}>
+              Online Examination (CBT)
+            </h2>
+            <p style={{ margin: 0, fontSize: 13, color: '#bfdbfe', lineHeight: 1.4 }}>
+              Instant computer-based test deployment, secure PIN codes, anti-cheating controls, and real-time live scoreboards.
+            </p>
+          </div>
+          <div style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Module Pricing</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#07154A' }}>
+                  ₹1,999 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ month</span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: '#8b5cf6', fontWeight: 700 }}>OR ALL 4 IN BUNDLE</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>₹4,499 / mo</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 20px' }}>
+              Your institution does not have an active CBT subscription. Activate this module or the Complete Bundle to launch online CBT tests from any paper.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate('/subscriptions');
+                }}
+                style={{ flex: 1, padding: '10px 16px', background: '#07154A', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+              >
+                View Plans & Activate →
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{ padding: '10px 16px', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

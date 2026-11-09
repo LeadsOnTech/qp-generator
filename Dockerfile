@@ -38,7 +38,7 @@ RUN chmod +x /app/start.sh
 ENV PORT=4000
 ENV NODE_ENV=production
 ENV DATABASE_URL="file:/app/backend/prisma/dev.db"
-ENV JWT_SECRET="qp-generator-prod-jwt-secret-key-2026"
+# JWT_SECRET provided securely via environment variables
 
 # Generate Prisma Client
 WORKDIR /app/backend

@@ -6,6 +6,7 @@ const { buildOmrSheetPdf } = require('../lib/omrGenerator');
 const { buildKeyChitPdf } = require('../lib/keyChitGenerator');
 const { generateSetQuestions, generateMasterKeyMatrix } = require('../lib/multiSetEngine');
 const { adjustCredits, hasEnoughCredits } = require('../lib/credits');
+const { requireModuleAccess, MODULE_KEYS } = require('../lib/subscriptions');
 
 const router = express.Router();
 
@@ -533,7 +534,7 @@ router.get('/:id/eco-stats', async (req, res) => {
  * GET /api/papers/:id/omr
  * Streams an optical-scanner-compatible printable 1-page A4 OMR sheet matching this paper.
  */
-router.get('/:id/omr', async (req, res) => {
+router.get('/:id/omr', requireModuleAccess(MODULE_KEYS.OMR), async (req, res) => {
   try {
     const paper = await prisma.paper.findUnique({
       where: { id: req.params.id },
@@ -607,7 +608,7 @@ router.get('/:id/omr', async (req, res) => {
  *  - set: 'A', 'B', 'C', 'D', or 'ALL' (for SINGLE_SET mode)
  *  - optionFormat: 'ALPHA' or 'NUMERIC'
  */
-router.get('/:id/key-chits', async (req, res) => {
+router.get('/:id/key-chits', requireModuleAccess(MODULE_KEYS.OMR), async (req, res) => {
   try {
     const paper = await prisma.paper.findUnique({
       where: { id: req.params.id },

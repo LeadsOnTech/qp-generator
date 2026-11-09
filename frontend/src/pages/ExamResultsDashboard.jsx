@@ -4,11 +4,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api, getStoredToken } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import ModuleUpgradeModal from '../components/ModuleUpgradeModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
 
 export default function ExamResultsDashboard() {
   const { id: paperId } = useParams();
+  const { user, hasModuleAccess } = useAuth();
+  const [whatsappUpgradeModal, setWhatsappUpgradeModal] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -91,12 +95,20 @@ export default function ExamResultsDashboard() {
 
   // Open WhatsApp Preview Modal
   async function handleOpenWhatsAppPreview(result) {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('WHATSAPP')) {
+      setWhatsappUpgradeModal(true);
+      return;
+    }
     try {
       setActionLoading(true);
       const preview = await api.previewResultWhatsApp(result.id);
       setPreviewModal({ result, preview });
     } catch (err) {
-      alert('Unable to load WhatsApp preview: ' + err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setWhatsappUpgradeModal(true);
+      } else {
+        alert('Unable to load WhatsApp preview: ' + err.message);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -104,6 +116,10 @@ export default function ExamResultsDashboard() {
 
   // Send Single WhatsApp
   async function handleSendSingleWhatsApp(resultId) {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('WHATSAPP')) {
+      setWhatsappUpgradeModal(true);
+      return;
+    }
     try {
       setActionLoading(true);
       const res = await api.sendResultWhatsApp(resultId, true);
@@ -111,7 +127,11 @@ export default function ExamResultsDashboard() {
       setPreviewModal(null);
       await loadData();
     } catch (err) {
-      alert('Failed to send WhatsApp message: ' + err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setWhatsappUpgradeModal(true);
+      } else {
+        alert('Failed to send WhatsApp message: ' + err.message);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -149,6 +169,10 @@ export default function ExamResultsDashboard() {
 
   // Batch Send WhatsApp
   async function handleBatchSendWhatsApp() {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('WHATSAPP')) {
+      setWhatsappUpgradeModal(true);
+      return;
+    }
     try {
       setActionLoading(true);
       const res = await api.batchSendWhatsApp(paperId, { batchName: batchFilter });
@@ -156,7 +180,11 @@ export default function ExamResultsDashboard() {
       setBatchModal(false);
       await loadData();
     } catch (err) {
-      alert('Batch WhatsApp dispatch failed: ' + err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setWhatsappUpgradeModal(true);
+      } else {
+        alert('Batch WhatsApp dispatch failed: ' + err.message);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -164,13 +192,21 @@ export default function ExamResultsDashboard() {
 
   // Load WhatsApp Ledger
   async function handleOpenLedger() {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('WHATSAPP')) {
+      setWhatsappUpgradeModal(true);
+      return;
+    }
     try {
       setActionLoading(true);
       const data = await api.getWhatsAppLedger();
       setLedgerData(data);
       setLedgerModal(true);
     } catch (err) {
-      alert('Failed to load WhatsApp ledger: ' + err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setWhatsappUpgradeModal(true);
+      } else {
+        alert('Failed to load WhatsApp ledger: ' + err.message);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -859,6 +895,13 @@ export default function ExamResultsDashboard() {
           </div>
         </div>
       )}
+
+      {/* WhatsApp Upgrade Notice Modal */}
+      <ModuleUpgradeModal
+        isOpen={whatsappUpgradeModal}
+        onClose={() => setWhatsappUpgradeModal(false)}
+        moduleKey="WHATSAPP"
+      />
     </div>
   );
 }

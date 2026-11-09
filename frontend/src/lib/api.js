@@ -36,7 +36,10 @@ async function request(path, options = {}) {
     clearStoredToken();
   }
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    const err = new Error(data.error || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
   return data;
 }
@@ -408,4 +411,66 @@ export const api = {
     a.remove();
     URL.revokeObjectURL(blobUrl);
   },
+
+  // Modular SaaS Subscriptions (Phase 2)
+  getSubscriptionStatus: (instituteId) => request(`/subscriptions/status${instituteId ? `?instituteId=${instituteId}` : ''}`),
+  getMySubscriptions: () => request('/subscriptions/status'),
+  getSubscriptionCatalog: () => request('/subscriptions/catalog'),
+  requestSubscription: (data) => request('/subscriptions/request', { method: 'POST', body: JSON.stringify(data) }),
+  requestSubscriptionCancellation: (data) => request('/subscriptions/request-cancellation', { method: 'POST', body: JSON.stringify(data) }),
+  adminActivateSubscription: (data) => request('/subscriptions/admin/activate', { method: 'POST', body: JSON.stringify(data) }),
+  adminDeactivateSubscription: (data) => request('/subscriptions/admin/deactivate', { method: 'POST', body: JSON.stringify(data) }),
+  adminApproveSubscription: (data) => request('/subscriptions/admin/approve', { method: 'POST', body: JSON.stringify(data) }),
+  adminRenewSubscription: (data) => request('/subscriptions/admin/renew', { method: 'POST', body: JSON.stringify(data) }),
+  adminSuspendSubscription: (data) => request('/subscriptions/admin/suspend', { method: 'POST', body: JSON.stringify(data) }),
+  adminReactivateSubscription: (data) => request('/subscriptions/admin/reactivate', { method: 'POST', body: JSON.stringify(data) }),
+  adminCancelSubscription: (data) => request('/subscriptions/admin/cancel', { method: 'POST', body: JSON.stringify(data) }),
+  adminRejectSubscription: (data) => request('/subscriptions/admin/reject', { method: 'POST', body: JSON.stringify(data) }),
+  adminAllSubscriptions: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/subscriptions/admin/all${q ? `?${q}` : ''}`);
+  },
+  getAdminCollegeSubscription: (id) => request(`/subscriptions/admin/college/${id}`),
+  getSubscriptionHistory: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/subscriptions/admin/history${q ? `?${q}` : ''}`);
+  },
+
+  // Online Subscription Payments & Invoices (Phase 3)
+  createSubscriptionPaymentOrder: (data) => request('/subscriptions/payment/order', { method: 'POST', body: JSON.stringify(data) }),
+  verifySubscriptionPayment: (data) => request('/subscriptions/payment/verify', { method: 'POST', body: JSON.stringify(data) }),
+  getSubscriptionPaymentHistory: () => request('/subscriptions/payment/history'),
+  getSubscriptionInvoice: (id) => request(`/subscriptions/payment/invoice/${id}`),
+
+  // Super Admin Financial Command & Reconciliation (Phase 3E)
+  getAdminPaymentReconciliation: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/subscriptions/payment/admin/reconciliation${q ? `?${q}` : ''}`);
+  },
+  recordAdminOfflinePayment: (data) => request('/subscriptions/payment/admin/record-offline-payment', { method: 'POST', body: JSON.stringify(data) }),
+  processAdminRefund: (data) => request('/subscriptions/payment/admin/refund', { method: 'POST', body: JSON.stringify(data) }),
+  downloadAdminFinancialReportCsv: async (params = {}) => {
+    const token = getStoredToken();
+    const q = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/subscriptions/payment/admin/export-csv${q ? `?${q}` : ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Could not export Financial CSV (${res.status}).`);
+    }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'QuestionsStudio_Subscriptions_Financial_Report.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  },
+
+  // Tax, GST & CA Compliance (Phase 4A)
+  getAdminTaxConfig: () => request('/subscriptions/payment/admin/tax-config'),
+  updateAdminTaxConfig: (data) => request('/subscriptions/payment/admin/tax-config', { method: 'PUT', body: JSON.stringify(data) }),
 };

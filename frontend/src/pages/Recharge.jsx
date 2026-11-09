@@ -474,6 +474,27 @@ export default function Recharge() {
         >
           <span>💬</span> WhatsApp Messaging Wallet (₹{currentWaBalance.toFixed(2)})
         </button>
+
+        <Link
+          to="/subscriptions"
+          style={{
+            padding: '9px 18px',
+            borderRadius: 10,
+            border: 'none',
+            background: 'transparent',
+            color: '#6366f1',
+            fontWeight: 800,
+            fontSize: 13.5,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>🏷️</span> Optional Modules & Plans →
+        </Link>
       </div>
 
       {error && (

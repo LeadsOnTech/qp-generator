@@ -7,11 +7,16 @@ frontend/node_modules/
 frontend/dist/
 dist/
 
-# Database
+# Database & Backups
 *.db
 *.db-journal
+*.bak*
 backend/dev.db
 backend/dev.db-journal
+backups/
+scratch/
+scratch_*
+*.dump
 
 # Environment variables
 .env

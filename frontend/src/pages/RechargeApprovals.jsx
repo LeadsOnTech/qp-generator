@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
 const NAVY = '#07154A';
@@ -174,14 +175,78 @@ export default function RechargeApprovals() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={load}
-          className="btn btn-ghost"
-          style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700 }}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Link
+            to="/admin/subscriptions"
+            style={{
+              padding: '9px 18px',
+              fontSize: 13.5,
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#0284c7',
+              color: '#ffffff',
+              borderRadius: 10,
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+            }}
+          >
+            🏷️ College Subscriptions
+          </Link>
+          <button
+            type="button"
+            onClick={load}
+            className="btn btn-ghost"
+            style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700 }}
+          >
+            🔄 Refresh Data
+          </button>
+        </div>
+      </div>
+
+      {/* Prominent Direct Banner to Subscriptions */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #07154A 0%, #0369a1 100%)',
+          color: '#ffffff',
+          padding: '16px 22px',
+          borderRadius: 14,
+          marginBottom: 22,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 14,
+          boxShadow: '0 4px 16px rgba(7, 21, 74, 0.15)',
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🏷️</span> College Module Subscriptions &amp; Feature Licensing
+          </div>
+          <div style={{ fontSize: 13, color: '#e0f2fe', marginTop: 4 }}>
+            Activate, renew, or suspend optional modules: OMR (₹999), CBT (₹1,999), Website (₹1,499), WhatsApp (₹499), and Complete Bundle (₹4,499).
+          </div>
+        </div>
+        <Link
+          to="/admin/subscriptions"
+          style={{
+            background: '#ffffff',
+            color: '#07154A',
+            padding: '9px 20px',
+            borderRadius: 10,
+            fontWeight: 800,
+            fontSize: 13.5,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+          }}
         >
-          🔄 Refresh Data
-        </button>
+          🏷️ Open College Subscriptions &rarr;
+        </Link>
       </div>
 
       {error && (
@@ -378,6 +443,26 @@ export default function RechargeApprovals() {
         >
           <span>⚙️</span> Payment Gateway Settings
         </button>
+
+        <Link
+          to="/admin/subscriptions"
+          style={{
+            marginLeft: 'auto',
+            padding: '8px 16px',
+            borderRadius: 10,
+            border: '1.5px solid #0284c7',
+            background: '#f0f9ff',
+            color: '#0369a1',
+            fontWeight: 800,
+            fontSize: 13,
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <span>🏷️</span> College Subscriptions &amp; Modules &rarr;
+        </Link>
       </div>
 
       {/* =========================================================================

@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import CbtLaunchModal from '../components/CbtLaunchModal';
+import ModuleUpgradeModal from '../components/ModuleUpgradeModal';
 
 
 function formatChemicals(text) {
@@ -37,7 +39,9 @@ function formatHeadingText(text) {
 export default function PaperPreview() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, hasModuleAccess } = useAuth();
   const [showCbtModal, setShowCbtModal] = useState(false);
+  const [omrUpgradeModal, setOmrUpgradeModal] = useState(false);
   const [paper, setPaper] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,6 +169,10 @@ export default function PaperPreview() {
   }, [loadPaper]);
 
   const handleSelectSet = (newSet) => {
+    if ((newSet === 'KEY_CHITS' || newSet === 'OMR_SHEET') && user?.role === 'INSTITUTE' && !hasModuleAccess('OMR')) {
+      setOmrUpgradeModal(true);
+      return;
+    }
     setActiveSet(newSet);
     if (newSet === 'MASTER_KEY' || newSet === 'KEY_CHITS') {
       if (!masterKeyData) loadMasterKey(activeOptionFormat);
@@ -306,6 +314,10 @@ export default function PaperPreview() {
   }
 
   async function handleDownloadOmr() {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('OMR')) {
+      setOmrUpgradeModal(true);
+      return;
+    }
     setDownloadingOmr(true);
     setError(null);
     try {
@@ -319,13 +331,21 @@ export default function PaperPreview() {
         watermark: watermarkEnabled,
       });
     } catch (err) {
-      setError(err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setOmrUpgradeModal(true);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setDownloadingOmr(false);
     }
   }
 
   async function handleDownloadKeyChits() {
+    if (user?.role === 'INSTITUTE' && !hasModuleAccess('OMR')) {
+      setOmrUpgradeModal(true);
+      return;
+    }
     setDownloadingKeyChits(true);
     setError(null);
     try {
@@ -338,7 +358,11 @@ export default function PaperPreview() {
         optionFormat: activeOptionFormat,
       });
     } catch (err) {
-      setError(err.message);
+      if (err.data?.code === 'MODULE_SUBSCRIPTION_REQUIRED') {
+        setOmrUpgradeModal(true);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setDownloadingKeyChits(false);
     }
@@ -2742,6 +2766,13 @@ export default function PaperPreview() {
           onOpenDashboard={(cbtCode) => navigate(`/cbt/${cbtCode}/dashboard`)}
         />
       )}
+
+      {/* OMR Module Upgrade Notice */}
+      <ModuleUpgradeModal
+        isOpen={omrUpgradeModal}
+        onClose={() => setOmrUpgradeModal(false)}
+        moduleKey="OMR"
+      />
     </div>
   );
 }

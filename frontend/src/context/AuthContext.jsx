@@ -8,27 +8,56 @@ export const getToken = getStoredToken;
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionAccess, setSubscriptionAccess] = useState(null);
+
+  const loadSubscriptions = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setSubscriptionAccess(null);
+      return;
+    }
+    try {
+      const data = await api.getSubscriptionStatus();
+      if (data?.ok) {
+        setSubscriptionAccess(data);
+      }
+    } catch (err) {
+      // Non-fatal if offline or unassociated account
+      setSubscriptionAccess(null);
+    }
+  }, []);
 
   const loadCurrentUser = useCallback(async () => {
     const token = getToken();
     if (!token) {
       setUser(null);
+      setSubscriptionAccess(null);
       setLoading(false);
       return;
     }
     try {
       const me = await api.getCurrentUser();
       setUser(me);
+      if (me?.role === 'INSTITUTE' || me?.instituteId) {
+        loadSubscriptions();
+      }
     } catch (err) {
       // Token invalid/expired — clear it so the login screen shows cleanly
       clearStoredToken();
       setUser(null);
+      setSubscriptionAccess(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadSubscriptions]);
 
   useEffect(() => { loadCurrentUser(); }, [loadCurrentUser]);
+
+  const hasModuleAccess = useCallback((moduleKey) => {
+    if (user?.role === 'ADMIN') return true;
+    if (!subscriptionAccess?.access) return false;
+    return Boolean(subscriptionAccess.access[moduleKey] || subscriptionAccess.hasBundle);
+  }, [user, subscriptionAccess]);
 
   async function login(email, password) {
     const res = await api.login(email, password);
@@ -39,6 +68,9 @@ export function AuthProvider({ children }) {
     }
     saveStoredToken(res.token);
     setUser(res.user);
+    if (res.user?.role === 'INSTITUTE' || res.user?.instituteId) {
+      loadSubscriptions();
+    }
     return { requiresTwoFactor: false, user: res.user };
   }
 
@@ -46,14 +78,19 @@ export function AuthProvider({ children }) {
     const res = await api.verifyTwoFactorLogin(pendingToken, code);
     saveStoredToken(res.token);
     setUser(res.user);
+    if (res.user?.role === 'INSTITUTE' || res.user?.instituteId) {
+      loadSubscriptions();
+    }
     return res.user;
   }
 
-  
   async function signupWithOtp(payload) {
     const res = await api.verifyOtp(payload);
     saveStoredToken(res.token);
     setUser(res.user);
+    if (res.user?.role === 'INSTITUTE' || res.user?.instituteId) {
+      loadSubscriptions();
+    }
     return res;
   }
 
@@ -61,16 +98,34 @@ export function AuthProvider({ children }) {
     const res = await api.signup(instituteName, email, password);
     saveStoredToken(res.token);
     setUser(res.user);
+    if (res.user?.role === 'INSTITUTE' || res.user?.instituteId) {
+      loadSubscriptions();
+    }
     return res.user;
   }
 
   function logout() {
     clearStoredToken();
     setUser(null);
+    setSubscriptionAccess(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verifyTwoFactor, signup, signupWithOtp, logout, refreshUser: loadCurrentUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        subscriptionAccess,
+        hasModuleAccess,
+        refreshSubscriptions: loadSubscriptions,
+        login,
+        verifyTwoFactor,
+        signup,
+        signupWithOtp,
+        logout,
+        refreshUser: loadCurrentUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

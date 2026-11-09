@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
+const { requireAuth } = require('../lib/auth');
+const { requireModuleAccess, MODULE_KEYS } = require('../lib/subscriptions');
 const {
   generateCbtCode,
   generateExamPin,
@@ -48,7 +50,7 @@ async function getPaperOrderedQuestions(paperId) {
  * POST /api/cbt/create
  * Teacher creates an online CBT test from an existing paper.
  */
-router.post('/create', async (req, res) => {
+router.post('/create', requireAuth, requireModuleAccess(MODULE_KEYS.CBT), async (req, res) => {
   try {
     const {
       paperId,
@@ -76,6 +78,11 @@ router.post('/create', async (req, res) => {
 
     if (!paper) {
       return res.status(404).json({ error: 'Paper not found' });
+    }
+
+    // Cross-college access safeguard
+    if (req.user.role !== 'ADMIN' && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'That paper does not belong to your institute account.' });
     }
 
     if (paper.questions.length === 0) {
@@ -130,9 +137,17 @@ router.post('/create', async (req, res) => {
  * GET /api/cbt/paper/:paperId
  * Lists all CBT tests created for a given paper.
  */
-router.get('/paper/:paperId', async (req, res) => {
+router.get('/paper/:paperId', requireAuth, requireModuleAccess(MODULE_KEYS.CBT), async (req, res) => {
   try {
     const { paperId } = req.params;
+    const paper = await prisma.paper.findUnique({ where: { id: paperId } });
+    if (!paper) return res.status(404).json({ error: 'Paper not found' });
+
+    // Cross-college access safeguard
+    if (req.user.role !== 'ADMIN' && paper.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'That paper does not belong to your institute account.' });
+    }
+
     const tests = await prisma.cbtTest.findMany({
       where: { paperId },
       orderBy: { createdAt: 'desc' },
@@ -448,9 +463,17 @@ router.get('/test/:code/leaderboard', async (req, res) => {
  * DELETE /api/cbt/test/:code/submissions/:submissionId
  * Teacher can delete a spam / guest / duplicate submission.
  */
-router.delete('/test/:code/submissions/:submissionId', async (req, res) => {
+router.delete('/test/:code/submissions/:submissionId', requireAuth, requireModuleAccess(MODULE_KEYS.CBT), async (req, res) => {
   try {
-    const { submissionId } = req.params;
+    const { code, submissionId } = req.params;
+    const test = await prisma.cbtTest.findUnique({ where: { code } });
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+
+    // Cross-college access safeguard
+    if (req.user.role !== 'ADMIN' && test.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized to modify this test.' });
+    }
+
     await prisma.cbtSubmission.delete({
       where: { id: submissionId },
     });
@@ -465,12 +488,20 @@ router.delete('/test/:code/submissions/:submissionId', async (req, res) => {
  * PATCH /api/cbt/test/:code/toggle-status
  * Teacher toggles test status (ACTIVE / PAUSED / COMPLETED).
  */
-router.patch('/test/:code/toggle-status', async (req, res) => {
+router.patch('/test/:code/toggle-status', requireAuth, requireModuleAccess(MODULE_KEYS.CBT), async (req, res) => {
   try {
     const { code } = req.params;
     const { status } = req.body;
     if (!['ACTIVE', 'PAUSED', 'COMPLETED'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const test = await prisma.cbtTest.findUnique({ where: { code } });
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+
+    // Cross-college access safeguard
+    if (req.user.role !== 'ADMIN' && test.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized to modify this test.' });
     }
 
     const updated = await prisma.cbtTest.update({

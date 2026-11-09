@@ -527,13 +527,8 @@ router.post('/2fa/disable', requireAuth, async (req, res) => {
  * Body: { email }
  *
  * Always responds with the same generic success message, whether or not
- * that email actually has an account — this deliberately avoids letting
- * someone use this endpoint to check which emails are registered.
- *
- * If SMTP isn't configured yet, the response includes a devResetLink field
- * so the whole flow can be tested today without an email account. Once
- * real SMTP credentials are added to .env, this field stops appearing and
- * a real email is sent instead — no code changes needed for that switch.
+ * that email actually has an account, and whether or not email delivery succeeds.
+ * This prevents email enumeration and never leaks reset tokens or links in the API response.
  */
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -543,32 +538,32 @@ router.post('/forgot-password', async (req, res) => {
 
   const genericResponse = { ok: true, message: 'If an account exists for that email, a reset link has been sent.' };
 
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-  if (!user) {
-    // Same response either way — don't reveal whether the email exists.
+  try {
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) {
+      // Same response either way — don't reveal whether the email exists.
+      return res.json(genericResponse);
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashResetToken(rawToken);
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { resetTokenHash: tokenHash, resetTokenExpiry: expiry },
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/#/reset-password?token=${rawToken}`;
+
+    await sendPasswordResetEmail(user.email, resetLink);
+
+    return res.json(genericResponse);
+  } catch (err) {
+    console.error('[AUTH] Unexpected error in forgot-password for', email, ':', err.message);
     return res.json(genericResponse);
   }
-
-  const rawToken = crypto.randomBytes(32).toString('hex');
-  const tokenHash = hashResetToken(rawToken);
-  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { resetTokenHash: tokenHash, resetTokenExpiry: expiry },
-  });
-
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const resetLink = `${frontendUrl}/#/reset-password?token=${rawToken}`;
-
-  const result = await sendPasswordResetEmail(user.email, resetLink);
-
-  if (!result.sent) {
-    // Dev/testing mode only — no SMTP configured yet.
-    return res.json({ ...genericResponse, devResetLink: result.devResetLink });
-  }
-
-  res.json(genericResponse);
 });
 
 /**
