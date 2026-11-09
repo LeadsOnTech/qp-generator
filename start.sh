@@ -73,8 +73,8 @@ fi
 echo "Seeding default admin and starter syllabus (idempotent)..."
 node prisma/seed.js || true
 
-echo "Syncing common entrance exams and mappings..."
-node -e "require('./src/lib/multiExamSync').distributeAllExistingQuestions().then(n => console.log('Multi-exam sync done, mapped questions:', n)).catch(console.error)" || true
+echo "Ensuring common entrance exams exist..."
+node -e "require('./src/lib/multiExamSync').ensureCommonExamsExist().then(() => console.log('Common entrance exams verified')).catch(console.error)" || true
 
 echo "Launching application server on port $PORT..."
 exec node src/server.js
