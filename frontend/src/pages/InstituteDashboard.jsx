@@ -252,6 +252,34 @@ export default function InstituteDashboard() {
               <span>📊</span> Student Analytics
             </Link>
 
+            {institute?.slug && (
+              <a
+                href={`/#/colleges/${institute.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.24)',
+                  backdropFilter: 'blur(8px)',
+                  color: '#FFFFFF',
+                  padding: '12px 20px',
+                  borderRadius: 12,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                  border: '1px solid rgba(52, 211, 153, 0.45)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.35)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.24)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <span>🌐</span> View Live Website ↗
+              </a>
+            )}
+
             <Link
               to="/recharge"
               style={{
@@ -1134,10 +1162,8 @@ export default function InstituteDashboard() {
           </Link>
 
           {/* Card 5: College Website Builder */}
-          <Link
-            to="/website-builder"
+          <div
             style={{
-              textDecoration: 'none',
               background: '#FFFFFF',
               border: '1px solid #E2E8F0',
               borderRadius: 16,
@@ -1162,10 +1188,37 @@ export default function InstituteDashboard() {
                 Create your branded institutional public portal with admission notices and courses.
               </p>
             </div>
-            <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Edit Website <span>→</span>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <Link to="/website-builder" style={{ fontSize: 13, fontWeight: 700, color: '#0284c7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                Edit Website <span>→</span>
+              </Link>
+              {institute?.slug && (
+                <a
+                  href={`/#/colleges/${institute.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: '#059669',
+                    background: '#ECFDF5',
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    border: '1px solid #A7F3D0',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#D1FAE5'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#ECFDF5'; }}
+                >
+                  <span>🌐</span> Live Site ↗
+                </a>
+              )}
             </div>
-          </Link>
+          </div>
 
           {/* Card 6: Plans & Invoices */}
           <Link

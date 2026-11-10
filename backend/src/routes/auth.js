@@ -307,6 +307,7 @@ function formatUserResponse(user, institute) {
     role: user.role,
     instituteId: user.instituteId,
     instituteName: institute?.name || null,
+    instituteSlug: institute?.slug || null,
     creditBalance: institute?.creditBalance ?? null,
     twoFactorEnabled: user.twoFactorEnabled,
   };

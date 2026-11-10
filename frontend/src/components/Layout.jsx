@@ -248,6 +248,71 @@ export default function Layout() {
         <div className="sidebar-footer">
           {user && (
             <>
+              {/* Quick Live Site Launcher for both Admin and Institute */}
+              {isAdmin ? (
+                <div style={{ marginBottom: 12 }}>
+                  <a
+                    href="/#/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open public QuestionStudio landing page in a new tab"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(2, 132, 199, 0.08)',
+                      border: '1px solid rgba(2, 132, 199, 0.22)',
+                      color: '#0284c7',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(2, 132, 199, 0.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(2, 132, 199, 0.08)'; }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🌐</span> Public SaaS Site
+                    </span>
+                    <span>↗</span>
+                  </a>
+                </div>
+              ) : (
+                user?.instituteSlug && (
+                  <div style={{ marginBottom: 12 }}>
+                    <a
+                      href={`/#/colleges/${user.instituteSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open your college's live public website in a new tab"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '7px 12px',
+                        borderRadius: 10,
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        color: '#059669',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.16)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)'; }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>🌐</span> View Live Website
+                      </span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+                )
+              )}
+
               <div className="sidebar-user-summary">
                 <div className="user-name">{isAdmin ? 'Admin' : user.instituteName}</div>
                 <div className="user-email">{user.email}</div>
