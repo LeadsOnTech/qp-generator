@@ -2335,14 +2335,17 @@ router.get('/students/roster/export-csv', async (req, res) => {
         _count: {
           select: { results: true },
         },
+        institute: {
+          select: { id: true, name: true },
+        },
       },
     });
 
-    let csv = 'Roll Number,Student Name,Class / Year,Target Course,Batch,Section,Native Place,District,State,Hostel Status,Gender,Parent WhatsApp Mobile,Parent Name,Relation,Occupation,Student Mobile,Parent Email,Address,Exams Taken,Enrolled Date\n';
+    let csv = 'College / School Name,Roll Number,Student Name,Class / Year,Target Course,Batch,Section,Native Place,District,State,Hostel Status,Gender,Parent WhatsApp Mobile,Parent Name,Relation,Occupation,Student Mobile,Parent Email,Address,Exams Taken,Enrolled Date\n';
 
     students.forEach((s) => {
       const enrolled = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN') : '';
-      csv += `"${s.rollNumber}","${s.fullName}","${s.classYear || ''}","${s.courseTarget || ''}","${s.batchName}","${s.section || ''}","${s.nativePlace || ''}","${s.district || ''}","${s.state || ''}","${s.hostelStatus || ''}","${s.gender || ''}","${s.parentPhone || ''}","${s.parentName || ''}","${s.parentRelation || ''}","${s.parentOccupation || ''}","${s.studentPhone || ''}","${s.parentEmail || ''}","${s.address || ''}",${s._count.results},"${enrolled}"\n`;
+      csv += `"${s.institute?.name || ''}","${s.rollNumber}","${s.fullName}","${s.classYear || ''}","${s.courseTarget || ''}","${s.batchName}","${s.section || ''}","${s.nativePlace || ''}","${s.district || ''}","${s.state || ''}","${s.hostelStatus || ''}","${s.gender || ''}","${s.parentPhone || ''}","${s.parentName || ''}","${s.parentRelation || ''}","${s.parentOccupation || ''}","${s.studentPhone || ''}","${s.parentEmail || ''}","${s.address || ''}",${s._count.results},"${enrolled}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
