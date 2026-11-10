@@ -12,7 +12,7 @@ export default function MarketingFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="landing-footer" style={{ background: '#07154A', color: 'rgba(255,255,255,0.85)', padding: '64px clamp(16px, 5vw, 64px) 32px' }}>
+    <footer className="landing-footer" style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)', color: 'rgba(255,255,255,0.95)', padding: '64px clamp(16px, 5vw, 64px) 32px' }}>
       <div className="footer-grid" style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 40, marginBottom: 48 }}>
         
         {/* Brand Column */}

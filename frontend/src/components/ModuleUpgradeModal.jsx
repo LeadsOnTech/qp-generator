@@ -96,7 +96,7 @@ export default function ModuleUpgradeModal({ isOpen, onClose, moduleKey = 'OMR',
         {/* Header Banner */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #07154A 0%, #1e3a8a 100%)',
+            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
             padding: '24px',
             color: '#ffffff',
             position: 'relative',
@@ -173,7 +173,7 @@ export default function ModuleUpgradeModal({ isOpen, onClose, moduleKey = 'OMR',
               <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
                 Module Subscription
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#07154A', display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#0284c7', display: 'flex', alignItems: 'baseline', gap: 4 }}>
                 {info.price}
                 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{info.period}</span>
               </div>
@@ -220,7 +220,7 @@ export default function ModuleUpgradeModal({ isOpen, onClose, moduleKey = 'OMR',
               style={{
                 flex: 1,
                 padding: '10px 16px',
-                background: '#07154A',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: 8,

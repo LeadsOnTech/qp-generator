@@ -1600,7 +1600,7 @@ export default function CollegeWebsiteBuilder() {
     return (
       <div style={{ maxWidth: 760, margin: '40px auto', padding: '0 16px' }}>
         <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-          <div style={{ background: 'linear-gradient(135deg, #07154A 0%, #1e3a8a 100%)', padding: '32px', color: '#ffffff' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', padding: '32px', color: '#ffffff' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255, 255, 255, 0.2)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
               <span>🌐</span> OPTIONAL ADD-ON MODULE
             </div>
@@ -1618,7 +1618,7 @@ export default function CollegeWebsiteBuilder() {
                 <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
                   Module Subscription
                 </div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: '#07154A', marginTop: 4 }}>
+                <div style={{ fontSize: 32, fontWeight: 800, color: '#0284c7', marginTop: 4 }}>
                   ₹1,499 <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ month</span>
                 </div>
               </div>
@@ -1659,7 +1659,7 @@ export default function CollegeWebsiteBuilder() {
                 to="/subscriptions"
                 style={{
                   padding: '12px 24px',
-                  background: '#07154A',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                   color: '#ffffff',
                   borderRadius: 8,
                   fontWeight: 700,

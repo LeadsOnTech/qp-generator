@@ -327,7 +327,7 @@
 
 /* ---------- Trust Strip ---------- */
 .trust-strip {
-  background: #07154A;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   border-top: 1px solid rgba(255,255,255,0.05);
   border-bottom: 1px solid rgba(255,255,255,0.05);
   padding: 24px 64px;

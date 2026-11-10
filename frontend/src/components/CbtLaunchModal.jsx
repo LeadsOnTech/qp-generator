@@ -123,7 +123,7 @@ export default function CbtLaunchModal({ paper, onClose, onOpenDashboard }) {
             background: '#ffffff',
           }}
         >
-          <div style={{ background: '#07154A', color: '#fff', padding: '24px', position: 'relative' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff', padding: '24px', position: 'relative' }}>
             <button
               onClick={onClose}
               style={{
@@ -156,7 +156,7 @@ export default function CbtLaunchModal({ paper, onClose, onOpenDashboard }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 18 }}>
               <div>
                 <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Module Pricing</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#07154A' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0284c7' }}>
                   ₹1,999 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ month</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function CbtLaunchModal({ paper, onClose, onOpenDashboard }) {
                   onClose();
                   navigate('/subscriptions');
                 }}
-                style={{ flex: 1, padding: '10px 16px', background: '#07154A', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '10px 16px', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 View Plans & Activate →
               </button>

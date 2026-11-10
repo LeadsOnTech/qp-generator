@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
-const NAVY = '#07154A';
+const NAVY = '#0284c7';
 
 const MODULES = [
   {
@@ -499,7 +499,7 @@ export default function CollegeSubscriptionPlans() {
           ========================================================================= */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #07154A 0%, #1e3a8a 100%)',
+          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
           borderRadius: 16,
           padding: '24px 28px',
           color: '#ffffff',

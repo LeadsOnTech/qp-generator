@@ -64,7 +64,7 @@ export default function Signup() {
       <div 
         style={{ 
           flex: '1.05', 
-          background: 'radial-gradient(circle at 15% 20%, rgba(49, 87, 232, 0.3) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.15) 0%, transparent 50%), linear-gradient(145deg, #07154A 0%, #0F1E68 55%, #0A1442 100%)', 
+          background: 'radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.4) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.15) 0%, transparent 50%), linear-gradient(135deg, #0284c7 0%, #0369a1 55%, #075985 100%)', 
           color: '#ffffff', 
           padding: '56px 64px', 
           display: 'flex', 

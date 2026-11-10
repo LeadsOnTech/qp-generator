@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import SuperAdminFinancials from '../components/SuperAdminFinancials';
 
-const NAVY = '#07154A';
+const NAVY = '#0284c7';
 
 const MODULES = [
   { key: 'OMR', name: 'OMR & Answer Keys', monthly: 999, annual: 9990, icon: '📝', desc: 'Scan and grade student answer sheets with instant key generation.' },
@@ -540,7 +540,7 @@ export default function CollegeSubscriptions() {
           REVENUE & VALUE DISTINCTION BANNER (NO DUMMY DATA)
           ========================================================================= */}
       <div style={{
-        background: 'linear-gradient(135deg, #07154A 0%, #0369a1 100%)',
+        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
         color: '#ffffff',
         padding: '18px 24px',
         borderRadius: 14,
@@ -550,7 +550,7 @@ export default function CollegeSubscriptions() {
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: 16,
-        boxShadow: '0 4px 16px rgba(7, 21, 74, 0.12)',
+        boxShadow: '0 4px 16px rgba(2, 132, 199, 0.2)',
       }}>
         <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
           <div>

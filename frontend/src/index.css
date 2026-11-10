@@ -9,9 +9,9 @@
   --paper-dim: #f1f5f9;
   --ink: #16202e;
   --ink-soft: #4a5568;
-  --gold-500: #3157E8;
-  --gold-400: #3157E8;
-  --gold-100: #EEF0FF;
+  --gold-500: #0284c7;
+  --gold-400: #0ea5e9;
+  --gold-100: #e0f2fe;
   --line: #E2E8F0;
   --success: #2f7d5a;
   --success-bg: #e6f2ec;
@@ -24,12 +24,13 @@
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Premium Redesign Palette */
-  --premium-indigo: #07154A;
-  --premium-midnight: #101F66;
-  --premium-blue: #3157E8;
+  /* Premium Sky Blue SaaS Palette */
+  --premium-indigo: #0284c7;
+  --premium-midnight: #0369a1;
+  --premium-blue: #0ea5e9;
+  --premium-sky: #38bdf8;
   --premium-purple: #6D3DF5;
-  --premium-lavender: #EEF0FF;
+  --premium-lavender: #f0f9ff;
   --premium-yellow: #F6C84C;
   --premium-orange: #F59E0B;
   --premium-green: #22C55E;
@@ -112,7 +113,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   font-size: 22px; 
   font-weight: 800; 
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+  background: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 50%, #60A5FA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -135,11 +136,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   transform: translateX(2px);
 }
 .nav-link.active { 
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%); 
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(2, 132, 199, 0.16) 100%); 
   color: #FFFFFF; 
   font-weight: 700; 
-  border-left: 3px solid #3B82F6;
-  box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #0EA5E9;
+  box-shadow: inset 0 0 12px rgba(14, 165, 233, 0.18);
 }
 
 .sidebar-footer {
@@ -158,7 +159,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 
 .eyebrow {
   font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: #4F46E5; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;
+  color: #0284c7; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px;
 }
 .page-title { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; color: #0F172A; line-height: 1.2; }
 .page-sub { color: #64748B; font-size: 15px; margin-top: 8px; max-width: 720px; line-height: 1.6; }
@@ -198,8 +199,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #3B82F6, #6366F1);
-  opacity: 0.85;
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  opacity: 0.9;
 }
 .stat-value { font-family: var(--font-display); font-size: 34px; font-weight: 800; letter-spacing: -0.025em; color: #0F172A; line-height: 1.1; }
 .stat-label { font-size: 12.5px; font-weight: 600; color: #64748B; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -214,13 +215,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .btn:active { transform: translateY(1px); }
 
 .btn-primary { 
-  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); 
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); 
   color: #ffffff; 
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); 
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); 
 }
 .btn-primary:hover { 
-  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%); 
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); 
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%); 
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45); 
   transform: translateY(-1px); 
 }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -295,13 +296,13 @@ tbody tr:hover { background: #F8FAFC; }
 /* ---------- Executive SaaS Redesign Extensions ---------- */
 
 .studio-hero {
-  background: linear-gradient(135deg, #07154A 0%, #0F172A 50%, #1E1B4B 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 45%, #075985 100%);
   border-radius: 20px;
   padding: 32px 36px;
   color: #FFFFFF;
   margin-bottom: 28px;
-  box-shadow: 0 10px 30px -5px rgba(7, 21, 74, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
 }
@@ -310,8 +311,8 @@ tbody tr:hover { background: #F8FAFC; }
   content: '';
   position: absolute;
   top: -60px; right: -60px;
-  width: 240px; height: 240px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(59, 130, 246, 0) 70%);
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(14, 165, 233, 0) 70%);
   pointer-events: none;
 }
 
@@ -320,15 +321,15 @@ tbody tr:hover { background: #F8FAFC; }
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #E0E7FF;
+  color: #FFFFFF;
   margin-bottom: 12px;
 }
 
@@ -344,7 +345,7 @@ tbody tr:hover { background: #F8FAFC; }
 
 .studio-sub {
   font-size: 14.5px;
-  color: #94A3B8;
+  color: #e0f2fe;
   margin: 8px 0 0;
   max-width: 680px;
   line-height: 1.5;
@@ -361,13 +362,14 @@ tbody tr:hover { background: #F8FAFC; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   padding: 6px 14px;
   border-radius: 10px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #CBD5E1;
+  color: #FFFFFF;
+  backdrop-filter: blur(6px);
 }
 
 .studio-chip strong {
@@ -863,7 +865,7 @@ tbody tr:hover { background: #F8FAFC; }
     z-index: 950;
     height: calc(58px + env(safe-area-inset-bottom, 0px));
     padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px)) 6px;
-    background: rgba(7, 21, 74, 0.96);
+    background: rgba(15, 23, 42, 0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -892,12 +894,12 @@ tbody tr:hover { background: #F8FAFC; }
     transform: scale(0.92);
   }
   .mobile-tab-item.active {
-    color: #F6C84C;
+    color: #38bdf8;
     font-weight: 700;
   }
   .mobile-tab-item.active .mobile-tab-icon {
-    color: #F6C84C;
-    filter: drop-shadow(0 0 6px rgba(246, 200, 76, 0.45));
+    color: #38bdf8;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5));
   }
   .mobile-tab-icon {
     display: flex;
@@ -920,12 +922,12 @@ tbody tr:hover { background: #F8FAFC; }
     height: 48px;
     border-radius: 50%;
     background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%);
-    color: #07154A;
+    color: #0c4a6e;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45);
-    border: 3px solid #07154A;
+    border: 3px solid #0284c7;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
   .hero-tab:active .mobile-hero-fab {
@@ -984,8 +986,8 @@ tbody tr:hover { background: #F8FAFC; }
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #F6C84C, #D97706);
-    color: #07154A;
+    background: linear-gradient(135deg, #38bdf8, #0284c7);
+    color: #ffffff;
     font-weight: 800;
     font-size: 16px;
     display: flex;
@@ -1051,8 +1053,8 @@ tbody tr:hover { background: #F8FAFC; }
     color: #F6C84C;
   }
   .sidebar-credit-banner .credit-recharge-btn {
-    background: #F6C84C;
-    color: #07154A;
+    background: #0ea5e9;
+    color: #ffffff;
     font-weight: 700;
     font-size: 11.5px;
     padding: 6px 12px;

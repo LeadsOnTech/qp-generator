@@ -30,7 +30,7 @@ export default function ContactUs() {
 
       {/* Hero Header */}
       <div style={{
-        background: 'linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #08113B 100%)',
+        background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)',
         color: '#ffffff',
         padding: 'clamp(48px, 6vw, 72px) clamp(16px, 5vw, 64px) clamp(36px, 5vw, 56px)',
         textAlign: 'center',

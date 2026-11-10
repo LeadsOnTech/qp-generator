@@ -197,7 +197,7 @@ export default function PricingPage() {
       {/* HERO SECTION */}
       <section className="pricing-hero" style={{ 
         textAlign: 'center', 
-        background: 'radial-gradient(circle at 50% 10%, rgba(49, 87, 232, 0.25) 0%, transparent 60%), radial-gradient(circle at 85% 80%, rgba(246, 200, 76, 0.12) 0%, transparent 50%), linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #08113B 100%)', 
+        background: 'radial-gradient(circle at 50% 10%, rgba(14, 165, 233, 0.35) 0%, transparent 60%), radial-gradient(circle at 85% 80%, rgba(246, 200, 76, 0.15) 0%, transparent 50%), linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)', 
         color: '#ffffff',
         padding: 'clamp(40px, 6vw, 76px) clamp(16px, 4vw, 48px) clamp(44px, 7vw, 84px)',
         position: 'relative',
@@ -1290,7 +1290,7 @@ export default function PricingPage() {
 
         {/* FEATURED BUNDLE CARD */}
         <div style={{
-          background: 'linear-gradient(145deg, #07154A 0%, #0F1E68 60%, #162B8D 100%)',
+          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)',
           borderRadius: 24,
           padding: 'clamp(24px, 4.5vw, 40px)',
           color: '#ffffff',
@@ -1754,7 +1754,7 @@ export default function PricingPage() {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center', 
-                  background: 'linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', 
                   color: '#ffffff', 
                   padding: '14px 18px', 
                   borderRadius: 14 
@@ -1911,7 +1911,7 @@ export default function PricingPage() {
           FINAL HIGH-CONVERTING CTA BANNER
           ========================================================================= */}
       <section style={{ 
-        background: 'radial-gradient(circle at 15% 20%, rgba(49, 87, 232, 0.35) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.2) 0%, transparent 50%), linear-gradient(135deg, #07154A 0%, #101F66 100%)', 
+        background: 'radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.4) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(246, 200, 76, 0.2) 0%, transparent 50%), linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', 
         textAlign: 'center', 
         color: '#ffffff',
         padding: 'clamp(52px, 7vw, 80px) clamp(16px, 4vw, 36px)',

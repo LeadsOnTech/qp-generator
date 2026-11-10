@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../lib/api';
 
-const NAVY = '#07154A';
+const NAVY = '#0284c7';
 
 const MODULE_NAMES = {
   OMR: 'OMR & Answer Keys',
@@ -631,7 +631,7 @@ export default function SuperAdminFinancials({ onRefreshParent = null }) {
           </div>
 
           {/* WhatsApp Billing Segregation & Strict Ledger Banner */}
-          <div style={{ background: 'linear-gradient(135deg, #07154A 0%, #1e3a8a 100%)', color: '#ffffff', padding: '20px 24px', borderRadius: 14, marginBottom: 24, boxShadow: '0 4px 12px rgba(7, 21, 74, 0.15)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', padding: '20px 24px', borderRadius: 14, marginBottom: 24, boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
