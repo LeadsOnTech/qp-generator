@@ -977,38 +977,78 @@ export default function InstituteDashboard() {
               👥
             </div>
             <div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0369a1', margin: '0 0 2px 0' }}>
-                Student Directory &amp; WhatsApp Parent Network
-              </h3>
-              <p style={{ fontSize: 13, color: '#075985', margin: 0 }}>
-                {rosterCount > 0 ? (
-                  <>
+              {rosterCount > 0 ? (
+                <>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0369a1', margin: '0 0 2px 0' }}>
+                    Student Directory &amp; WhatsApp Parent Network
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#075985', margin: 0 }}>
                     <strong>{rosterCount}</strong> students registered •{' '}
                     <strong>{rosterPhoneCount}</strong> parents connected via WhatsApp ({Math.round((rosterPhoneCount / rosterCount) * 100)}%)
                     {walletBalance !== null && <> • WhatsApp Wallet: <strong>₹{walletBalance.toFixed(2)}</strong></>}
-                  </>
-                ) : (
-                  'Enroll student batches to enable automated parent scorecard dispatch and multi-test diagnostic reports.'
-                )}
-              </p>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#0284c7', background: 'rgba(2, 132, 199, 0.12)', padding: '2px 8px', borderRadius: 999, marginBottom: 4 }}>
+                    <span>✨</span> RECOMMENDED ACTION • 60-SEC SETUP
+                  </div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0369a1', margin: '0 0 4px 0' }}>
+                    Connect Your Student Roster via Excel
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#075985', margin: 0, maxWidth: 640, lineHeight: 1.45 }}>
+                    Upload your college's existing student Excel list in 1 click to unlock automated parent WhatsApp scorecards, 1-click AI remedial DPPs, and anti-leak watermarked question papers.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Link
-              to="/students"
-              className="btn btn-primary"
-              style={{ padding: '9px 18px', fontSize: 13, borderRadius: 10, fontWeight: 700 }}
-            >
-              Manage Student Roster →
-            </Link>
-            <Link
-              to="/student-analytics"
-              className="btn btn-ghost"
-              style={{ padding: '9px 16px', fontSize: 13, borderRadius: 10, background: '#FFFFFF', borderColor: '#BAE6FD', color: '#0284c7', fontWeight: 700 }}
-            >
-              View Analytics
-            </Link>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {rosterCount > 0 ? (
+              <>
+                <Link
+                  to="/students"
+                  className="btn btn-primary"
+                  style={{ padding: '9px 18px', fontSize: 13, borderRadius: 10, fontWeight: 700 }}
+                >
+                  Manage Student Roster →
+                </Link>
+                <Link
+                  to="/student-analytics"
+                  className="btn btn-ghost"
+                  style={{ padding: '9px 16px', fontSize: 13, borderRadius: 10, background: '#FFFFFF', borderColor: '#BAE6FD', color: '#0284c7', fontWeight: 700 }}
+                >
+                  View Analytics
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/students?bulk=true"
+                  className="btn btn-primary"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: 13,
+                    borderRadius: 10,
+                    fontWeight: 800,
+                    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>🚀</span> 1-Click Excel Upload →
+                </Link>
+                <Link
+                  to="/students"
+                  className="btn btn-ghost"
+                  style={{ padding: '10px 16px', fontSize: 13, borderRadius: 10, background: '#FFFFFF', borderColor: '#BAE6FD', color: '#0284c7', fontWeight: 700 }}
+                >
+                  Why Add Students?
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

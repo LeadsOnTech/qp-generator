@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -139,8 +139,15 @@ export default function StudentsRoster() {
   const [stateFilter, setStateFilter] = useState('');
 
   // Modals
+  const [searchParams] = useSearchParams();
   const [addModal, setAddModal] = useState(false);
   const [bulkModal, setBulkModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('bulk') === 'true') {
+      setBulkModal(true);
+    }
+  }, [searchParams]);
   const [editingStudent, setEditingStudent] = useState(null);
   const [saving, setSaving] = useState(false);
   const [exportingRoster, setExportingRoster] = useState(false);
@@ -631,23 +638,185 @@ export default function StudentsRoster() {
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading student directory…</div>
       ) : filteredStudents.length === 0 ? (
-        <div style={styles.emptyCard}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍🎓</div>
-          <h3 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>No Students Found</h3>
-          <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 16px 0', maxWidth: 460 }}>
-            {search || batchFilter || courseFilter || classFilter || hostelFilter || stateFilter
-              ? 'No enrolled students match your active search filters.'
-              : 'Add your first student or bulk import your student roster from Excel/CSV to register academic courses, native places, and parent WhatsApp numbers.'}
-          </p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={openAddModal} style={styles.primaryBtn}>
-              + Add Single Student
-            </button>
-            <button onClick={() => setBulkModal(true)} style={styles.secondaryBtn}>
-              📥 Bulk Import Roster
+        search || batchFilter || courseFilter || classFilter || hostelFilter || stateFilter ? (
+          <div style={styles.emptyCard}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+            <h3 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>No Students Match Your Filters</h3>
+            <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 16px 0', maxWidth: 460 }}>
+              No enrolled students match your active search terms or category filters.
+            </p>
+            <button
+              onClick={() => {
+                setSearch('');
+                setBatchFilter('');
+                setCourseFilter('');
+                setClassFilter('');
+                setHostelFilter('');
+                setStateFilter('');
+              }}
+              style={styles.secondaryBtn}
+            >
+              Reset Filters
             </button>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              background: '#ffffff',
+              border: '1px solid #bae6fd',
+              borderRadius: 20,
+              padding: '36px 32px',
+              boxShadow: '0 10px 25px -5px rgba(2, 132, 199, 0.08)',
+              marginBottom: 32,
+            }}
+          >
+            {/* Header pill & title */}
+            <div style={{ textAlign: 'center', maxWidth: 740, margin: '0 auto 28px auto' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '5px 14px',
+                  borderRadius: 999,
+                  background: '#e0f2fe',
+                  border: '1px solid #bae6fd',
+                  color: '#0284c7',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: 12,
+                }}
+              >
+                <span>✨</span> Institutional Automation Suite
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
+                Connect Your Student Roster to Unlock 4 High-ROI Superpowers
+              </h2>
+              <p style={{ fontSize: 14, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                Adding your student directory takes less than 60 seconds with Excel and completely automates parent communication, diagnostic learning, and exam security.
+              </p>
+            </div>
+
+            {/* 4 Superpower Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 28 }}>
+              {/* Card 1: WhatsApp Parent Scorecards */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '20px' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 12 }}>
+                  📱
+                </div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                  Instant WhatsApp Scorecards
+                </h4>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+                  Send automated, branded digital report cards with subject ranks &amp; chapter accuracy directly to parents' WhatsApp. Zero manual staff phone calls.
+                </p>
+              </div>
+
+              {/* Card 2: 1-Click AI Remedial DPP */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '20px' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 12 }}>
+                  🎯
+                </div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                  1-Click AI Remedial DPPs
+                </h4>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+                  Our engine audits multi-test history, spots weak chapters (&lt;40%), and synthesizes custom 15-question targeted remedial worksheets for struggling students.
+                </p>
+              </div>
+
+              {/* Card 3: Zero-Install CBT Tests */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '20px' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 12 }}>
+                  💻
+                </div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                  Paperless CBT Online Exams
+                </h4>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+                  Students take full-length mock entrance tests on mobile, tablet, or PC with automated negative marking, instant percentiles, and live leaderboards.
+                </p>
+              </div>
+
+              {/* Card 4: Anti-Leak Watermarked Papers */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '20px' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 12 }}>
+                  🛡️
+                </div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                  Anti-Leak Paper Watermarks
+                </h4>
+                <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+                  Print question papers watermarked with the student's own name &amp; roll number across pages, completely eliminating exam hall copying and leaks.
+                </p>
+              </div>
+            </div>
+
+            {/* Action Callout Bar */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                borderRadius: 14,
+                padding: '20px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+                color: '#ffffff',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 2 }}>
+                  ⚡ No Manual Typing Needed — Upload via Excel in 10 Seconds
+                </div>
+                <div style={{ fontSize: 13, color: '#e0f2fe' }}>
+                  Already have your students in an Excel or CSV file? Just drag &amp; drop to import 500+ students instantly.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setBulkModal(true)}
+                  style={{
+                    background: '#ffffff',
+                    color: '#0284c7',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 20px',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>🚀</span> 1-Click Excel Upload (Fastest)
+                </button>
+
+                <button
+                  onClick={openAddModal}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: 10,
+                    padding: '10px 16px',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Add Single Student
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       ) : (
         <div style={styles.tableCard}>
           <table style={styles.table}>
