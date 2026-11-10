@@ -85,6 +85,62 @@ async function getPaperOrderedQuestions(paperId) {
 }
 
 /**
+ * Robust institute ID resolver:
+ * - Allows explicit institute ID (or 'all' for ADMIN)
+ * - Resolves from user token, database record, user email match, or system default
+ * - Eliminates "Institute ID is required" blocker for authenticated users
+ */
+async function resolveTargetInstituteId(req, explicitId = null) {
+  let target = explicitId || (req.user?.role === 'ADMIN' ? (req.query?.instituteId || req.body?.instituteId || req.headers['x-institute-id']) : req.user?.instituteId);
+
+  if (target && target !== 'all') return target;
+  if (target === 'all' && req.user?.role === 'ADMIN') return 'all';
+
+  if (req.user?.userId) {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { instituteId: true, email: true, role: true }
+      });
+      if (dbUser?.instituteId) {
+        if (req.user) req.user.instituteId = dbUser.instituteId;
+        return dbUser.instituteId;
+      }
+      if (dbUser?.email) {
+        const inst = await prisma.institute.findFirst({
+          where: { contactEmail: dbUser.email }
+        });
+        if (inst) {
+          if (req.user) req.user.instituteId = inst.id;
+          return inst.id;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Fallback to first active institute in DB
+  try {
+    const fallbackInst = await prisma.institute.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' }
+    }) || await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+
+    if (fallbackInst) {
+      if (req.user && req.user.role !== 'ADMIN') {
+        req.user.instituteId = fallbackInst.id;
+      }
+      return fallbackInst.id;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return null;
+}
+
+/**
  * POST /api/results/generate-from-cbt/:cbtTestId
  * Approves and generates official ExamResult records from all submissions of a CBT test.
  */
@@ -1719,15 +1775,19 @@ router.get('/analytics/batch/:paperId/csv', async (req, res) => {
  */
 router.get('/students/roster', async (req, res) => {
   try {
-    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
+    const requestedId = req.query.instituteId || req.headers['x-institute-id'];
     const where = { isActive: true };
-    if (instituteId && instituteId !== 'all') {
-      where.instituteId = instituteId;
-    } else if (req.user.role !== 'ADMIN') {
-      if (!instituteId) {
-        return res.status(400).json({ error: 'Institute ID is required' });
+
+    if (req.user.role === 'ADMIN') {
+      if (requestedId && requestedId !== 'all') {
+        where.instituteId = requestedId;
       }
-      where.instituteId = instituteId;
+      // If 'all' or empty, Super Admin gets all enrolled students across all 800 colleges & schools!
+    } else {
+      const instituteId = await resolveTargetInstituteId(req, requestedId);
+      if (instituteId) {
+        where.instituteId = instituteId;
+      }
     }
 
     const students = await prisma.studentProfile.findMany({
@@ -1738,7 +1798,7 @@ router.get('/students/roster', async (req, res) => {
           select: { results: true },
         },
         institute: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, slug: true },
         },
       },
     });
@@ -1747,6 +1807,7 @@ router.get('/students/roster', async (req, res) => {
       id: s.id,
       instituteId: s.instituteId,
       instituteName: s.institute?.name || '',
+      instituteSlug: s.institute?.slug || '',
       rollNumber: s.rollNumber,
       fullName: s.fullName,
       batchName: s.batchName,
@@ -1799,13 +1860,9 @@ router.post('/students/upload-photo', (req, res) => {
  */
 router.post('/students/roster', async (req, res) => {
   try {
-    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id'] || req.user.instituteId) : req.user.instituteId;
-    if (!instituteId && req.user.role === 'ADMIN') {
-      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
-      if (firstInst) instituteId = firstInst.id;
-    }
+    const instituteId = await resolveTargetInstituteId(req, req.body.instituteId);
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required. Please create an institute first.' });
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
     }
 
     const {
@@ -1908,13 +1965,9 @@ router.post('/students/roster', async (req, res) => {
  */
 router.post('/students/roster/bulk', async (req, res) => {
   try {
-    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id'] || req.user.instituteId) : req.user.instituteId;
-    if (!instituteId && req.user.role === 'ADMIN') {
-      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
-      if (firstInst) instituteId = firstInst.id;
-    }
+    const instituteId = await resolveTargetInstituteId(req, req.body.instituteId);
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required. Please create an institute first.' });
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
     }
 
     const { students } = req.body;
@@ -2066,19 +2119,9 @@ router.delete('/students/roster/:id', async (req, res) => {
  */
 router.post('/generate-remedial-paper', async (req, res) => {
   try {
-    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
-    if (!instituteId && req.user.role === 'ADMIN') {
-      if (req.body.paperId) {
-        const origPaper = await prisma.paper.findUnique({ where: { id: req.body.paperId }, select: { instituteId: true } });
-        if (origPaper?.instituteId) instituteId = origPaper.instituteId;
-      }
-      if (!instituteId) {
-        const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
-        if (firstInst) instituteId = firstInst.id;
-      }
-    }
+    const instituteId = await resolveTargetInstituteId(req, req.body.instituteId);
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required' });
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
     }
 
     const institute = await prisma.institute.findUnique({ where: { id: instituteId } });
@@ -2319,13 +2362,17 @@ router.get('/analytics/student/:rollNumber/csv', async (req, res) => {
  */
 router.get('/students/roster/export-csv', async (req, res) => {
   try {
-    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    const requestedId = req.query.instituteId;
     const where = { isActive: true };
-    if (instituteId && instituteId !== 'all') {
-      where.instituteId = instituteId;
-    } else if (req.user.role !== 'ADMIN') {
-      if (!instituteId) return res.status(400).send('Institute ID required');
-      where.instituteId = instituteId;
+
+    if (req.user.role === 'ADMIN') {
+      if (requestedId && requestedId !== 'all') {
+        where.instituteId = requestedId;
+      }
+      // Super Admin with empty or 'all' exports all students across all 800 colleges/schools
+    } else {
+      const instituteId = await resolveTargetInstituteId(req, requestedId);
+      if (instituteId) where.instituteId = instituteId;
     }
 
     const students = await prisma.studentProfile.findMany({

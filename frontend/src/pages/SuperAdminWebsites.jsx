@@ -213,9 +213,12 @@ export default function SuperAdminWebsites() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Link to="/admin/marketplace" className="sag-btn sag-btn-secondary">
+              <span>📚 Master Bookstore &amp; Syndication</span>
+            </Link>
             <Link to="/website-builder" className="sag-btn sag-btn-secondary">
-              <span>🏛️ Launch Website Builder Studio</span>
+              <span>🏛️ Website Builder Studio</span>
             </Link>
             <button onClick={fetchWebsites} className="sag-btn sag-btn-primary">
               <span>🔄 Refresh Data</span>

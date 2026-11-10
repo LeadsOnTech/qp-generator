@@ -333,23 +333,23 @@ export default function StudentAnalytics() {
 
   return (
     <div className="sa-container">
-      {/* Executive Header Bar */}
-      <div className="sa-header-bar">
-        <div className="sa-header-content">
+      {/* Executive Sky Blue Hero Banner */}
+      <div className="studio-hero">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <div className="sa-header-badge">
-              <span className="sa-pulse-dot" />
-              <span>Institutional Performance Audit • Academic Progression</span>
+            <div className="studio-badge">
+              <span>📈</span>
+              <span>Institutional Performance Audit &bull; Academic Progression</span>
             </div>
-            <h1 className="sa-title">Student Performance Analytics & Academic Progression</h1>
-            <p className="sa-subtitle">
+            <h1 className="studio-title">Student Performance Analytics &amp; Academic Progression</h1>
+            <p className="studio-sub">
               Multi-test trajectory, diagnostic weak-chapter audit, and automated 1-click remedial intervention.
             </p>
           </div>
-          <div className="sa-header-actions">
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             {isAdmin && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '5px 12px' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>College:</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, padding: '5px 12px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#e0f2fe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>College:</span>
                 <select
                   value={selectedInstituteId}
                   onChange={(e) => {
@@ -357,11 +357,13 @@ export default function StudentAnalytics() {
                     setSelectedRoll('');
                   }}
                   style={{
-                    border: 'none',
-                    background: 'transparent',
-                    fontSize: 13,
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    background: '#0369a1',
+                    fontSize: 12.5,
                     fontWeight: 600,
-                    color: '#0f172a',
+                    color: '#ffffff',
+                    borderRadius: 6,
+                    padding: '5px 10px',
                     cursor: 'pointer',
                     outline: 'none',
                   }}
@@ -373,13 +375,14 @@ export default function StudentAnalytics() {
                 </select>
               </div>
             )}
-            <Link to="/students" className="sa-btn-roster">
+            <Link to="/students" className="btn btn-secondary" style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700 }}>
               👥 View Full Roster
             </Link>
             <button
               type="button"
               onClick={() => loadStudentData(selectedRoll)}
-              className="sa-btn-refresh"
+              className="btn btn-secondary"
+              style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700 }}
               title="Reload student progress records"
             >
               🔄 Refresh

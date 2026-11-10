@@ -475,4 +475,16 @@ export const api = {
   // Tax, GST & CA Compliance (Phase 4A)
   getAdminTaxConfig: () => request('/subscriptions/payment/admin/tax-config'),
   updateAdminTaxConfig: (data) => request('/subscriptions/payment/admin/tax-config', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Phase 13: Study Materials & Books E-Commerce Marketplace
+  getMarketplaceCatalog: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/marketplace/public/catalog${q ? `?${q}` : ''}`);
+  },
+  getMarketplaceBook: (id) => request(`/marketplace/public/book/${id}`),
+  createMarketplaceOrder: (data) => request('/marketplace/checkout/create-order', { method: 'POST', body: JSON.stringify(data) }),
+  getInstituteMarketplaceEarnings: (instituteId) => request(`/marketplace/institute/earnings${instituteId ? `?instituteId=${instituteId}` : ''}`),
+  uploadInstituteMarketplaceMaterial: (data) => request('/marketplace/institute/upload-material', { method: 'POST', body: JSON.stringify(data) }),
+  getAdminMarketplaceReconciliation: () => request('/marketplace/admin/reconciliation'),
+  uploadAdminMasterBook: (data) => request('/marketplace/admin/upload-master-book', { method: 'POST', body: JSON.stringify(data) }),
 };

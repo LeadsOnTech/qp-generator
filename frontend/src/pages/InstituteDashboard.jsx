@@ -252,33 +252,31 @@ export default function InstituteDashboard() {
               <span>📊</span> Student Analytics
             </Link>
 
-            {institute?.slug && (
-              <a
-                href={`/#/colleges/${institute.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: 'rgba(16, 185, 129, 0.24)',
-                  backdropFilter: 'blur(8px)',
-                  color: '#FFFFFF',
-                  padding: '12px 20px',
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  textDecoration: 'none',
-                  border: '1px solid rgba(52, 211, 153, 0.45)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.35)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.24)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                <span>🌐</span> View Live Website ↗
-              </a>
-            )}
+            <a
+              href={`/#/colleges/${institute?.slug || 'andhra-inspire-academy'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: 'rgba(16, 185, 129, 0.3)',
+                backdropFilter: 'blur(8px)',
+                color: '#FFFFFF',
+                padding: '12px 20px',
+                borderRadius: 12,
+                fontWeight: 800,
+                fontSize: 14,
+                textDecoration: 'none',
+                border: '1px solid rgba(52, 211, 153, 0.6)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.45)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <span>🌐</span> Visit Live Website ↗
+            </a>
 
             <Link
               to="/recharge"
@@ -1232,35 +1230,90 @@ export default function InstituteDashboard() {
               <Link to="/website-builder" style={{ fontSize: 13, fontWeight: 700, color: '#0284c7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                 Edit Website <span>→</span>
               </Link>
-              {institute?.slug && (
-                <a
-                  href={`/#/colleges/${institute.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#059669',
-                    background: '#ECFDF5',
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    border: '1px solid #A7F3D0',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#D1FAE5'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#ECFDF5'; }}
-                >
-                  <span>🌐</span> Live Site ↗
-                </a>
-              )}
+              <a
+                href={`/#/colleges/${institute?.slug || 'andhra-inspire-academy'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#059669',
+                  background: '#ECFDF5',
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #A7F3D0',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#D1FAE5'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#ECFDF5'; }}
+              >
+                <span>🌐</span> Live Site ↗
+              </a>
             </div>
           </div>
 
-          {/* Card 6: Plans & Invoices */}
+          {/* Card 6: Study Materials & Books Marketplace */}
+          <div
+            style={{
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: 16,
+              padding: '20px 22px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = '#0284c7'; e.currentTarget.style.boxShadow = '0 10px 20px -5px rgba(2, 132, 199, 0.15)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.03)'; }}
+          >
+            <div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E0F2FE', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginBottom: 12 }}>
+                📚
+              </div>
+              <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
+                Study Materials &amp; Bookstore
+              </h4>
+              <p style={{ fontSize: 13, color: '#64748B', margin: 0, lineHeight: 1.4 }}>
+                Sell curated entrance books &amp; DPPs. Earn 10% affiliate share or 90% revenue on your own notes.
+              </p>
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <Link to="/bookstore" style={{ fontSize: 13, fontWeight: 700, color: '#0284c7', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                Manage Store <span>→</span>
+              </Link>
+              <a
+                href={`/#/colleges/${institute?.slug || 'andhra-inspire-academy'}/store`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#0284c7',
+                  background: '#E0F2FE',
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #BAE6FD',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#BAE6FD'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#E0F2FE'; }}
+              >
+                <span>🛒</span> Public Store ↗
+              </a>
+            </div>
+          </div>
+
+          {/* Card 7: Plans & Invoices */}
           <Link
             to="/subscriptions"
             style={{

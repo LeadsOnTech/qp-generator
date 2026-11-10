@@ -52,6 +52,8 @@ import CollegeWebsiteBuilder from './pages/CollegeWebsiteBuilder';
 import SuperAdminWebsites from './pages/SuperAdminWebsites';
 import CollegeSubscriptions from './pages/CollegeSubscriptions';
 import CollegeSubscriptionPlans from './pages/CollegeSubscriptionPlans';
+import CollegeBookstore from './pages/CollegeBookstore';
+import SuperAdminMarketplace from './pages/SuperAdminMarketplace';
 
 export default function App() {
   return (
@@ -85,6 +87,8 @@ export default function App() {
           {/* Public College Websites */}
           <Route path="/colleges/:slug" element={<PublicCollegePortal />} />
           <Route path="/colleges/:slug/courses" element={<PublicCollegePortal defaultTab="courses" />} />
+          <Route path="/colleges/:slug/store" element={<PublicCollegePortal defaultTab="store" />} />
+          <Route path="/colleges/:slug/materials" element={<PublicCollegePortal defaultTab="store" />} />
           <Route path="/colleges/:slug/exams" element={<PublicCollegePortal defaultTab="exams" />} />
           <Route path="/colleges/:slug/careers" element={<PublicCollegePortal defaultTab="careers" />} />
           <Route path="/colleges/:slug/admissions" element={<PublicCollegePortal defaultTab="admissions" />} />
@@ -107,6 +111,7 @@ export default function App() {
 
               {/* Institute-only */}
               <Route path="/institute-dashboard" element={<InstituteDashboard />} />
+              <Route path="/bookstore" element={<CollegeBookstore />} />
               <Route path="/website-builder" element={<CollegeWebsiteBuilder />} />
               <Route path="/my-institute" element={<MyInstituteProfile />} />
               <Route path="/subscriptions" element={<CollegeSubscriptionPlans />} />
@@ -127,6 +132,7 @@ export default function App() {
                 <Route path="/analytics/:chapterId" element={<ChapterAnalytics />} />
                 <Route path="/institutes" element={<Institutes />} />
                 <Route path="/admin/websites" element={<SuperAdminWebsites />} />
+                <Route path="/admin/marketplace" element={<SuperAdminMarketplace />} />
                 <Route path="/admin/subscriptions" element={<CollegeSubscriptions />} />
                 <Route path="/trial-accounts" element={<TrialAccounts />} />
                 <Route path="/recharge-approvals" element={<RechargeApprovals />} />

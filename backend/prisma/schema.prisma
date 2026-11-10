@@ -112,6 +112,12 @@ model Institute {
   // Online Subscription Payments & Invoices (Phase 3B)
   subscriptionPayments SubscriptionPayment[]
   subscriptionInvoices SubscriptionInvoice[]
+
+  // Study Materials & Books E-Commerce Marketplace
+  marketplaceBooks              MarketplaceBook[]
+  marketplaceOrdersSold         MarketplaceOrder[]      @relation("SellingInstitute")
+  marketplaceEarningsPaise      Int                     @default(0)
+  marketplaceCreditsAutoConvert Boolean                 @default(true)
 }
 
 // ---------- Credit ledger ----------
@@ -1151,6 +1157,106 @@ model PaymentWebhookLog {
   @@index([gatewayPaymentId])
   @@index([processingStatus])
   @@index([receivedAt])
+}
+
+// ============================================================================
+// Phase 13: Study Materials & Books E-Commerce Marketplace
+// Multi-Tenant Bookstore, Affiliate Revenue Sharing & Anti-Piracy Watermarking
+// ============================================================================
+
+model MarketplaceBook {
+  id                     String             @id @default(cuid())
+  title                  String
+  subtitle               String?
+  description            String?
+  examTarget             String?            // "NEET", "JEE Main", "AP EAPCET", "TG EAPCET", "KCET", "CBSE 12", etc.
+  subject                String?            // "Physics", "Chemistry", "Mathematics", "Biology", "Comprehensive"
+  classYear              String?            // "Class 11", "Class 12", "Dropper / Repeater", "Foundation"
+  author                 String             @default("QuestionStudio Academic Editorial")
+  category               String             @default("STUDY_MATERIAL") // "FORMULA_BOOK" | "PYQ_SOLUTIONS" | "MOCK_TEST_SERIES" | "STUDY_MATERIAL" | "HANDBOOK"
+  
+  // Pricing in Indian Rupees
+  priceRupees            Float              @default(199.00)
+  mrpRupees              Float?             @default(499.00)
+  
+  // Digital Asset Storage
+  coverImageUrl          String?
+  fileKey                String             // Full PDF filename in uploads/marketplace/
+  sampleFileKey          String?            // Free preview PDF (first 5-10 pages) in uploads/marketplace/
+  pageCount              Int                @default(0)
+  fileSizeBytes          Int                @default(0)
+  
+  // Multi-Tenant Syndication & Authorship
+  isGlobal               Boolean            @default(true) // If true, syndicates automatically across all 800 college websites!
+  instituteId            String?            // Null = Super Admin Master Content. Non-null = College's Own Proprietary Content!
+  institute              Institute?         @relation(fields: [instituteId], references: [id], onDelete: SetNull)
+  
+  // Affiliate & Commission Configuration (Default 10%)
+  affiliateCommissionPct Float              @default(10.0) // 10% to selling college if master book, or 10% platform fee if college book
+  
+  // Operational & Store Metrics
+  isActive               Boolean            @default(true)
+  isFeatured             Boolean            @default(false)
+  salesCount             Int                @default(0)
+  rating                 Float              @default(4.9)
+  reviewsCount           Int                @default(18)
+  
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  
+  orders                 MarketplaceOrder[]
+
+  @@index([instituteId])
+  @@index([examTarget])
+  @@index([subject])
+  @@index([isGlobal])
+  @@index([isActive])
+}
+
+model MarketplaceOrder {
+  id                     String           @id @default(cuid())
+  orderNumber            String           @unique // e.g. "QS-BK-88219"
+  bookId                 String
+  book                   MarketplaceBook  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  // Tenant attribution: Which college website did the student buy from?
+  sellingInstituteId     String?
+  sellingInstitute       Institute?       @relation("SellingInstitute", fields: [sellingInstituteId], references: [id], onDelete: SetNull)
+  
+  // Student Buyer Information
+  buyerName              String
+  buyerPhone             String           // Normalized mobile number (+91...)
+  buyerEmail             String
+  
+  // Financial Accounting
+  amountRupees           Float
+  collegeShareRupees     Float            // 10% affiliate share (for master books) or 90% revenue (for college books)
+  platformShareRupees    Float            // 90% platform share (for master books) or 10% platform fee (for college books)
+  
+  // Settlement Mode: Wallet Credits vs Cash Bank Transfer
+  payoutMode             String           @default("WALLET_CREDITS") // "WALLET_CREDITS" | "BANK_PAYOUT"
+  creditsAwarded         Int              @default(0) // If auto-converted to Question Paper Credits
+  
+  // Payment Verification
+  paymentStatus          String           @default("COMPLETED") // "COMPLETED" | "PENDING" | "FAILED"
+  paymentMethod          String           @default("UPI_RAZORPAY")
+  razorpayPaymentId      String?
+  razorpayOrderId        String?
+  
+  // Anti-Piracy DRM Watermarked Delivery
+  downloadToken          String           @unique // High-entropy secure download token
+  downloadCount          Int              @default(0)
+  maxDownloads           Int              @default(10)
+  downloadExpiresAt      DateTime?
+  
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@index([bookId])
+  @@index([sellingInstituteId])
+  @@index([downloadToken])
+  @@index([paymentStatus])
+  @@index([buyerPhone])
 }
 
 

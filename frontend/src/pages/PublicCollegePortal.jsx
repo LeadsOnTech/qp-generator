@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { api } from '../lib/api';
 import '../college-portal.css';
 
 // SVG Icon Helpers
@@ -201,6 +202,15 @@ export default function PublicCollegePortal() {
   const [jobSuccess, setJobSuccess] = useState(false);
   const [jobError, setJobError] = useState(null);
 
+  // Bookstore & Study Materials Marketplace State
+  const [marketplaceBooks, setMarketplaceBooks] = useState([]);
+  const [storeFilter, setStoreFilter] = useState('ALL');
+  const [sampleModalBook, setSampleModalBook] = useState(null);
+  const [buyModalBook, setBuyModalBook] = useState(null);
+  const [buyForm, setBuyForm] = useState({ buyerName: '', buyerPhone: '', buyerEmail: '' });
+  const [buying, setBuying] = useState(false);
+  const [purchasedOrder, setPurchasedOrder] = useState(null);
+
   useEffect(() => {
     fetchWebsiteData();
   }, [slug]);
@@ -210,12 +220,16 @@ export default function PublicCollegePortal() {
     setError(null);
     try {
       const targetSlug = (!slug || slug === 'dummy' || slug === 'demo') ? 'andhra-inspire-academy' : slug;
-      const res = await fetch(`/api/public/colleges/${targetSlug}`);
+      const [res, catalogData] = await Promise.all([
+        fetch(`/api/public/colleges/${targetSlug}`),
+        api.getMarketplaceCatalog({ slug: targetSlug }).catch(() => ({ books: [] })),
+      ]);
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error || 'Failed to load college website');
       }
       setData(json.website);
+      setMarketplaceBooks(catalogData.books || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -421,6 +435,30 @@ export default function PublicCollegePortal() {
     }
   }
 
+  // Handle student study material purchase & anti-piracy DRM checkout
+  async function handleBuyBook(e) {
+    e.preventDefault();
+    if (!buyForm.buyerName.trim() || !buyForm.buyerPhone.trim()) {
+      return alert('Please enter student full name and valid WhatsApp mobile number.');
+    }
+    try {
+      setBuying(true);
+      const res = await api.createMarketplaceOrder({
+        bookId: buyModalBook.id,
+        collegeSlug: slug || 'andhra-inspire-academy',
+        buyerName: buyForm.buyerName.trim(),
+        buyerPhone: buyForm.buyerPhone.trim(),
+        buyerEmail: buyForm.buyerEmail.trim(),
+        paymentMethod: 'UPI_RAZORPAY',
+      });
+      setPurchasedOrder(res);
+    } catch (err) {
+      alert('Checkout failed: ' + (err.message || 'Please try again.'));
+    } finally {
+      setBuying(false);
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -566,6 +604,9 @@ export default function PublicCollegePortal() {
             <button onClick={() => scrollToSection('courses')} className={`cp-nav-btn ${activeSection === 'courses' ? 'active' : ''}`}>
               Courses
             </button>
+            <button onClick={() => scrollToSection('store')} className={`cp-nav-btn ${activeSection === 'store' ? 'active' : ''}`}>
+              Study Materials 📚
+            </button>
             <button onClick={() => scrollToSection('gallery')} className={`cp-nav-btn ${activeSection === 'gallery' ? 'active' : ''}`}>
               Gallery
             </button>
@@ -627,6 +668,7 @@ export default function PublicCollegePortal() {
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('home')}>Home</button>
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('about')}>About Us</button>
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('courses')}>Courses</button>
+                <button className="cp-drawer-link-btn" onClick={() => scrollToSection('store')}>Study Materials 📚</button>
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('gallery')}>Gallery</button>
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('toppers')}>Result</button>
                 <button className="cp-drawer-link-btn" onClick={() => scrollToSection('contact')}>Contact Us</button>
@@ -945,6 +987,171 @@ export default function PublicCollegePortal() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+          SECTION 7B: STUDY MATERIALS & BOOKS MARKETPLACE (10% AFFILIATE REVENUE)
+          ========================================================================= */}
+      {marketplaceBooks.length > 0 && (
+        <section id="store" className="cp-section cp-section-linen">
+          <div className="cp-container">
+            <div className="cp-section-header cp-reveal">
+              <span className="cp-section-marker">04B / STUDY MATERIALS &amp; BOOKS</span>
+              <h3 className="cp-section-title">Official Curated Books &amp; Test Series</h3>
+              <p className="cp-section-desc">
+                High-yield entrance exam handbooks, formula compendiums, and mock papers. Every download is cryptographically watermarked with student credentials.
+              </p>
+            </div>
+
+            {/* Filter pills */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+              {['ALL', 'NEET', 'JEE', 'EAPCET', 'FOUNDATION'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setStoreFilter(cat)}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 999,
+                    border: storeFilter === cat ? '1px solid #0284c7' : '1px solid #CBD5E1',
+                    background: storeFilter === cat ? '#0284c7' : '#FFFFFF',
+                    color: storeFilter === cat ? '#FFFFFF' : '#475569',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {cat === 'ALL' ? 'All Publications' : cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Books Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 24,
+              }}
+            >
+              {marketplaceBooks
+                .filter((b) => storeFilter === 'ALL' || (b.examTarget || '').toUpperCase().includes(storeFilter))
+                .map((b) => (
+                  <div
+                    key={b.id}
+                    style={{
+                      background: '#FFFFFF',
+                      borderRadius: 16,
+                      border: '1px solid #E2E8F0',
+                      padding: 20,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 15px -3px rgba(15, 23, 42, 0.05)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          height: 170,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          marginBottom: 16,
+                          position: 'relative',
+                          background: '#F8FAFC',
+                        }}
+                      >
+                        <img
+                          src={b.coverImageUrl || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80'}
+                          alt={b.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: '#0284c7', color: '#FFFFFF' }}>
+                            {b.examTarget || 'COMPETITIVE'}
+                          </span>
+                          {b.discountPct > 0 && (
+                            <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: '#10B981', color: '#FFFFFF' }}>
+                              {b.discountPct}% OFF
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', lineHeight: 1.35 }}>
+                        {b.title}
+                      </h4>
+
+                      <p style={{ fontSize: 12.5, color: '#64748B', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                        {b.subtitle || b.description}
+                      </p>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#0284c7', fontWeight: 600, marginBottom: 10 }}>
+                        <span>⭐ {b.rating || 4.9} ({b.reviewsCount || 24} reviews)</span>
+                        <span>•</span>
+                        <span>{b.salesCount || 100}+ downloads</span>
+                      </div>
+
+                      <div style={{ fontSize: 11, color: '#059669', background: '#ECFDF5', padding: '4px 8px', borderRadius: 6, border: '1px solid #A7F3D0', marginBottom: 14, fontWeight: 600 }}>
+                        🛡️ Anti-Piracy Watermark: Licensed to Buyer Phone
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14, paddingTop: 10, borderTop: '1px solid #F1F5F9' }}>
+                        <span style={{ fontSize: 22, fontWeight: 900, color: '#0F172A' }}>₹{b.priceRupees}</span>
+                        {b.mrpRupees && (
+                          <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>₹{b.mrpRupees}</span>
+                        )}
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', marginLeft: 'auto' }}>
+                          Instant PDF Delivery
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                        <button
+                          onClick={() => setSampleModalBook(b)}
+                          style={{
+                            background: '#F1F5F9',
+                            color: '#334155',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '9px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          📖 Read Sample
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setPurchasedOrder(null);
+                            setBuyModalBook(b);
+                          }}
+                          style={{
+                            background: '#0284c7',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '9px 12px',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)',
+                          }}
+                        >
+                          ⚡ Buy Now (₹{b.priceRupees})
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         </section>
@@ -2638,6 +2845,336 @@ export default function PublicCollegePortal() {
                 </form>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* =========================================================================
+          MODAL: SAMPLE CHAPTER VIEWER
+          ========================================================================= */}
+      {sampleModalBook && (
+        <div className="cp-modal-overlay" onClick={() => setSampleModalBook(null)}>
+          <div
+            className="cp-modal-dialog"
+            style={{ maxWidth: 650, maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>
+                  Free Sample Chapters &bull; {sampleModalBook.examTarget}
+                </span>
+                <h3 style={{ margin: '4px 0 0 0', fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+                  {sampleModalBook.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSampleModalBook(null)}
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                padding: '24px 20px',
+                fontFamily: 'serif',
+                fontSize: 14.5,
+                lineHeight: 1.7,
+                color: '#334155',
+                whiteSpace: 'pre-wrap',
+                maxHeight: 420,
+                overflowY: 'auto',
+                marginBottom: 20,
+              }}
+            >
+              {sampleModalBook.samplePreviewText || `Table of Contents & Sample Excerpt:
+Chapter 1: Foundational Principles & Formula Reference
+• Key Definitions, SI Units, and Dimensional Formulas
+• Solved Exemplar Problems with Shortcut Tricks
+• High-Yield Exam Traps & Common Calculation Mistakes
+
+Chapter 2: Multi-Concept Problem Solving Techniques
+• Elimination Methods for 4-Option Multiple Choice Questions
+• 10-Year Trend Analysis (NEET & JEE Main 2015-2025)
+
+[Unlock all complete chapters, 500+ PYQs, and answer keys by purchasing the full publication below.]`}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Full Edition Price:</span>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a' }}>₹{sampleModalBook.priceRupees}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setSampleModalBook(null)}
+                  style={{
+                    background: '#f1f5f9',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '10px 18px',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close Preview
+                </button>
+                <button
+                  onClick={() => {
+                    const b = sampleModalBook;
+                    setSampleModalBook(null);
+                    setPurchasedOrder(null);
+                    setBuyModalBook(b);
+                  }}
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '10px 22px',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Buy Full Edition Now &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL: INSTANT BUY & ANTI-PIRACY DRM CHECKOUT
+          ========================================================================= */}
+      {buyModalBook && (
+        <div className="cp-modal-overlay" onClick={() => !buying && setBuyModalBook(null)}>
+          <div
+            className="cp-modal-dialog"
+            style={{ maxWidth: 520 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {purchasedOrder ? (
+              <div style={{ textAlign: 'center', padding: '16px 8px' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+                <h3 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                  Purchase Successful!
+                </h3>
+                <p style={{ fontSize: 13.5, color: '#64748b', margin: '0 0 20px 0' }}>
+                  Your copy has been dynamically stamped with your student credentials and anti-piracy DRM watermark.
+                </p>
+
+                <div
+                  style={{
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 24,
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#065f46', marginBottom: 4 }}>
+                    <strong>Order ID:</strong> {purchasedOrder.order?.orderNumber || 'COMPLETED'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#065f46', marginBottom: 4 }}>
+                    <strong>Licensed To:</strong> {purchasedOrder.order?.buyerName} ({purchasedOrder.order?.buyerPhone})
+                  </div>
+                  <div style={{ fontSize: 12, color: '#065f46' }}>
+                    <strong>Publication:</strong> {purchasedOrder.order?.book?.title || buyModalBook.title}
+                  </div>
+                </div>
+
+                <a
+                  href={purchasedOrder.downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    background: '#059669',
+                    color: '#ffffff',
+                    padding: '14px 20px',
+                    borderRadius: 10,
+                    fontWeight: 800,
+                    fontSize: 15,
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                    boxShadow: '0 4px 15px rgba(5, 150, 105, 0.3)',
+                    marginBottom: 12,
+                  }}
+                >
+                  📥 Download Watermarked PDF Now
+                </a>
+
+                <button
+                  onClick={() => {
+                    setBuyModalBook(null);
+                    setPurchasedOrder(null);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>
+                      ⚡ Instant Checkout &bull; DRM Protected PDF
+                    </span>
+                    <h3 style={{ margin: '4px 0 0 0', fontSize: 19, fontWeight: 800, color: '#0f172a' }}>
+                      {buyModalBook.title}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setBuyModalBook(null)}
+                    style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                {/* Price pill */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 18,
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>Total Payable Amount:</span>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#0284c7' }}>
+                      ₹{buyModalBook.priceRupees}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 6, border: '1px solid #a7f3d0' }}>
+                      Affiliate Royalty Attributed
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleBuyBook}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Student Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma"
+                      value={buyForm.buyerName}
+                      onChange={(e) => setBuyForm({ ...buyForm, buyerName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #cbd5e1',
+                        fontSize: 13.5,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      WhatsApp Mobile Number * (Embedded on PDF)
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 9876543210"
+                      value={buyForm.buyerPhone}
+                      onChange={(e) => setBuyForm({ ...buyForm, buyerPhone: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #cbd5e1',
+                        fontSize: 13.5,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Email Address (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. student@gmail.com"
+                      value={buyForm.buyerEmail}
+                      onChange={(e) => setBuyForm({ ...buyForm, buyerEmail: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #cbd5e1',
+                        fontSize: 13.5,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      background: '#fffbeb',
+                      border: '1px solid #fde68a',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      fontSize: 11.5,
+                      color: '#92400e',
+                      marginBottom: 18,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    🛡️ <strong>Anti-Piracy Notice:</strong> Your name and mobile number will be indelibly watermarked diagonally across every page of your PDF to trace unauthorized distribution.
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={buying}
+                    style={{
+                      width: '100%',
+                      background: '#0284c7',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '13px 20px',
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      fontSize: 14,
+                      cursor: buying ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
+                    }}
+                  >
+                    {buying ? 'Generating Watermarked PDF...' : `Pay ₹${buyModalBook.priceRupees} & Download Instantly`}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       )}
