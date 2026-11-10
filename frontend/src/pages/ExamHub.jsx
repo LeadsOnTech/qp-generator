@@ -154,7 +154,7 @@ export default function ExamHub() {
   }, [exams, searchQuery]);
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', paddingBottom: 48 }}>
+    <div style={{ width: '100%', paddingBottom: 48 }}>
       {/* Hero Header Card */}
       <div 
         style={{

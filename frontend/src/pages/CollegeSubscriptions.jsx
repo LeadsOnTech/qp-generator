@@ -380,7 +380,7 @@ export default function CollegeSubscriptions() {
   }
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto', padding: '16px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ width: '100%', padding: '0 4px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* =========================================================================
           PAGE HERO BANNER
           ========================================================================= */}

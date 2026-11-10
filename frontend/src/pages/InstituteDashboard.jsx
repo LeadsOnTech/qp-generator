@@ -22,7 +22,7 @@ export default function InstituteDashboard() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+      <div style={{ width: '100%' }}>
         <div className="skeleton" style={{ height: 200, borderRadius: 24, marginBottom: 24 }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18, marginBottom: 24 }}>
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 18 }} />)}
@@ -40,7 +40,7 @@ export default function InstituteDashboard() {
     : 'Recharge to keep generating papers without interruption.';
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 48 }}>
+    <div style={{ width: '100%', paddingBottom: 48 }}>
       {/* Executive Welcome Hero */}
       <div
         style={{

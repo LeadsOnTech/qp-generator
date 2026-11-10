@@ -237,7 +237,7 @@ export default function GeneratePaper() {
   }
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div className="studio-badge">

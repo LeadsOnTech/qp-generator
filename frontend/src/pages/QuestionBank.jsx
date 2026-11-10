@@ -105,7 +105,7 @@ export default function QuestionBank() {
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

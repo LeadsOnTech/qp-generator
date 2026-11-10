@@ -59,7 +59,7 @@ export default function Duplicates() {
   }
 
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto', paddingBottom: 60 }}>
+    <div style={{ width: '100%', paddingBottom: 60 }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

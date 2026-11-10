@@ -60,7 +60,7 @@ export default function MyInstituteProfile() {
   if (loading) return <div className="skeleton" style={{ height: 400, borderRadius: 20 }} />;
 
   return (
-    <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

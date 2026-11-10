@@ -63,7 +63,7 @@ export default function SecuritySettings() {
   }
 
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: 840 }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div className="studio-badge">

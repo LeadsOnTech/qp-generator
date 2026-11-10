@@ -438,7 +438,7 @@ export default function CollegeSubscriptionPlans() {
   }
 
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto', padding: '16px 16px' }}>
+    <div style={{ width: '100%', padding: '0 4px' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

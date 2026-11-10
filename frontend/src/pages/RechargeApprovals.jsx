@@ -149,7 +149,7 @@ export default function RechargeApprovals() {
   const imgBase = api.imageBase();
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 8px' }}>
+    <div style={{ width: '100%', padding: '0 4px' }}>
       {/* HEADER COMMAND BAR */}
       <div
         style={{

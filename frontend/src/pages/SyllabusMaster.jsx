@@ -74,7 +74,7 @@ export default function SyllabusMaster() {
   const totalMissingChapters = tree.reduce((sum, e) => sum + e.subjects.reduce((s2, sub) => s2 + sub.chapters.filter(c => c.questionCount === 0 && c.syllabusStatus !== 'REMOVED').length, 0), 0);
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

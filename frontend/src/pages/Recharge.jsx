@@ -306,7 +306,7 @@ export default function Recharge() {
   if (loading) return <div className="skeleton" style={{ height: 320 }} />;
 
   return (
-    <div style={{ maxWidth: 1040, margin: '0 auto', padding: '0 8px' }}>
+    <div style={{ width: '100%', padding: '0 4px' }}>
       {/* EXECUTIVE HERO BANNER */}
       <div className="studio-hero" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

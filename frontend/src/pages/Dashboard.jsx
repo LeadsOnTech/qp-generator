@@ -32,7 +32,7 @@ export default function Dashboard() {
     stats?.byDifficulty?.find((d) => d.difficulty === label)?.count ?? 0;
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 48 }}>
+    <div style={{ width: '100%', paddingBottom: 48 }}>
       {/* Executive Hero */}
       <div
         style={{

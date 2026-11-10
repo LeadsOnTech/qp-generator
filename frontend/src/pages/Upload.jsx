@@ -59,7 +59,7 @@ export default function Upload() {
   }
 
   return (
-    <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>

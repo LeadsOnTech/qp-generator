@@ -37,7 +37,7 @@ export default function BankAnalytics() {
   const pct = (n) => (o.total ? Math.round((n / o.total) * 100) : 0);
 
   return (
-    <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       {/* Executive Hero Banner */}
       <div className="studio-hero">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
