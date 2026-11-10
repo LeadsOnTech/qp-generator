@@ -485,6 +485,21 @@ export const api = {
   createMarketplaceOrder: (data) => request('/marketplace/checkout/create-order', { method: 'POST', body: JSON.stringify(data) }),
   getInstituteMarketplaceEarnings: (instituteId) => request(`/marketplace/institute/earnings${instituteId ? `?instituteId=${instituteId}` : ''}`),
   uploadInstituteMarketplaceMaterial: (data) => request('/marketplace/institute/upload-material', { method: 'POST', body: JSON.stringify(data) }),
+  updateInstituteMarketplaceMaterial: (id, data) => request(`/marketplace/institute/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInstituteMarketplaceMaterial: (id) => request(`/marketplace/institute/book/${id}`, { method: 'DELETE' }),
   getAdminMarketplaceReconciliation: () => request('/marketplace/admin/reconciliation'),
   uploadAdminMasterBook: (data) => request('/marketplace/admin/upload-master-book', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminMasterBook: (id, data) => request(`/marketplace/admin/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAdminMasterBook: (id) => request(`/marketplace/admin/book/${id}`, { method: 'DELETE' }),
+  uploadMarketplaceCover: async (file) => {
+    const formData = new FormData();
+    formData.append('coverImage', file);
+    const token = getStoredToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch('/api/marketplace/upload-cover', { method: 'POST', headers, body: formData });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to upload cover image');
+    return json;
+  },
 };

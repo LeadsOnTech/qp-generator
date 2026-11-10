@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import EcommerceBookEditorModal from '../components/EcommerceBookEditorModal';
 
 export default function SuperAdminMarketplace() {
   const { user } = useAuth();
@@ -8,23 +9,9 @@ export default function SuperAdminMarketplace() {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
-  // New Master Book Modal
+  // Master Book Modal State
   const [modalOpen, setModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    examTarget: 'NEET',
-    subject: 'Comprehensive',
-    classYear: 'Class 12',
-    author: 'QuestionStudio Academic Editorial Board',
-    priceRupees: 199,
-    mrpRupees: 499,
-    category: 'FORMULA_BOOK',
-    coverImageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80',
-    pageCount: 160,
-  });
+  const [editingBook, setEditingBook] = useState(null);
 
   async function loadData() {
     try {
@@ -43,33 +30,25 @@ export default function SuperAdminMarketplace() {
     loadData();
   }, []);
 
-  async function handleCreateMasterBook(e) {
-    e.preventDefault();
-    if (!form.title.trim()) return alert('Please enter book title');
-    try {
-      setSaving(true);
-      await api.uploadAdminMasterBook(form);
-      setModalOpen(false);
-      setForm({
-        title: '',
-        subtitle: '',
-        description: '',
-        examTarget: 'NEET',
-        subject: 'Comprehensive',
-        classYear: 'Class 12',
-        author: 'QuestionStudio Academic Editorial Board',
-        priceRupees: 199,
-        mrpRupees: 499,
-        category: 'FORMULA_BOOK',
-        coverImageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80',
-        pageCount: 160,
-      });
-      await loadData();
+  async function handleSaveMasterBook(formData) {
+    if (editingBook) {
+      await api.updateAdminMasterBook(editingBook.id, formData);
+      alert('Master publication updated successfully!');
+    } else {
+      await api.uploadAdminMasterBook(formData);
       alert('Master publication created and syndicated to all 800 college websites!');
+    }
+    await loadData();
+  }
+
+  async function handleDeleteBook(bookId) {
+    if (!window.confirm('Are you sure you want to remove this publication from all colleges?')) return;
+    try {
+      await api.deleteAdminMasterBook(bookId);
+      await loadData();
+      alert('Publication deleted successfully.');
     } catch (err) {
-      alert('Failed to create publication: ' + err.message);
-    } finally {
-      setSaving(false);
+      alert('Delete failed: ' + err.message);
     }
   }
 
@@ -120,7 +99,7 @@ export default function SuperAdminMarketplace() {
           </div>
 
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => { setEditingBook(null); setModalOpen(true); }}
             className="btn btn-primary"
             style={{
               padding: '12px 24px',
@@ -220,7 +199,7 @@ export default function SuperAdminMarketplace() {
             </p>
           </div>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => { setEditingBook(null); setModalOpen(true); }}
             className="btn btn-primary"
             style={{ padding: '8px 16px', fontSize: 13 }}
           >
@@ -228,54 +207,119 @@ export default function SuperAdminMarketplace() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
           {books.map((b) => (
             <div
               key={b.id}
               style={{
                 border: '1px solid #E2E8F0',
-                borderRadius: 16,
+                borderRadius: 18,
                 padding: 18,
                 background: '#FFFFFF',
                 display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                gap: 16,
+                boxShadow: '0 4px 12px -2px rgba(15, 23, 42, 0.05)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
               }}
             >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <span className="badge badge-neutral" style={{ fontWeight: 700, fontSize: 11 }}>
-                    {b.examTarget}
-                  </span>
-                  {b.isGlobal ? (
-                    <span className="badge badge-success" style={{ fontSize: 10 }}>
-                      ⚡ Syndicated to 800 Sites
-                    </span>
-                  ) : (
-                    <span className="badge badge-gold" style={{ fontSize: 10 }}>
-                      🏛️ {b.institute?.name || 'Private'}
-                    </span>
-                  )}
-                </div>
-
-                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', lineHeight: 1.3 }}>
-                  {b.title}
-                </h4>
-
-                <p style={{ fontSize: 12.5, color: '#64748B', margin: '0 0 12px 0', lineHeight: 1.4 }}>
-                  {b.subtitle || b.description?.substring(0, 80) + '...'}
-                </p>
+              {/* Cover Image Frame */}
+              <div
+                style={{
+                  width: 90,
+                  height: 125,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  background: '#F1F5F9',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                  position: 'relative',
+                }}
+              >
+                <img
+                  src={b.coverImageUrl || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80'}
+                  alt={b.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid #F1F5F9' }}>
-                  <div>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#0284c7' }}>₹{b.priceRupees}</span>
-                    <span style={{ fontSize: 12, color: '#94A3B8', textDecoration: 'line-through', marginLeft: 6 }}>₹{b.mrpRupees}</span>
+              {/* Info & Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span className="badge badge-neutral" style={{ fontWeight: 800, fontSize: 10 }}>
+                      {b.examTarget}
+                    </span>
+                    {b.isGlobal ? (
+                      <span className="badge badge-success" style={{ fontSize: 10 }}>
+                        ⚡ All 800 Sites
+                      </span>
+                    ) : (
+                      <span className="badge badge-gold" style={{ fontSize: 10 }}>
+                        🏛️ {b.institute?.name?.substring(0, 15) || 'Private'}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>
-                    {b.salesCount} Copies Sold
+
+                  <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0', lineHeight: 1.3 }}>
+                    {b.title}
+                  </h4>
+
+                  <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {b.subtitle || b.description || 'Comprehensive exam preparation material'}
+                  </p>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                    <div>
+                      <span style={{ fontSize: 17, fontWeight: 900, color: '#0284c7' }}>₹{b.priceRupees}</span>
+                      {b.mrpRupees && b.mrpRupees > b.priceRupees && (
+                        <span style={{ fontSize: 12, color: '#94A3B8', textDecoration: 'line-through', marginLeft: 6 }}>
+                          ₹{b.mrpRupees}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#059669' }}>
+                      {b.salesCount || 0} Sold
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        setEditingBook(b);
+                        setModalOpen(true);
+                      }}
+                      style={{
+                        flex: 1,
+                        background: '#F1F5F9',
+                        color: '#334155',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: 8,
+                        padding: '6px 10px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✏️ Edit Book
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBook(b.id)}
+                      style={{
+                        background: '#FEE2E2',
+                        color: '#DC2626',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '6px 10px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                      title="Remove from platform"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
               </div>
@@ -339,172 +383,17 @@ export default function SuperAdminMarketplace() {
         )}
       </div>
 
-      {/* Upload Master Book Modal */}
-      {modalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: 16,
-          }}
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            style={{
-              background: '#FFFFFF',
-              borderRadius: 20,
-              maxWidth: 620,
-              width: '100%',
-              padding: '28px 30px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0' }}>
-                  Syndicate Master Book to All 800 Colleges
-                </h3>
-                <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
-                  This publication will instantly appear in every college's public bookstore.
-                </p>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 14, cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateMasterBook}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Master Book Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. NEET 2026 High-Yield Organic Chemistry Maps"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Subtitle / Solved Features
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Complete Solved PYQs with Step-by-Step Graphical Approaches"
-                  value={form.subtitle}
-                  onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Target Exam
-                  </label>
-                  <select
-                    value={form.examTarget}
-                    onChange={(e) => setForm({ ...form, examTarget: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13 }}
-                  >
-                    <option value="NEET">NEET UG</option>
-                    <option value="JEE Main">JEE Main</option>
-                    <option value="AP EAPCET">AP EAPCET</option>
-                    <option value="TG EAPCET">TG EAPCET</option>
-                    <option value="KCET">KCET</option>
-                    <option value="CBSE 12">CBSE 12</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Category
-                  </label>
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13 }}
-                  >
-                    <option value="FORMULA_BOOK">Formula Handbook</option>
-                    <option value="PYQ_SOLUTIONS">PYQ Solutions</option>
-                    <option value="MOCK_TEST_SERIES">Mock Test Series</option>
-                    <option value="STUDY_MATERIAL">Study Material</option>
-                    <option value="HANDBOOK">Handy Visual Atlas</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Selling Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    min="49"
-                    required
-                    value={form.priceRupees}
-                    onChange={(e) => setForm({ ...form, priceRupees: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                    College affiliate gets 10%: ₹{(form.priceRupees * 0.1).toFixed(2)}
-                  </span>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Strikethrough MRP (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.mrpRupees}
-                    onChange={(e) => setForm({ ...form, mrpRupees: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn btn-primary"
-                  style={{ padding: '10px 22px', borderRadius: 10, fontWeight: 800 }}
-                >
-                  {saving ? 'Syndicating...' : 'Syndicate to All 800 Colleges 🚀'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* High-Impact E-Commerce Book Publisher Studio */}
+      <EcommerceBookEditorModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingBook(null);
+        }}
+        initialData={editingBook}
+        isMaster={true}
+        onSave={handleSaveMasterBook}
+      />
     </div>
   );
 }

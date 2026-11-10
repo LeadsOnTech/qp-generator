@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import '../college-portal.css';
+import EcommerceBookModal from '../components/EcommerceBookModal';
 
 // SVG Icon Helpers
 function IconGraduationCap() {
@@ -207,6 +208,7 @@ export default function PublicCollegePortal() {
   const [storeFilter, setStoreFilter] = useState('ALL');
   const [sampleModalBook, setSampleModalBook] = useState(null);
   const [buyModalBook, setBuyModalBook] = useState(null);
+  const [selectedProductBook, setSelectedProductBook] = useState(null);
   const [buyForm, setBuyForm] = useState({ buyerName: '', buyerPhone: '', buyerEmail: '' });
   const [buying, setBuying] = useState(false);
   const [purchasedOrder, setPurchasedOrder] = useState(null);
@@ -1042,6 +1044,7 @@ export default function PublicCollegePortal() {
                 .map((b) => (
                   <div
                     key={b.id}
+                    onClick={() => setSelectedProductBook(b)}
                     style={{
                       background: '#FFFFFF',
                       borderRadius: 16,
@@ -1052,6 +1055,7 @@ export default function PublicCollegePortal() {
                       justifyContent: 'space-between',
                       boxShadow: '0 4px 15px -3px rgba(15, 23, 42, 0.05)',
                       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      cursor: 'pointer',
                     }}
                   >
                     <div>
@@ -1112,9 +1116,18 @@ export default function PublicCollegePortal() {
                         </span>
                       </div>
 
+                      <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 11.5, color: '#0284c7', fontWeight: 700 }}>
+                          👁️ Click to view full 3D preview, sample & reviews
+                        </span>
+                      </div>
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                         <button
-                          onClick={() => setSampleModalBook(b)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSampleModalBook(b);
+                          }}
                           style={{
                             background: '#F1F5F9',
                             color: '#334155',
@@ -1130,7 +1143,8 @@ export default function PublicCollegePortal() {
                         </button>
 
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setPurchasedOrder(null);
                             setBuyModalBook(b);
                           }}
@@ -3177,6 +3191,23 @@ Chapter 2: Multi-Concept Problem Solving Techniques
             )}
           </div>
         </div>
+      )}
+      {/* High-Impact Amazon/Flipkart/Classplus Style E-Commerce Book Selling Modal */}
+      {selectedProductBook && (
+        <EcommerceBookModal
+          book={selectedProductBook}
+          collegeSlug={slug}
+          onClose={() => setSelectedProductBook(null)}
+          onBuyClick={(b) => {
+            setSelectedProductBook(null);
+            setPurchasedOrder(null);
+            setBuyModalBook(b);
+          }}
+          onSampleClick={(b) => {
+            setSelectedProductBook(null);
+            setSampleModalBook(b);
+          }}
+        />
       )}
     </div>
   );

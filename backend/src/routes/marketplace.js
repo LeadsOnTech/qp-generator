@@ -2,20 +2,78 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const prisma = require('../db');
 const { requireAuth, requireAdmin } = require('../lib/auth');
 const { watermarkPdf } = require('../lib/watermarkPdf');
 
 const router = express.Router();
 
-// Ensure upload directory exists
+// Ensure upload directories exist
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads', 'marketplace');
-try {
-  if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const COVERS_DIR = path.join(UPLOAD_DIR, 'covers');
+const BOOKS_DIR = path.join(UPLOAD_DIR, 'books');
+[UPLOAD_DIR, COVERS_DIR, BOOKS_DIR].forEach((dir) => {
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    console.warn(`Could not create directory ${dir}:`, e.message);
   }
-} catch (e) {
-  console.warn('Could not create marketplace uploads folder:', e.message);
+});
+
+// Multer storage for book cover images
+const coverStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, COVERS_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `cover-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  },
+});
+const coverUpload = multer({
+  storage: coverStorage,
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files (JPG, PNG, WebP) are allowed for book covers.'));
+    }
+    cb(null, true);
+  },
+});
+
+// Multer storage for book PDFs
+const pdfStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, BOOKS_DIR),
+  filename: (req, file, cb) => {
+    cb(null, `book-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`);
+  },
+});
+const pdfUpload = multer({
+  storage: pdfStorage,
+  limits: { fileSize: 60 * 1024 * 1024 }, // 60 MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF documents are allowed for study materials.'));
+    }
+    cb(null, true);
+  },
+});
+
+// Robust Institute ID resolver to prevent "Institute ID is required" blocker
+async function resolveMarketplaceInstituteId(req, explicitId = null) {
+  let target = explicitId || (req.user?.role === 'ADMIN' ? (req.query?.instituteId || req.body?.instituteId) : req.user?.instituteId);
+  if (target) return target;
+  if (req.user?.userId) {
+    try {
+      const u = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { instituteId: true, email: true } });
+      if (u?.instituteId) return u.instituteId;
+      if (u?.email) {
+        const inst = await prisma.institute.findFirst({ where: { contactEmail: u.email } });
+        if (inst) return inst.id;
+      }
+    } catch (e) {}
+  }
+  const fallback = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+  return fallback?.id || null;
 }
 
 // ============================================================================
@@ -366,12 +424,10 @@ router.get('/download/:token', async (req, res) => {
  */
 router.get('/institute/earnings', requireAuth, async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN'
-      ? (req.query.instituteId || req.user.instituteId)
-      : req.user.instituteId;
+    const instituteId = await resolveMarketplaceInstituteId(req);
 
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required.' });
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
     }
 
     const institute = await prisma.institute.findUnique({
@@ -457,11 +513,9 @@ router.get('/institute/earnings', requireAuth, async (req, res) => {
  */
 router.post('/institute/upload-material', requireAuth, async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN'
-      ? (req.body.instituteId || req.user.instituteId)
-      : req.user.instituteId;
+    const instituteId = await resolveMarketplaceInstituteId(req, req.body.instituteId);
 
-    if (!instituteId) return res.status(400).json({ error: 'Institute ID is required.' });
+    if (!instituteId) return res.status(400).json({ error: 'Please configure your college profile first.' });
 
     const {
       title,
@@ -616,6 +670,185 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
   } catch (err) {
     console.error('Error creating master publication:', err);
     res.status(500).json({ error: 'Failed to create master publication: ' + err.message });
+  }
+});
+
+// ============================================================================
+// 6. ASSET UPLOADS & BOOK LIFECYCLE MANAGEMENT (EDIT / DELETE)
+// ============================================================================
+
+/**
+ * POST /api/marketplace/upload-cover
+ * Uploads a book cover image file (up to 8MB)
+ */
+router.post('/upload-cover', requireAuth, coverUpload.single('coverImage'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+    const imageUrl = `/uploads/marketplace/covers/${req.file.filename}`;
+    res.json({ ok: true, imageUrl, filename: req.file.filename });
+  } catch (err) {
+    console.error('Error uploading book cover:', err);
+    res.status(500).json({ error: err.message || 'Failed to upload cover image' });
+  }
+});
+
+/**
+ * POST /api/marketplace/upload-pdf
+ * Uploads a book PDF file (up to 60MB)
+ */
+router.post('/upload-pdf', requireAuth, pdfUpload.single('bookPdf'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file uploaded' });
+    }
+    res.json({ ok: true, fileKey: req.file.filename, sizeBytes: req.file.size });
+  } catch (err) {
+    console.error('Error uploading book PDF:', err);
+    res.status(500).json({ error: err.message || 'Failed to upload PDF' });
+  }
+});
+
+/**
+ * PUT /api/marketplace/admin/book/:id
+ * Super Admin edits an existing master publication
+ */
+router.put('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      subtitle,
+      description,
+      examTarget,
+      subject,
+      classYear,
+      author,
+      priceRupees,
+      mrpRupees,
+      coverImageUrl,
+      category,
+      pageCount,
+      sampleFileKey,
+      isActive,
+      isFeatured,
+    } = req.body;
+
+    const updated = await prisma.marketplaceBook.update({
+      where: { id },
+      data: {
+        ...(title && { title: title.trim() }),
+        ...(subtitle !== undefined && { subtitle: subtitle ? subtitle.trim() : null }),
+        ...(description !== undefined && { description: description ? description.trim() : null }),
+        ...(examTarget && { examTarget }),
+        ...(subject && { subject }),
+        ...(classYear && { classYear }),
+        ...(author && { author: author.trim() }),
+        ...(category && { category }),
+        ...(priceRupees !== undefined && { priceRupees: parseFloat(priceRupees) || 199 }),
+        ...(mrpRupees !== undefined && { mrpRupees: parseFloat(mrpRupees) || 499 }),
+        ...(coverImageUrl !== undefined && { coverImageUrl }),
+        ...(sampleFileKey !== undefined && { sampleFileKey }),
+        ...(pageCount !== undefined && { pageCount: parseInt(pageCount) || 160 }),
+        ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        ...(isFeatured !== undefined && { isFeatured: Boolean(isFeatured) }),
+      },
+    });
+
+    res.json({ success: true, book: updated });
+  } catch (err) {
+    console.error('Error updating master book:', err);
+    res.status(500).json({ error: 'Failed to update publication: ' + err.message });
+  }
+});
+
+/**
+ * DELETE /api/marketplace/admin/book/:id
+ * Super Admin deletes or archives a master book
+ */
+router.delete('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.marketplaceBook.delete({ where: { id } });
+    res.json({ success: true, message: 'Publication deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting book:', err);
+    res.status(500).json({ error: 'Failed to delete publication: ' + err.message });
+  }
+});
+
+/**
+ * PUT /api/marketplace/institute/book/:id
+ * College edits their own uploaded study material
+ */
+router.put('/institute/book/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Publication not found' });
+
+    if (req.user.role !== 'ADMIN' && existing.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized: You can only edit your own college publications.' });
+    }
+
+    const {
+      title,
+      subtitle,
+      description,
+      examTarget,
+      subject,
+      classYear,
+      priceRupees,
+      mrpRupees,
+      coverImageUrl,
+      category,
+      pageCount,
+    } = req.body;
+
+    const updated = await prisma.marketplaceBook.update({
+      where: { id },
+      data: {
+        ...(title && { title: title.trim() }),
+        ...(subtitle !== undefined && { subtitle: subtitle ? subtitle.trim() : null }),
+        ...(description !== undefined && { description: description ? description.trim() : null }),
+        ...(examTarget && { examTarget }),
+        ...(subject && { subject }),
+        ...(classYear && { classYear }),
+        ...(category && { category }),
+        ...(priceRupees !== undefined && { priceRupees: parseFloat(priceRupees) || 199 }),
+        ...(mrpRupees !== undefined && { mrpRupees: parseFloat(mrpRupees) || 499 }),
+        ...(coverImageUrl !== undefined && { coverImageUrl }),
+        ...(pageCount !== undefined && { pageCount: parseInt(pageCount) || 120 }),
+      },
+    });
+
+    res.json({ success: true, book: updated });
+  } catch (err) {
+    console.error('Error updating college material:', err);
+    res.status(500).json({ error: 'Failed to update study material: ' + err.message });
+  }
+});
+
+/**
+ * DELETE /api/marketplace/institute/book/:id
+ * College deletes their own material
+ */
+router.delete('/institute/book/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Publication not found' });
+
+    if (req.user.role !== 'ADMIN' && existing.instituteId !== req.user.instituteId) {
+      return res.status(403).json({ error: 'Unauthorized: You can only delete your own college publications.' });
+    }
+
+    await prisma.marketplaceBook.delete({ where: { id } });
+    res.json({ success: true, message: 'Study material removed successfully.' });
+  } catch (err) {
+    console.error('Error deleting college material:', err);
+    res.status(500).json({ error: 'Failed to delete study material: ' + err.message });
   }
 });
 

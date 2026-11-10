@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import EcommerceBookEditorModal from '../components/EcommerceBookEditorModal';
 
 export default function CollegeBookstore() {
   const { user } = useAuth();
@@ -14,21 +15,7 @@ export default function CollegeBookstore() {
 
   // Publish Modal State
   const [publishModal, setPublishModal] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    examTarget: 'NEET',
-    subject: 'Comprehensive',
-    classYear: 'Class 12',
-    author: '',
-    priceRupees: 199,
-    mrpRupees: 499,
-    category: 'STUDY_MATERIAL',
-    isGlobal: false,
-    coverImageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
-  });
+  const [editingBook, setEditingBook] = useState(null);
 
   async function loadData() {
     try {
@@ -47,33 +34,25 @@ export default function CollegeBookstore() {
     loadData();
   }, []);
 
-  async function handlePublish(e) {
-    e.preventDefault();
-    if (!form.title.trim()) return alert('Please enter publication title');
+  async function handleSaveMaterial(formData) {
+    if (editingBook) {
+      await api.updateInstituteMarketplaceMaterial(editingBook.id, formData);
+      alert('Publication updated successfully!');
+    } else {
+      await api.uploadInstituteMarketplaceMaterial(formData);
+      alert('Study material published to your college portal! Students can now purchase and download it.');
+    }
+    await loadData();
+  }
+
+  async function handleDeleteCollegeBook(bookId) {
+    if (!window.confirm('Are you sure you want to remove this publication from your college portal?')) return;
     try {
-      setPublishing(true);
-      await api.uploadInstituteMarketplaceMaterial(form);
-      setPublishModal(false);
-      setForm({
-        title: '',
-        subtitle: '',
-        description: '',
-        examTarget: 'NEET',
-        subject: 'Comprehensive',
-        classYear: 'Class 12',
-        author: '',
-        priceRupees: 199,
-        mrpRupees: 499,
-        category: 'STUDY_MATERIAL',
-        isGlobal: false,
-        coverImageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
-      });
+      await api.deleteInstituteMarketplaceMaterial(bookId);
       await loadData();
-      alert('Publication successfully published to your college website!');
+      alert('Study material removed.');
     } catch (err) {
-      alert('Failed to publish material: ' + err.message);
-    } finally {
-      setPublishing(false);
+      alert('Delete failed: ' + err.message);
     }
   }
 
@@ -398,16 +377,88 @@ export default function CollegeBookstore() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
                 {myBooks.map((b) => (
-                  <div key={b.id} style={{ border: '1px solid #E2E8F0', borderRadius: 14, padding: 16, background: '#FFFFFF' }}>
-                    <span className="badge badge-gold" style={{ fontSize: 10, marginBottom: 8 }}>{b.examTarget}</span>
-                    <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>{b.title}</h4>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 8 }}>
-                      Price: ₹{b.priceRupees} • Sales: {b.salesCount} copies
+                  <div
+                    key={b.id}
+                    style={{
+                      border: '1px solid #E2E8F0',
+                      borderRadius: 16,
+                      padding: 16,
+                      background: '#FFFFFF',
+                      display: 'flex',
+                      gap: 14,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 80,
+                        height: 110,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        background: '#F1F5F9',
+                        flexShrink: 0,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      <img
+                        src={b.coverImageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'}
+                        alt={b.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748B' }}>
-                      You receive 90% (₹{(b.priceRupees * 0.9).toFixed(2)}) per sale.
+
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                      <div>
+                        <span className="badge badge-gold" style={{ fontSize: 10, marginBottom: 4 }}>
+                          {b.examTarget}
+                        </span>
+                        <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0', lineHeight: 1.3 }}>
+                          {b.title}
+                        </h4>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#059669', marginBottom: 4 }}>
+                          ₹{b.priceRupees} <span style={{ fontSize: 11.5, color: '#64748B', fontWeight: 500 }}>• You keep 90% (₹{(b.priceRupees * 0.9).toFixed(2)})</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button
+                          onClick={() => {
+                            setEditingBook(b);
+                            setPublishModal(true);
+                          }}
+                          style={{
+                            flex: 1,
+                            background: '#F1F5F9',
+                            color: '#334155',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: 6,
+                            padding: '5px 8px',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCollegeBook(b.id)}
+                          style={{
+                            background: '#FEE2E2',
+                            color: '#DC2626',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '5px 8px',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                          title="Delete Material"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -474,189 +525,17 @@ export default function CollegeBookstore() {
         </div>
       )}
 
-      {/* 6. Publish College Material Modal */}
-      {publishModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: 16,
-          }}
-          onClick={() => setPublishModal(false)}
-        >
-          <div
-            style={{
-              background: '#FFFFFF',
-              borderRadius: 20,
-              maxWidth: 620,
-              width: '100%',
-              padding: '28px 30px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0' }}>
-                  Publish College Study Material
-                </h3>
-                <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
-                  You set the price and keep 90% of every sale. Watermarked automatically on download.
-                </p>
-              </div>
-              <button
-                onClick={() => setPublishModal(false)}
-                style={{ background: '#F1F5F9', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 14, cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handlePublish}>
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Publication Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Dean's Special Organic Chemistry Reactions"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Subtitle / Quick Highlights
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 50 Essential Named Reactions with Step-by-Step Mechanisms"
-                  value={form.subtitle}
-                  onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Target Exam
-                  </label>
-                  <select
-                    value={form.examTarget}
-                    onChange={(e) => setForm({ ...form, examTarget: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13 }}
-                  >
-                    <option value="NEET">NEET UG</option>
-                    <option value="JEE Main">JEE Main</option>
-                    <option value="AP EAPCET">AP EAPCET</option>
-                    <option value="TG EAPCET">TG EAPCET</option>
-                    <option value="KCET">KCET</option>
-                    <option value="CBSE 12">CBSE 12</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Subject
-                  </label>
-                  <select
-                    value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13 }}
-                  >
-                    <option value="Physics">Physics</option>
-                    <option value="Chemistry">Chemistry</option>
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Biology">Biology</option>
-                    <option value="Comprehensive">Comprehensive / All</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Selling Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    min="49"
-                    max="9999"
-                    required
-                    value={form.priceRupees}
-                    onChange={(e) => setForm({ ...form, priceRupees: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                    You receive: ₹{(form.priceRupees * 0.9).toFixed(2)} (90%)
-                  </span>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Strikethrough MRP (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.mrpRupees}
-                    onChange={(e) => setForm({ ...form, mrpRupees: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                  />
-                  <span style={{ fontSize: 11, color: '#64748B' }}>
-                    Discount tag: {Math.max(0, Math.round(((form.mrpRupees - form.priceRupees) / form.mrpRupees) * 100))}% off
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Overview &amp; Syllabus Coverage
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Explain why students should buy this material and what topics are covered..."
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setPublishModal(false)}
-                  style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={publishing}
-                  className="btn btn-primary"
-                  style={{ padding: '10px 22px', borderRadius: 10, fontWeight: 800 }}
-                >
-                  {publishing ? 'Publishing...' : 'Publish to College Portal 🚀'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* 6. High-Impact E-Commerce Publisher Studio Modal */}
+      <EcommerceBookEditorModal
+        isOpen={publishModal}
+        onClose={() => {
+          setPublishModal(false);
+          setEditingBook(null);
+        }}
+        initialData={editingBook}
+        isMaster={false}
+        onSave={handleSaveMaterial}
+      />
     </div>
   );
 }
