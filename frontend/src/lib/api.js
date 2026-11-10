@@ -345,16 +345,17 @@ export const api = {
     const params = new URLSearchParams(filters).toString();
     return request(`/results/analytics/students-list${params ? `?${params}` : ''}`);
   },
-  getStudentAnalytics: (rollNumber) => request(`/results/analytics/student/${encodeURIComponent(rollNumber)}`),
+  getStudentAnalytics: (rollNumber, instituteId) => request(`/results/analytics/student/${encodeURIComponent(rollNumber)}${instituteId ? `?instituteId=${instituteId}` : ''}`),
   getBatchAnalytics: (paperId) => request(`/results/analytics/batch/${paperId}`),
 
   // Milestone 3: Diagnostic Intelligence & Targeted Remedial DPP
   generateRemedialPaper: (payload) => request('/results/generate-remedial-paper', { method: 'POST', body: JSON.stringify(payload) }),
 
   // Authenticated CSV Exports
-  downloadStudentAnalyticsCsv: async (rollNumber) => {
+  downloadStudentAnalyticsCsv: async (rollNumber, instituteId) => {
     const token = getStoredToken();
-    const res = await fetch(`${API_BASE}/results/analytics/student/${encodeURIComponent(rollNumber)}/csv`, {
+    const url = `${API_BASE}/results/analytics/student/${encodeURIComponent(rollNumber)}/csv${instituteId ? `?instituteId=${instituteId}` : ''}`;
+    const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {
@@ -372,9 +373,10 @@ export const api = {
     URL.revokeObjectURL(blobUrl);
   },
 
-  downloadRosterCsv: async () => {
+  downloadRosterCsv: async (instituteId) => {
     const token = getStoredToken();
-    const res = await fetch(`${API_BASE}/results/students/roster/export-csv`, {
+    const url = `${API_BASE}/results/students/roster/export-csv${instituteId ? `?instituteId=${instituteId}` : ''}`;
+    const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {

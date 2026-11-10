@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const CLASS_YEAR_OPTIONS = [
   'Inter 1st Year (11th)',
@@ -87,6 +88,7 @@ const INDIAN_STATES = [
 ];
 
 const DEFAULT_FORM = {
+  instituteId: '',
   rollNumber: '',
   fullName: '',
   photoUrl: '',
@@ -110,9 +112,23 @@ const DEFAULT_FORM = {
 };
 
 export default function StudentsRoster() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const [institutes, setInstitutes] = useState([]);
+  const [selectedInstituteId, setSelectedInstituteId] = useState('');
+
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Load institutes if admin
+  useEffect(() => {
+    if (isAdmin) {
+      api.listInstitutes().then((list) => {
+        setInstitutes(list || []);
+      }).catch(() => {});
+    }
+  }, [isAdmin]);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -138,11 +154,11 @@ export default function StudentsRoster() {
   const [bulkCsv, setBulkCsv] = useState('');
   const [bulkResult, setBulkResult] = useState(null);
 
-  async function loadData() {
+  async function loadData(instId = selectedInstituteId) {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getStudentsRoster();
+      const data = await api.getStudentsRoster(instId || undefined);
       setStudents(data);
     } catch (err) {
       setError(err.message || 'Failed to load students');
@@ -152,8 +168,8 @@ export default function StudentsRoster() {
   }
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(selectedInstituteId);
+  }, [selectedInstituteId]);
 
   // Filter students
   const filteredStudents = (students || []).filter((s) => {
@@ -190,6 +206,7 @@ export default function StudentsRoster() {
   function openAddModal() {
     setForm({
       ...DEFAULT_FORM,
+      instituteId: selectedInstituteId || (institutes[0]?.id || ''),
       batchName: batches[0] || 'MPC Section-A',
       photoUrl: '',
     });
@@ -199,6 +216,7 @@ export default function StudentsRoster() {
 
   function openEditModal(st) {
     setForm({
+      instituteId: st.instituteId || '',
       rollNumber: st.rollNumber || '',
       fullName: st.fullName || '',
       photoUrl: st.photoUrl || '',
@@ -260,9 +278,13 @@ export default function StudentsRoster() {
     }
     try {
       setSaving(true);
-      await api.saveStudentProfile(form);
+      const payload = { ...form };
+      if (isAdmin) {
+        payload.instituteId = form.instituteId || selectedInstituteId || (institutes[0]?.id || undefined);
+      }
+      await api.saveStudentProfile(payload);
       setAddModal(false);
-      await loadData();
+      await loadData(selectedInstituteId);
     } catch (err) {
       alert('Failed to save student: ' + err.message);
     } finally {
@@ -274,7 +296,7 @@ export default function StudentsRoster() {
     if (!window.confirm(`Are you sure you want to remove "${name}" from the student roster?`)) return;
     try {
       await api.deleteStudentProfile(id);
-      await loadData();
+      await loadData(selectedInstituteId);
     } catch (err) {
       alert('Failed to delete student: ' + err.message);
     }
@@ -283,7 +305,7 @@ export default function StudentsRoster() {
   async function handleExportRoster() {
     try {
       setExportingRoster(true);
-      await api.downloadRosterCsv();
+      await api.downloadRosterCsv((isAdmin && selectedInstituteId) ? selectedInstituteId : undefined);
     } catch (err) {
       alert('Failed to export roster: ' + err.message);
     } finally {
@@ -400,9 +422,10 @@ export default function StudentsRoster() {
 
     try {
       setSaving(true);
-      const res = await api.bulkImportStudents(parsedStudents);
+      const targetInstId = (isAdmin && selectedInstituteId) ? selectedInstituteId : undefined;
+      const res = await api.bulkImportStudents(parsedStudents, targetInstId);
       setBulkResult(res);
-      await loadData();
+      await loadData(selectedInstituteId);
     } catch (err) {
       alert('Bulk import failed: ' + err.message);
     } finally {
@@ -435,7 +458,32 @@ export default function StudentsRoster() {
               Manage student enrollment, passport photos, entrance target courses (NEET/JEE/EAPCET), hostel status, and automated parent WhatsApp scorecard dispatch.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            {isAdmin && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 8, padding: '5px 12px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>College:</span>
+                <select
+                  value={selectedInstituteId}
+                  onChange={(e) => setSelectedInstituteId(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="">All Colleges (Global Roster)</option>
+                  {institutes.map((inst) => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               onClick={handleExportRoster}
               disabled={exportingRoster}
@@ -684,6 +732,11 @@ export default function StudentsRoster() {
                                 📱 {st.studentPhone}
                               </span>
                             )}
+                            {isAdmin && st.instituteName && (
+                              <span style={{ fontSize: 10.5, fontWeight: 700, color: '#4338ca', background: '#e0e7ff', padding: '1px 6px', borderRadius: 4 }}>
+                                🏫 {st.instituteName}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -916,6 +969,23 @@ export default function StudentsRoster() {
                   <span style={styles.sectionIcon}>🎓</span>
                   <span style={styles.sectionTitle}>1. Academic & Course Enrollment</span>
                 </div>
+
+                {isAdmin && (
+                  <div className="field" style={{ marginBottom: 14 }}>
+                    <label style={styles.label}>College / Institute *</label>
+                    <select
+                      value={form.instituteId || selectedInstituteId || ''}
+                      onChange={(e) => setForm((f) => ({ ...f, instituteId: e.target.value }))}
+                      style={{ ...styles.input, background: '#fff' }}
+                      required
+                    >
+                      <option value="">-- Select College / Institute --</option>
+                      {institutes.map((inst) => (
+                        <option key={inst.id} value={inst.id}>{inst.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 
                 <div style={styles.formGrid}>
                   <div className="field">
@@ -1279,9 +1349,11 @@ export default function StudentsRoster() {
 
 const styles = {
   container: {
-    maxWidth: 1240,
-    margin: '0 auto',
-    padding: '24px 16px',
+    width: '100%',
+    maxWidth: '100%',
+    margin: 0,
+    padding: '0 4px 60px',
+    boxSizing: 'border-box',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   headerRow: {

@@ -4,6 +4,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import '../student-analytics.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
@@ -91,6 +92,11 @@ const INDIAN_STATES = [
 ];
 
 export default function StudentAnalytics() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const [institutes, setInstitutes] = useState([]);
+  const [selectedInstituteId, setSelectedInstituteId] = useState('');
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialRoll = searchParams.get('roll') || '';
 
@@ -100,6 +106,15 @@ export default function StudentAnalytics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchFilter, setSearchFilter] = useState('');
+
+  // Load institutes if admin
+  useEffect(() => {
+    if (isAdmin) {
+      api.listInstitutes().then((list) => {
+        setInstitutes(list || []);
+      }).catch(() => {});
+    }
+  }, [isAdmin]);
 
   // Remedial DPP Modal State
   const [remedialModal, setRemedialModal] = useState(null);
@@ -135,22 +150,31 @@ export default function StudentAnalytics() {
   });
   const fileInputRef = useRef(null);
 
-  // Load students roster on mount
-  useEffect(() => {
-    async function fetchRoster() {
-      try {
-        const data = await api.getAnalyticsStudentsList();
-        setStudentsList(data.students || []);
-        if (!initialRoll && data.students?.length > 0) {
-          setSelectedRoll(data.students[0].rollNumber);
-          setSearchParams({ roll: data.students[0].rollNumber });
+  // Load students roster on mount or when institute changes
+  const fetchRoster = useCallback(async () => {
+    try {
+      const filters = {};
+      if (selectedInstituteId) filters.instituteId = selectedInstituteId;
+      const data = await api.getAnalyticsStudentsList(filters);
+      const students = data.students || [];
+      setStudentsList(students);
+      if (students.length > 0) {
+        if (!initialRoll || !students.some((s) => s.rollNumber === initialRoll)) {
+          setSelectedRoll(students[0].rollNumber);
+          setSearchParams({ roll: students[0].rollNumber });
         }
-      } catch (err) {
-        console.error('Failed to load students roster:', err);
+      } else {
+        setSelectedRoll('');
+        setAnalyticsData(null);
       }
+    } catch (err) {
+      console.error('Failed to load students roster:', err);
     }
+  }, [selectedInstituteId, initialRoll, setSearchParams]);
+
+  useEffect(() => {
     fetchRoster();
-  }, []);
+  }, [fetchRoster]);
 
   // Load selected student analytics
   const loadStudentData = useCallback(async (roll = selectedRoll) => {
@@ -158,7 +182,7 @@ export default function StudentAnalytics() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getStudentAnalytics(roll);
+      const data = await api.getStudentAnalytics(roll, selectedInstituteId || undefined);
       setAnalyticsData(data);
     } catch (err) {
       setError(err.message || 'Failed to load student progress');
@@ -166,7 +190,7 @@ export default function StudentAnalytics() {
     } finally {
       setLoading(false);
     }
-  }, [selectedRoll]);
+  }, [selectedRoll, selectedInstituteId]);
 
   useEffect(() => {
     loadStudentData(selectedRoll);
@@ -235,11 +259,17 @@ export default function StudentAnalytics() {
     }
     try {
       setSavingEdit(true);
-      await api.saveStudentProfile(editForm);
+      const payload = { ...editForm };
+      if (isAdmin && selectedInstituteId) {
+        payload.instituteId = selectedInstituteId;
+      }
+      await api.saveStudentProfile(payload);
       setEditModal(false);
       await loadStudentData(selectedRoll);
       // Refresh list in case name changed
-      const listData = await api.getAnalyticsStudentsList();
+      const filters = {};
+      if (selectedInstituteId) filters.instituteId = selectedInstituteId;
+      const listData = await api.getAnalyticsStudentsList(filters);
       setStudentsList(listData.students || []);
     } catch (err) {
       alert('Failed to save profile: ' + err.message);
@@ -260,6 +290,7 @@ export default function StudentAnalytics() {
         targetType: 'STUDENT',
         studentName: analyticsData.student.studentName,
         rollNumber: analyticsData.student.rollNumber,
+        instituteId: selectedInstituteId || analyticsData.student.instituteId || undefined,
         chapterNames: chaps,
         questionCount: 15,
       });
@@ -276,7 +307,7 @@ export default function StudentAnalytics() {
     if (!analyticsData?.student?.rollNumber) return;
     try {
       setExportingCsv(true);
-      await api.downloadStudentAnalyticsCsv(analyticsData.student.rollNumber);
+      await api.downloadStudentAnalyticsCsv(analyticsData.student.rollNumber, selectedInstituteId || undefined);
     } catch (err) {
       alert('Failed to export CSV: ' + err.message);
     } finally {
@@ -316,6 +347,32 @@ export default function StudentAnalytics() {
             </p>
           </div>
           <div className="sa-header-actions">
+            {isAdmin && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '5px 12px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>College:</span>
+                <select
+                  value={selectedInstituteId}
+                  onChange={(e) => {
+                    setSelectedInstituteId(e.target.value);
+                    setSelectedRoll('');
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="">All Colleges (Global)</option>
+                  {institutes.map((inst) => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Link to="/students" className="sa-btn-roster">
               👥 View Full Roster
             </Link>

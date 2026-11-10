@@ -1164,13 +1164,19 @@ router.post('/whatsapp/wallet-recharge', requireModuleAccess(MODULE_KEYS.WHATSAP
  */
 router.get('/analytics/students-list', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
-    if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID required' });
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
+    const where = {};
+    if (instituteId && instituteId !== 'all') {
+      where.instituteId = instituteId;
+    } else if (req.user.role !== 'ADMIN') {
+      if (!instituteId) {
+        return res.status(400).json({ error: 'Institute ID required' });
+      }
+      where.instituteId = instituteId;
     }
 
     const allResults = await prisma.examResult.findMany({
-      where: { instituteId },
+      where,
       orderBy: { examDate: 'desc' },
       select: {
         rollNumber: true,
@@ -1230,18 +1236,21 @@ router.get('/analytics/students-list', async (req, res) => {
 router.get('/analytics/student/:rollNumber', async (req, res) => {
   try {
     const { rollNumber } = req.params;
-    const instituteId = req.user.role === 'ADMIN' ? req.query.instituteId : req.user.instituteId;
-    if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID required' });
-    }
-
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
     const normRoll = String(rollNumber).trim().toUpperCase();
 
+    const where = { rollNumber: normRoll };
+    if (instituteId && instituteId !== 'all') {
+      where.instituteId = instituteId;
+    } else if (req.user.role !== 'ADMIN') {
+      if (!instituteId) {
+        return res.status(400).json({ error: 'Institute ID required' });
+      }
+      where.instituteId = instituteId;
+    }
+
     const exams = await prisma.examResult.findMany({
-      where: {
-        instituteId,
-        rollNumber: normRoll,
-      },
+      where,
       orderBy: { examDate: 'asc' },
       include: {
         subjectResults: true,
@@ -1254,10 +1263,11 @@ router.get('/analytics/student/:rollNumber', async (req, res) => {
       return res.status(404).json({ error: `No exam records found for student ${normRoll}` });
     }
 
+    const effectiveInstId = (instituteId && instituteId !== 'all') ? instituteId : exams[0].instituteId;
     const profile = await prisma.studentProfile.findUnique({
       where: {
         instituteId_rollNumber: {
-          instituteId,
+          instituteId: effectiveInstId,
           rollNumber: normRoll,
         },
       },
@@ -1709,23 +1719,34 @@ router.get('/analytics/batch/:paperId/csv', async (req, res) => {
  */
 router.get('/students/roster', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
-    if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required' });
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.headers['x-institute-id']) : req.user.instituteId;
+    const where = { isActive: true };
+    if (instituteId && instituteId !== 'all') {
+      where.instituteId = instituteId;
+    } else if (req.user.role !== 'ADMIN') {
+      if (!instituteId) {
+        return res.status(400).json({ error: 'Institute ID is required' });
+      }
+      where.instituteId = instituteId;
     }
 
     const students = await prisma.studentProfile.findMany({
-      where: { instituteId, isActive: true },
+      where,
       orderBy: { rollNumber: 'asc' },
       include: {
         _count: {
           select: { results: true },
+        },
+        institute: {
+          select: { id: true, name: true },
         },
       },
     });
 
     res.json(students.map((s) => ({
       id: s.id,
+      instituteId: s.instituteId,
+      instituteName: s.institute?.name || '',
       rollNumber: s.rollNumber,
       fullName: s.fullName,
       batchName: s.batchName,
@@ -1778,9 +1799,13 @@ router.post('/students/upload-photo', (req, res) => {
  */
 router.post('/students/roster', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id'] || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId && req.user.role === 'ADMIN') {
+      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+      if (firstInst) instituteId = firstInst.id;
+    }
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required' });
+      return res.status(400).json({ error: 'Institute ID is required. Please create an institute first.' });
     }
 
     const {
@@ -1883,9 +1908,13 @@ router.post('/students/roster', async (req, res) => {
  */
 router.post('/students/roster/bulk', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.headers['x-institute-id'] || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId && req.user.role === 'ADMIN') {
+      const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+      if (firstInst) instituteId = firstInst.id;
+    }
     if (!instituteId) {
-      return res.status(400).json({ error: 'Institute ID is required' });
+      return res.status(400).json({ error: 'Institute ID is required. Please create an institute first.' });
     }
 
     const { students } = req.body;
@@ -2037,7 +2066,17 @@ router.delete('/students/roster/:id', async (req, res) => {
  */
 router.post('/generate-remedial-paper', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    let instituteId = req.user.role === 'ADMIN' ? (req.body.instituteId || req.user.instituteId) : req.user.instituteId;
+    if (!instituteId && req.user.role === 'ADMIN') {
+      if (req.body.paperId) {
+        const origPaper = await prisma.paper.findUnique({ where: { id: req.body.paperId }, select: { instituteId: true } });
+        if (origPaper?.instituteId) instituteId = origPaper.instituteId;
+      }
+      if (!instituteId) {
+        const firstInst = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+        if (firstInst) instituteId = firstInst.id;
+      }
+    }
     if (!instituteId) {
       return res.status(400).json({ error: 'Institute ID is required' });
     }
@@ -2235,13 +2274,17 @@ router.get('/analytics/student/:rollNumber/csv', async (req, res) => {
   try {
     const { rollNumber } = req.params;
     const normRoll = String(rollNumber).trim().toUpperCase();
-    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    const where = { rollNumber: normRoll };
+    if (instituteId && instituteId !== 'all') {
+      where.instituteId = instituteId;
+    } else if (req.user.role !== 'ADMIN') {
+      if (!instituteId) return res.status(400).send('Institute ID required');
+      where.instituteId = instituteId;
+    }
 
     const exams = await prisma.examResult.findMany({
-      where: {
-        instituteId,
-        rollNumber: normRoll,
-      },
+      where,
       orderBy: { examDate: 'asc' },
     });
 
@@ -2276,11 +2319,17 @@ router.get('/analytics/student/:rollNumber/csv', async (req, res) => {
  */
 router.get('/students/roster/export-csv', async (req, res) => {
   try {
-    const instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
-    if (!instituteId) return res.status(400).send('Institute ID required');
+    let instituteId = req.user.role === 'ADMIN' ? (req.query.instituteId || req.user.instituteId) : req.user.instituteId;
+    const where = { isActive: true };
+    if (instituteId && instituteId !== 'all') {
+      where.instituteId = instituteId;
+    } else if (req.user.role !== 'ADMIN') {
+      if (!instituteId) return res.status(400).send('Institute ID required');
+      where.instituteId = instituteId;
+    }
 
     const students = await prisma.studentProfile.findMany({
-      where: { instituteId, isActive: true },
+      where,
       orderBy: { rollNumber: 'asc' },
       include: {
         _count: {
