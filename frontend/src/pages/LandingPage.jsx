@@ -149,12 +149,68 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!loading && user) {
-    return <Navigate to={user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard'} replace />;
-  }
-
   return (
     <div className="landing-page">
+      {/* Logged-In Admin / Institute Live Preview Notification Banner */}
+      {user && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, #090e1a 0%, #0f172a 50%, #1e293b 100%)',
+            color: '#f8fafc',
+            padding: '10px 20px',
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid rgba(56, 189, 248, 0.35)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span
+              style={{
+                background: user.role === 'ADMIN' ? '#0284c7' : '#059669',
+                color: '#ffffff',
+                padding: '3px 10px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {user.role === 'ADMIN' ? '👑 Super Admin Preview' : '🏫 Institute Preview'}
+            </span>
+            <span>
+              You are previewing the live public SaaS website as <strong>{user.email}</strong>
+            </span>
+          </div>
+          <Link
+            to={user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard'}
+            style={{
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              padding: '5px 14px',
+              borderRadius: 8,
+              fontWeight: 700,
+              fontSize: 12.5,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            ← Back to {user.role === 'ADMIN' ? 'Admin Dashboard' : 'Institute Portal'}
+          </Link>
+        </div>
+      )}
+
       {/* HEADER */}
       <MarketingHeader activePage="home" />
 
@@ -179,14 +235,29 @@ export default function LandingPage() {
               No typing service. No manual proofreading. No last-minute scramble.
             </p>
             <div className="hero-actions">
-              <Link to="/signup" className="btn-primary-yellow" style={{ padding: '14px 28px' }}>
-                Register Your Institute — Free
-                <span className="btn-icon-right">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </span>
-              </Link>
+              {user ? (
+                <Link
+                  to={user.role === 'ADMIN' ? '/dashboard' : '/institute-dashboard'}
+                  className="btn-primary-yellow"
+                  style={{ padding: '14px 28px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  Open {user.role === 'ADMIN' ? 'Super Admin' : 'Institute'} Dashboard
+                  <span className="btn-icon-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
+                </Link>
+              ) : (
+                <Link to="/signup" className="btn-primary-yellow" style={{ padding: '14px 28px' }}>
+                  Register Your Institute — Free
+                  <span className="btn-icon-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
+                </Link>
+              )}
               <a href="#how-it-works" className="btn-outline-white">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8 }}>
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
