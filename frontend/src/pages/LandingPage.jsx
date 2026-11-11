@@ -1,8 +1,10 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import MarketingHeader from '../components/MarketingHeader';
 import MarketingFooter from '../components/MarketingFooter';
+import EcommerceBookModal from '../components/EcommerceBookModal';
 import '../landing.css';
 
 const LogoSvg = () => (
@@ -142,11 +144,19 @@ const steps = [
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [featuredBooks, setFeaturedBooks] = useState([]);
+  const [selectedProductBook, setSelectedProductBook] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    api.getMarketplaceCatalog()
+      .then((res) => setFeaturedBooks(res.books || []))
+      .catch(() => {});
   }, []);
 
   return (
@@ -412,6 +422,104 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FEATURED PUBLICATIONS & SOLVED PYQ HANDBOOKS */}
+      {featuredBooks.length > 0 && (
+        <section style={{ padding: '72px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 36 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  Direct Student Access &bull; E-Commerce Repository
+                </div>
+                <h2 style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                  Featured Solved PYQs &amp; Formula Handbooks
+                </h2>
+                <p style={{ fontSize: 14.5, color: '#64748B', margin: '8px 0 0 0', maxWidth: 620 }}>
+                  Curated entrance blueprints with verified solutions and instant anti-piracy watermarking on every PDF download.
+                </p>
+              </div>
+              <Link
+                to="/store"
+                style={{
+                  background: '#0284c7',
+                  color: '#FFFFFF',
+                  padding: '12px 22px',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
+                }}
+              >
+                Browse All Books &amp; PYQs ({featuredBooks.length}) →
+              </Link>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
+              {featuredBooks.slice(0, 4).map((b) => (
+                <div
+                  key={b.id}
+                  onClick={() => setSelectedProductBook(b)}
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: 16,
+                    border: '1px solid #E2E8F0',
+                    padding: 18,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 15px -3px rgba(15, 23, 42, 0.05)',
+                    transition: 'all 0.25s ease',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 14px 28px -5px rgba(2, 132, 199, 0.18)';
+                    e.currentTarget.style.borderColor = '#38bdf8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px -3px rgba(15, 23, 42, 0.05)';
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                  }}
+                >
+                  <div>
+                    <div style={{ height: 170, borderRadius: 12, overflow: 'hidden', marginBottom: 14, position: 'relative', background: '#0F172A' }}>
+                      <img src={b.coverImageUrl || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80'} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: '#0284c7', color: '#FFFFFF' }}>{b.examTarget || 'COMPETITIVE'}</span>
+                        {b.discountPct > 0 && <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: '#10B981', color: '#FFFFFF' }}>{b.discountPct}% OFF</span>}
+                      </div>
+                    </div>
+                    <h4 style={{ fontSize: 15.5, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', lineHeight: 1.35 }}>{b.title}</h4>
+                    <p style={{ fontSize: 12.5, color: '#64748B', margin: '0 0 10px 0', lineHeight: 1.4 }}>{b.subtitle || b.description}</p>
+                    <div style={{ fontSize: 11.5, color: '#0284c7', fontWeight: 600, marginBottom: 8 }}>⭐ {b.rating || 4.9} &bull; {b.salesCount || 100}+ downloads</div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10, paddingTop: 10, borderTop: '1px solid #F1F5F9' }}>
+                      <span style={{ fontSize: 22, fontWeight: 900, color: '#0F172A' }}>₹{b.priceRupees}</span>
+                      {b.mrpRupees && <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>₹{b.mrpRupees}</span>}
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', marginLeft: 'auto' }}>Instant PDF</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <Link to="/store" onClick={(e) => e.stopPropagation()} style={{ background: '#F1F5F9', color: '#334155', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 700, textAlign: 'center', textDecoration: 'none' }}>
+                        📖 Look Inside
+                      </Link>
+                      <Link to="/store" onClick={(e) => e.stopPropagation()} style={{ background: '#0284c7', color: '#FFFFFF', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}>
+                        ⚡ Buy Now
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* NEW ATTRACTIVE CTA SECTION */}
       <section className="cta-section">
         <div className="cta-box">
@@ -456,6 +564,20 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* High-Impact E-Commerce Product Modal */}
+      {selectedProductBook && (
+        <EcommerceBookModal
+          book={selectedProductBook}
+          onClose={() => setSelectedProductBook(null)}
+          onBuyClick={() => {
+            window.location.hash = '#/store';
+          }}
+          onSampleClick={() => {
+            window.location.hash = '#/store';
+          }}
+        />
+      )}
 
       {/* FOOTER */}
       <MarketingFooter />

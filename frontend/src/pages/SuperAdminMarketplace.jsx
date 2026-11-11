@@ -189,22 +189,44 @@ export default function SuperAdminMarketplace() {
 
       {/* Publications Catalog Grid */}
       <div className="card card-pad" style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
           <div>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>
               Master Bookstore Publications
             </h3>
             <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
-              Published centrally and auto-syndicated across all 800 college and school portals.
+              Published centrally and auto-syndicated across the public website and all 800 college portals.
             </p>
           </div>
-          <button
-            onClick={() => { setEditingBook(null); setModalOpen(true); }}
-            className="btn btn-primary"
-            style={{ padding: '8px 16px', fontSize: 13 }}
-          >
-            + Add Master Book
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a
+              href="/#/store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+              style={{ padding: '8px 14px', fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Preview official central bookstore as a student"
+            >
+              <span>🌐</span> Central Bookstore ↗
+            </a>
+            <a
+              href="/#/colleges/andhra-inspire-academy#store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+              style={{ padding: '8px 14px', fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Preview how books appear inside a college portal with 10% affiliate share"
+            >
+              <span>🏫</span> College Portal ↗
+            </a>
+            <button
+              onClick={() => { setEditingBook(null); setModalOpen(true); }}
+              className="btn btn-primary"
+              style={{ padding: '8px 16px', fontSize: 13 }}
+            >
+              + Add Master Book
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
@@ -284,7 +306,27 @@ export default function SuperAdminMarketplace() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <a
+                      href="/#/store"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: '#EFF6FF',
+                        color: '#0284c7',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: 8,
+                        padding: '6px 8px',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                      }}
+                      title="View how this book appears in the public central store"
+                    >
+                      👁️ View Live ↗
+                    </a>
                     <button
                       onClick={() => {
                         setEditingBook(b);

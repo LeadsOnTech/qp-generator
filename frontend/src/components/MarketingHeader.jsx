@@ -43,6 +43,7 @@ export default function MarketingHeader({ activePage }) {
       <nav className="nav-links">
         <Link to="/" className={`nav-link ${activePage === 'home' ? 'active' : ''}`}>Home</Link>
         <Link to="/features" className={`nav-link ${activePage === 'features' ? 'active' : ''}`} style={activePage === 'features' ? { color: 'var(--premium-yellow)' } : {}}>Features</Link>
+        <Link to="/store" className={`nav-link ${activePage === 'store' ? 'active' : ''}`} style={activePage === 'store' ? { color: 'var(--premium-yellow)' } : {}}>Books &amp; Materials</Link>
         <Link to="/pricing" className={`nav-link ${activePage === 'pricing' ? 'active' : ''}`} style={activePage === 'pricing' ? { color: 'var(--premium-yellow)' } : {}}>Pricing</Link>
       </nav>
 
@@ -98,6 +99,9 @@ export default function MarketingHeader({ activePage }) {
             </Link>
             <Link to="/features" className={`mobile-nav-item ${activePage === 'features' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
               Features
+            </Link>
+            <Link to="/store" className={`mobile-nav-item ${activePage === 'store' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
+              Books &amp; Materials
             </Link>
             <Link to="/pricing" className={`mobile-nav-item ${activePage === 'pricing' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
               Pricing

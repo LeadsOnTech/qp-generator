@@ -54,6 +54,7 @@ import CollegeSubscriptions from './pages/CollegeSubscriptions';
 import CollegeSubscriptionPlans from './pages/CollegeSubscriptionPlans';
 import CollegeBookstore from './pages/CollegeBookstore';
 import SuperAdminMarketplace from './pages/SuperAdminMarketplace';
+import PublicStore from './pages/PublicStore';
 
 export default function App() {
   return (
@@ -65,6 +66,9 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/store" element={<PublicStore />} />
+          <Route path="/books" element={<PublicStore />} />
+          <Route path="/materials" element={<PublicStore />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
