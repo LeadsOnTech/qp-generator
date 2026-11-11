@@ -1,3 +1,4 @@
+// QuestionsStudio v2.1 — Marketplace Phase 2B (Deploy Release)
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';

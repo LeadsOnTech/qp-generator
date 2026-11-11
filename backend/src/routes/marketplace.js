@@ -179,15 +179,33 @@ router.get('/public/catalog', async (req, res) => {
       orderBy = [{ rating: 'desc' }, { reviewsCount: 'desc' }];
     }
 
-    const books = await prisma.marketplaceBook.findMany({
-      where,
-      orderBy,
-      include: {
-        institute: {
-          select: { id: true, name: true, slug: true },
+    let books;
+    try {
+      books = await prisma.marketplaceBook.findMany({
+        where,
+        orderBy,
+        include: {
+          institute: {
+            select: { id: true, name: true, slug: true },
+          },
         },
-      },
-    });
+      });
+    } catch (queryErr) {
+      console.warn('[MARKETPLACE CATALOG QUERY FALLBACK]', queryErr.message);
+      // Fallback query if moderationStatus column is pending migration
+      const fallbackWhere = { isActive: true, isGlobal: true };
+      if (exam && exam !== 'ALL') fallbackWhere.examTarget = { contains: exam };
+      if (subject && subject !== 'ALL') fallbackWhere.subject = { contains: subject };
+      books = await prisma.marketplaceBook.findMany({
+        where: fallbackWhere,
+        orderBy: [{ isFeatured: 'desc' }, { salesCount: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          institute: {
+            select: { id: true, name: true, slug: true },
+          },
+        },
+      });
+    }
 
     const catalog = books.map((b) => ({
       id: b.id,
