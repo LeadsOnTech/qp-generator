@@ -120,7 +120,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({
   ok: true,
-  version: 'marketplace-phase2b-v1.0.1',
+  version: 'marketplace-phase2b-v1.0.2',
   phase: 'Phase 2B — Super Admin Command Centre & College Seller Studio',
   aiMode: process.env.ANTHROPIC_API_KEY ? 'CLAUDE' : 'RULE_BASED',
 }));

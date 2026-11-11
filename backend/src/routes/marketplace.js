@@ -192,19 +192,31 @@ router.get('/public/catalog', async (req, res) => {
       });
     } catch (queryErr) {
       console.warn('[MARKETPLACE CATALOG QUERY FALLBACK]', queryErr.message);
-      // Fallback query if moderationStatus column is pending migration
-      const fallbackWhere = { isActive: true, isGlobal: true };
+      // Self-healing: If table or columns are missing, run schema sync on demand!
+      try {
+        const { ensureMarketplaceSchema } = require('../lib/marketplaceSchemaSync');
+        await ensureMarketplaceSchema();
+      } catch (syncErr) {
+        console.error('[MARKETPLACE ON-DEMAND SYNC ERROR]', syncErr.message);
+      }
+
+      const fallbackWhere = { isActive: true };
       if (exam && exam !== 'ALL') fallbackWhere.examTarget = { contains: exam };
       if (subject && subject !== 'ALL') fallbackWhere.subject = { contains: subject };
-      books = await prisma.marketplaceBook.findMany({
-        where: fallbackWhere,
-        orderBy: [{ isFeatured: 'desc' }, { salesCount: 'desc' }, { createdAt: 'desc' }],
-        include: {
-          institute: {
-            select: { id: true, name: true, slug: true },
+      try {
+        books = await prisma.marketplaceBook.findMany({
+          where: fallbackWhere,
+          orderBy: [{ isFeatured: 'desc' }, { salesCount: 'desc' }, { createdAt: 'desc' }],
+          include: {
+            institute: {
+              select: { id: true, name: true, slug: true },
+            },
           },
-        },
-      });
+        });
+      } catch (retryErr) {
+        console.error('[MARKETPLACE RETRY ERROR]', retryErr.message);
+        books = [];
+      }
     }
 
     const catalog = books.map((b) => ({
@@ -248,7 +260,7 @@ router.get('/public/catalog', async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching marketplace catalog:', err);
-    res.status(500).json({ error: 'Failed to retrieve study materials catalog.' });
+    res.status(500).json({ error: 'Failed to retrieve study materials catalog.', details: err.message });
   }
 });
 
