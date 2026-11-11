@@ -23,8 +23,8 @@ const BOOKS_DIR = path.join(UPLOAD_DIR, 'books');
 
 // Auto-synchronize marketplace database schema and columns on startup
 try {
-  const { ensureMarketplaceTables } = require('../../prisma/createMarketplaceTables');
-  ensureMarketplaceTables().catch((err) => console.warn('[MARKETPLACE DB SYNC NOTE]', err.message));
+  const { ensureMarketplaceSchema } = require('../lib/marketplaceSchemaSync');
+  ensureMarketplaceSchema().catch((err) => console.warn('[MARKETPLACE DB SYNC NOTE]', err.message));
 } catch (e) {
   // safe fallback
 }

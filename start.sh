@@ -77,7 +77,7 @@ echo "Ensuring common entrance exams exist..."
 node -e "require('./src/lib/multiExamSync').ensureCommonExamsExist().then(() => console.log('Common entrance exams verified')).catch(console.error)" || true
 
 echo "Ensuring marketplace schema synchronized..."
-node -e "require('./prisma/createMarketplaceTables').ensureMarketplaceTables().then(() => console.log('Marketplace schema synchronized')).catch(console.error)" || true
+node -e "require('./src/lib/marketplaceSchemaSync').ensureMarketplaceSchema().then(() => console.log('Marketplace schema synchronized')).catch(console.error)" || true
 
 echo "Launching application server on port $PORT..."
 exec node src/server.js
