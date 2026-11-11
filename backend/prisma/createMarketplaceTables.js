@@ -1,19 +1,19 @@
 const db = require('../src/db');
 
 async function run() {
-  console.log('Creating Marketplace tables...');
+  console.log('Synchronizing Marketplace tables and columns...');
   try {
     await db.$executeRawUnsafe(`ALTER TABLE "Institute" ADD COLUMN "marketplaceEarningsPaise" INTEGER NOT NULL DEFAULT 0;`);
     console.log('Added marketplaceEarningsPaise to Institute');
   } catch(e) {
-    console.log('marketplaceEarningsPaise column note:', e.message);
+    // column already exists
   }
 
   try {
     await db.$executeRawUnsafe(`ALTER TABLE "Institute" ADD COLUMN "marketplaceCreditsAutoConvert" BOOLEAN NOT NULL DEFAULT 1;`);
     console.log('Added marketplaceCreditsAutoConvert to Institute');
   } catch(e) {
-    console.log('marketplaceCreditsAutoConvert column note:', e.message);
+    // column already exists
   }
 
   await db.$executeRawUnsafe(`
@@ -47,7 +47,26 @@ async function run() {
       CONSTRAINT "MarketplaceBook_instituteId_fkey" FOREIGN KEY ("instituteId") REFERENCES "Institute" ("id") ON DELETE SET NULL ON UPDATE CASCADE
     );
   `);
-  console.log('Created MarketplaceBook table');
+
+  // Ensure newer columns on MarketplaceBook exist
+  const bookColumns = [
+    { name: 'moderationStatus', def: `TEXT NOT NULL DEFAULT 'APPROVED_GLOBAL'` },
+    { name: 'fulfillmentType', def: `TEXT NOT NULL DEFAULT 'DIGITAL_PDF'` },
+    { name: 'stockQuantity', def: `INTEGER NOT NULL DEFAULT 0` },
+    { name: 'lowStockThreshold', def: `INTEGER NOT NULL DEFAULT 10` },
+    { name: 'weightGrams', def: `INTEGER NOT NULL DEFAULT 300` },
+    { name: 'sku', def: `TEXT` },
+    { name: 'rejectionReason', def: `TEXT` },
+    { name: 'reviewedAt', def: `DATETIME` },
+  ];
+  for (const col of bookColumns) {
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "MarketplaceBook" ADD COLUMN "${col.name}" ${col.def};`);
+      console.log(`Added column ${col.name} to MarketplaceBook`);
+    } catch(e) {
+      // column already exists
+    }
+  }
 
   await db.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "MarketplaceOrder" (
@@ -77,13 +96,151 @@ async function run() {
       CONSTRAINT "MarketplaceOrder_sellingInstituteId_fkey" FOREIGN KEY ("sellingInstituteId") REFERENCES "Institute" ("id") ON DELETE SET NULL ON UPDATE CASCADE
     );
   `);
-  console.log('Created MarketplaceOrder table');
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceOrderItem" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "orderId" TEXT NOT NULL,
+      "bookId" TEXT NOT NULL,
+      "quantity" INTEGER NOT NULL DEFAULT 1,
+      "unitPriceRupees" REAL NOT NULL,
+      "totalPriceRupees" REAL NOT NULL,
+      "publishingInstituteId" TEXT,
+      "referralInstituteId" TEXT,
+      "caseClassification" TEXT NOT NULL DEFAULT 'CASE_A',
+      "publisherShareRupees" REAL NOT NULL DEFAULT 0.0,
+      "referralShareRupees" REAL NOT NULL DEFAULT 0.0,
+      "platformShareRupees" REAL NOT NULL DEFAULT 0.0,
+      "downloadToken" TEXT,
+      "downloadCount" INTEGER NOT NULL DEFAULT 0,
+      "maxDownloads" INTEGER NOT NULL DEFAULT 10,
+      "downloadExpiresAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketplaceOrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "MarketplaceOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT "MarketplaceOrderItem_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "MarketplaceBook" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceLedgerEntry" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "orderId" TEXT NOT NULL,
+      "instituteId" TEXT,
+      "entryType" TEXT NOT NULL,
+      "roleType" TEXT NOT NULL,
+      "creditAmountRupees" REAL NOT NULL DEFAULT 0.0,
+      "debitAmountRupees" REAL NOT NULL DEFAULT 0.0,
+      "netAmountRupees" REAL NOT NULL,
+      "payoutBatchId" TEXT,
+      "notes" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketplaceLedgerEntry_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "MarketplaceOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT "MarketplaceLedgerEntry_instituteId_fkey" FOREIGN KEY ("instituteId") REFERENCES "Institute" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceShippingAddress" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "orderId" TEXT NOT NULL,
+      "fullName" TEXT NOT NULL,
+      "phone" TEXT NOT NULL,
+      "addressLine1" TEXT NOT NULL,
+      "addressLine2" TEXT,
+      "landmark" TEXT,
+      "city" TEXT NOT NULL,
+      "district" TEXT NOT NULL,
+      "state" TEXT NOT NULL,
+      "pincode" TEXT NOT NULL,
+      CONSTRAINT "MarketplaceShippingAddress_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "MarketplaceOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceShipment" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "orderId" TEXT NOT NULL,
+      "carrierName" TEXT,
+      "trackingNumber" TEXT,
+      "trackingUrl" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'MANIFESTED',
+      "dispatchedAt" DATETIME,
+      "deliveredAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketplaceShipment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "MarketplaceOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceCart" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "sessionId" TEXT NOT NULL,
+      "userId" TEXT,
+      "referralCollegeSlug" TEXT,
+      "updatedAt" DATETIME NOT NULL
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceCartItem" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "cartId" TEXT NOT NULL,
+      "bookId" TEXT NOT NULL,
+      "quantity" INTEGER NOT NULL DEFAULT 1,
+      CONSTRAINT "MarketplaceCartItem_cartId_fkey" FOREIGN KEY ("cartId") REFERENCES "MarketplaceCart" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT "MarketplaceCartItem_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "MarketplaceBook" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceReview" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "bookId" TEXT NOT NULL,
+      "studentName" TEXT NOT NULL,
+      "studentPhone" TEXT NOT NULL,
+      "isVerifiedPurchase" BOOLEAN NOT NULL DEFAULT 1,
+      "rating" INTEGER NOT NULL DEFAULT 5,
+      "headline" TEXT,
+      "reviewText" TEXT NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketplaceReview_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "MarketplaceBook" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceWishlist" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "sessionId" TEXT NOT NULL,
+      "bookId" TEXT NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketplaceWishlist_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "MarketplaceBook" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );
+  `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplaceCoupon" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "code" TEXT NOT NULL,
+      "discountType" TEXT NOT NULL,
+      "discountValue" REAL NOT NULL,
+      "minOrderValueRupees" REAL NOT NULL DEFAULT 0.0,
+      "maxDiscountRupees" REAL,
+      "fundingSource" TEXT NOT NULL DEFAULT 'PLATFORM',
+      "restrictedInstituteId" TEXT,
+      "validFrom" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "validUntil" DATETIME NOT NULL,
+      "maxUses" INTEGER NOT NULL DEFAULT 1000,
+      "usedCount" INTEGER NOT NULL DEFAULT 0,
+      "isActive" BOOLEAN NOT NULL DEFAULT 1
+    );
+  `);
 
   await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MarketplaceOrder_orderNumber_key" ON "MarketplaceOrder"("orderNumber");`);
   await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MarketplaceOrder_downloadToken_key" ON "MarketplaceOrder"("downloadToken");`);
-  console.log('Indices created successfully!');
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplaceBook_moderationStatus_idx" ON "MarketplaceBook"("moderationStatus");`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplaceBook_fulfillmentType_idx" ON "MarketplaceBook"("fulfillmentType");`);
 
-  // Seed sample initial master books if table is empty
+  // Seed initial 4 master books if table is empty
   const count = await db.marketplaceBook.count();
   if (count === 0) {
     console.log('Seeding initial master publications for all 800 college portals...');
@@ -99,6 +256,8 @@ async function run() {
           classYear: 'Class 12 & Droppers',
           author: 'QuestionStudio Academic Editorial',
           category: 'FORMULA_BOOK',
+          fulfillmentType: 'DIGITAL_PDF',
+          moderationStatus: 'APPROVED_GLOBAL',
           priceRupees: 199.00,
           mrpRupees: 499.00,
           pageCount: 168,
@@ -121,9 +280,11 @@ async function run() {
           classYear: 'Class 12 & Droppers',
           author: 'QuestionStudio Academic Editorial',
           category: 'PYQ_SOLUTIONS',
+          fulfillmentType: 'DIGITAL_PDF',
+          moderationStatus: 'APPROVED_GLOBAL',
           priceRupees: 249.00,
           mrpRupees: 599.00,
-          pageCount: 224,
+          pageCount: 220,
           fileKey: 'sample_jee_maths_pyq.pdf',
           sampleFileKey: 'preview_jee_maths_pyq.pdf',
           coverImageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80',
@@ -135,19 +296,21 @@ async function run() {
         },
         {
           id: 'qs-book-eapcet-grand-mock',
-          title: 'AP & TG EAPCET 2026 Ultimate 10-Full Mock Test Series',
-          subtitle: 'Strictly Aligned with Latest 160-Question Speed Blueprint + Detailed Key Chits',
-          description: 'Simulates the exact real-time exam conditions of AP & TG EAPCET. 160 questions per paper (80 Maths, 40 Physics, 40 Chemistry) with comprehensive explanations.',
+          title: 'AP & TG EAPCET 2026 Grand Mock Test Blueprint',
+          subtitle: '15 Full-Length Multi-Set Simulated Papers with Detailed Video Solutions',
+          description: 'The definitive practice master for Andhra Pradesh & Telangana engineering aspirants. Calibrated precisely to the latest standard question ratios and sectional weightages.',
           examTarget: 'AP EAPCET',
           subject: 'Comprehensive',
-          classYear: 'Inter 2nd Year',
+          classYear: 'Class 12',
           author: 'QuestionStudio Academic Editorial',
           category: 'MOCK_TEST_SERIES',
-          priceRupees: 299.00,
-          mrpRupees: 699.00,
-          pageCount: 280,
-          fileKey: 'sample_eapcet_mocks.pdf',
-          sampleFileKey: 'preview_eapcet_mocks.pdf',
+          fulfillmentType: 'DIGITAL_PDF',
+          moderationStatus: 'APPROVED_GLOBAL',
+          priceRupees: 149.00,
+          mrpRupees: 399.00,
+          pageCount: 195,
+          fileKey: 'sample_eapcet_mock.pdf',
+          sampleFileKey: 'preview_eapcet_mock.pdf',
           coverImageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80',
           isGlobal: true,
           isFeatured: true,
@@ -157,16 +320,18 @@ async function run() {
         },
         {
           id: 'qs-book-neet-bio-diagrams',
-          title: 'NEET Biology Visual Atlas: 350+ NCERT Diagrams & Labeling Guide',
-          subtitle: 'Never Lose Marks on Diagram-Based & Assertion-Reason Questions',
-          description: 'Complete visual walkthrough of Botany & Zoology NCERT figures. Highlighted pitfalls, arrows, microscopic views, and high-frequency exam questions.',
+          title: 'NEET Biology High-Yield Diagram Atlas & Rapid Flashcard Notes',
+          subtitle: 'NCERT 100% Extracted Graphical Memory Maps & Label Elimination Bank',
+          description: 'Zero in on the highest-scoring visual questions in Botany & Zoology. Covers all 120 NCERT diagram variations with memory triggers and historical question trends.',
           examTarget: 'NEET',
           subject: 'Biology',
           classYear: 'Class 11 & 12',
           author: 'QuestionStudio Academic Editorial',
           category: 'HANDBOOK',
+          fulfillmentType: 'DIGITAL_PDF',
+          moderationStatus: 'APPROVED_GLOBAL',
           priceRupees: 179.00,
-          mrpRupees: 399.00,
+          mrpRupees: 449.00,
           pageCount: 140,
           fileKey: 'sample_neet_bio_diagrams.pdf',
           sampleFileKey: 'preview_neet_bio_diagrams.pdf',
@@ -179,10 +344,14 @@ async function run() {
         }
       ]
     });
-    console.log('Seeded 4 initial master study materials with 5-star ratings and student reviews!');
+    console.log('Seeded 4 initial master study materials with verified counters!');
   }
 }
 
-run()
-  .catch(console.error)
-  .finally(() => db.$disconnect());
+if (require.main === module) {
+  run()
+    .catch(console.error)
+    .finally(() => db.$disconnect());
+}
+
+module.exports = { ensureMarketplaceTables: run };

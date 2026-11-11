@@ -21,6 +21,14 @@ const BOOKS_DIR = path.join(UPLOAD_DIR, 'books');
   }
 });
 
+// Auto-synchronize marketplace database schema and columns on startup
+try {
+  const { ensureMarketplaceTables } = require('../../prisma/createMarketplaceTables');
+  ensureMarketplaceTables().catch((err) => console.warn('[MARKETPLACE DB SYNC NOTE]', err.message));
+} catch (e) {
+  // safe fallback
+}
+
 // Multer storage for book cover images
 const coverStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, COVERS_DIR),
