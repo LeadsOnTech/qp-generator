@@ -115,9 +115,11 @@ model Institute {
 
   // Study Materials & Books E-Commerce Marketplace
   marketplaceBooks              MarketplaceBook[]
-  marketplaceOrdersSold         MarketplaceOrder[]      @relation("SellingInstitute")
-  marketplaceEarningsPaise      Int                     @default(0)
-  marketplaceCreditsAutoConvert Boolean                 @default(true)
+  marketplaceOrdersSold         MarketplaceOrder[]            @relation("SellingInstitute")
+  marketplaceEarningsPaise      Int                           @default(0)
+  marketplaceCreditsAutoConvert Boolean                       @default(true)
+  marketplaceLedgerEntries      MarketplaceLedgerEntry[]
+  marketplaceCoupons            MarketplaceCoupon[]
 }
 
 // ---------- Credit ledger ----------
@@ -1166,6 +1168,7 @@ model PaymentWebhookLog {
 
 model MarketplaceBook {
   id                     String             @id @default(cuid())
+  sku                    String?            @unique
   title                  String
   subtitle               String?
   description            String?
@@ -1174,6 +1177,9 @@ model MarketplaceBook {
   classYear              String?            // "Class 11", "Class 12", "Dropper / Repeater", "Foundation"
   author                 String             @default("QuestionStudio Academic Editorial")
   category               String             @default("STUDY_MATERIAL") // "FORMULA_BOOK" | "PYQ_SOLUTIONS" | "MOCK_TEST_SERIES" | "STUDY_MATERIAL" | "HANDBOOK"
+  
+  // Fulfillment Type
+  fulfillmentType        String             @default("DIGITAL_PDF") // "DIGITAL_PDF" | "PHYSICAL_PRINT" | "BUNDLE_HYBRID"
   
   // Pricing in Indian Rupees
   priceRupees            Float              @default(199.00)
@@ -1186,10 +1192,20 @@ model MarketplaceBook {
   pageCount              Int                @default(0)
   fileSizeBytes          Int                @default(0)
   
+  // Physical Inventory Controls
+  stockQuantity          Int                @default(0)
+  lowStockThreshold      Int                @default(10)
+  weightGrams            Int                @default(300)
+  
   // Multi-Tenant Syndication & Authorship
-  isGlobal               Boolean            @default(true) // If true, syndicates automatically across all 800 college websites!
+  isGlobal               Boolean            @default(true) // If true & approved, syndicates across all 800 college websites!
   instituteId            String?            // Null = Super Admin Master Content. Non-null = College's Own Proprietary Content!
   institute              Institute?         @relation(fields: [instituteId], references: [id], onDelete: SetNull)
+  
+  // Moderation Workflow
+  moderationStatus       String             @default("APPROVED_GLOBAL") // "DRAFT" | "SUBMITTED_FOR_REVIEW" | "APPROVED_GLOBAL" | "REJECTED" | "ARCHIVED"
+  rejectionReason        String?
+  reviewedAt             DateTime?
   
   // Affiliate & Commission Configuration (Default 10%)
   affiliateCommissionPct Float              @default(10.0) // 10% to selling college if master book, or 10% platform fee if college book
@@ -1205,12 +1221,18 @@ model MarketplaceBook {
   updatedAt              DateTime           @updatedAt
   
   orders                 MarketplaceOrder[]
+  orderItems             MarketplaceOrderItem[]
+  cartItems              MarketplaceCartItem[]
+  reviews                MarketplaceReview[]
+  wishlistItems          MarketplaceWishlist[]
 
   @@index([instituteId])
   @@index([examTarget])
   @@index([subject])
   @@index([isGlobal])
   @@index([isActive])
+  @@index([moderationStatus])
+  @@index([fulfillmentType])
 }
 
 model MarketplaceOrder {
@@ -1252,12 +1274,175 @@ model MarketplaceOrder {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 
+  // Multi-Item & Logistics Relations
+  orderItems             MarketplaceOrderItem[]
+  shippingAddress        MarketplaceShippingAddress?
+  shipment               MarketplaceShipment?
+  ledgerEntries          MarketplaceLedgerEntry[]
+
   @@index([bookId])
   @@index([sellingInstituteId])
   @@index([downloadToken])
   @@index([paymentStatus])
   @@index([buyerPhone])
 }
+
+model MarketplaceOrderItem {
+  id                     String             @id @default(cuid())
+  orderId                String
+  order                  MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  bookId                 String
+  book                   MarketplaceBook    @relation(fields: [bookId], references: [id])
+  
+  quantity               Int                @default(1)
+  unitPriceRupees        Float
+  totalPriceRupees       Float
+  
+  // Immutable Revenue Attribution Snapshot
+  publishingInstituteId  String?
+  referralInstituteId    String?
+  caseClassification     String             @default("CASE_A") // "CASE_A" | "CASE_B" | "CASE_C" | "CASE_D" | "CASE_E"
+  publisherShareRupees   Float              @default(0.0)
+  referralShareRupees    Float              @default(0.0)
+  platformShareRupees    Float              @default(0.0)
+  
+  downloadToken          String?            @unique
+  downloadCount          Int                @default(0)
+  maxDownloads           Int                @default(10)
+  downloadExpiresAt      DateTime?
+  
+  createdAt              DateTime           @default(now())
+
+  @@index([orderId])
+  @@index([bookId])
+  @@index([publishingInstituteId])
+  @@index([referralInstituteId])
+}
+
+model MarketplaceLedgerEntry {
+  id                     String             @id @default(cuid())
+  orderId                String
+  order                  MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  instituteId            String?
+  institute              Institute?         @relation(fields: [instituteId], references: [id])
+  
+  entryType              String             // "EARNING_ACCRUED", "QP_CREDIT_CONVERTED", "CASH_SETTLED", "REFUND_REVERSAL"
+  roleType               String             // "PUBLISHER", "REFERRER", "PLATFORM"
+  
+  creditAmountRupees     Float              @default(0.0)
+  debitAmountRupees      Float              @default(0.0)
+  netAmountRupees        Float
+  
+  payoutBatchId          String?
+  notes                  String?
+  createdAt              DateTime           @default(now())
+
+  @@index([orderId])
+  @@index([instituteId])
+  @@index([entryType])
+}
+
+model MarketplaceShipment {
+  id                     String             @id @default(cuid())
+  orderId                String             @unique
+  order                  MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  carrierName            String?
+  trackingNumber         String?
+  trackingUrl            String?
+  status                 String             @default("MANIFESTED") // "MANIFESTED", "DISPATCHED", "IN_TRANSIT", "DELIVERED", "RETURNED"
+  
+  dispatchedAt           DateTime?
+  deliveredAt            DateTime?
+  createdAt              DateTime           @default(now())
+}
+
+model MarketplaceShippingAddress {
+  id                     String             @id @default(cuid())
+  orderId                String             @unique
+  order                  MarketplaceOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  fullName               String
+  phone                  String
+  addressLine1           String
+  addressLine2           String?
+  landmark               String?
+  city                   String
+  district               String
+  state                  String
+  pincode                String
+}
+
+model MarketplaceCart {
+  id                     String                @id @default(cuid())
+  sessionId              String                @unique
+  userId                 String?
+  referralCollegeSlug    String?
+  updatedAt              DateTime              @updatedAt
+  
+  items                  MarketplaceCartItem[]
+}
+
+model MarketplaceCartItem {
+  id                     String             @id @default(cuid())
+  cartId                 String
+  cart                   MarketplaceCart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  bookId                 String
+  book                   MarketplaceBook    @relation(fields: [bookId], references: [id])
+  quantity               Int                @default(1)
+
+  @@unique([cartId, bookId])
+}
+
+model MarketplaceReview {
+  id                     String             @id @default(cuid())
+  bookId                 String
+  book                   MarketplaceBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  studentName            String
+  studentPhone           String
+  isVerifiedPurchase     Boolean            @default(true)
+  rating                 Int                @default(5)
+  headline               String?
+  reviewText             String
+  
+  createdAt              DateTime           @default(now())
+
+  @@index([bookId])
+}
+
+model MarketplaceWishlist {
+  id                     String             @id @default(cuid())
+  sessionId              String
+  bookId                 String
+  book                   MarketplaceBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt              DateTime           @default(now())
+
+  @@unique([sessionId, bookId])
+  @@index([sessionId])
+}
+
+model MarketplaceCoupon {
+  id                     String             @id @default(cuid())
+  code                   String             @unique
+  discountType           String             // "PERCENTAGE" | "FLAT_RUPEES"
+  discountValue          Float
+  minOrderValueRupees    Float              @default(0.0)
+  maxDiscountRupees      Float?
+  
+  fundingSource          String             @default("PLATFORM") // "PLATFORM" | "PUBLISHER_COLLEGE"
+  restrictedInstituteId  String?
+  restrictedInstitute    Institute?         @relation(fields: [restrictedInstituteId], references: [id])
+  
+  validFrom              DateTime           @default(now())
+  validUntil             DateTime
+  maxUses                Int                @default(1000)
+  usedCount              Int                @default(0)
+  isActive               Boolean            @default(true)
+}
+
 
 
 

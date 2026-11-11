@@ -191,6 +191,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: isProd ? 'Internal server error.' : (err.message || 'Something went wrong on the server.') });
 });
 
-app.listen(PORT, () => {
-  console.log(`Question Bank API (Phase 4 — Quality Checks) running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Question Bank API (Phase 4 — Quality Checks) running on http://localhost:${PORT} and http://127.0.0.1:${PORT}`);
 });

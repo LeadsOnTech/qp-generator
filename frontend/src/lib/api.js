@@ -487,7 +487,16 @@ export const api = {
   uploadInstituteMarketplaceMaterial: (data) => request('/marketplace/institute/upload-material', { method: 'POST', body: JSON.stringify(data) }),
   updateInstituteMarketplaceMaterial: (id, data) => request(`/marketplace/institute/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInstituteMarketplaceMaterial: (id) => request(`/marketplace/institute/book/${id}`, { method: 'DELETE' }),
+  getSellerMyProducts: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/marketplace/seller/my-products${q ? `?${q}` : ''}`);
+  },
+  createSellerProduct: (data) => request('/marketplace/seller/products', { method: 'POST', body: JSON.stringify(data) }),
+  updateSellerProduct: (id, data) => request(`/marketplace/seller/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteSellerProduct: (id) => request(`/marketplace/seller/products/${id}`, { method: 'DELETE' }),
   getAdminMarketplaceReconciliation: () => request('/marketplace/admin/reconciliation'),
+  getAdminModerationQueue: () => request('/marketplace/admin/moderation-queue'),
+  moderateBook: (id, data) => request(`/marketplace/admin/moderate/${id}`, { method: 'POST', body: JSON.stringify(data) }),
   uploadAdminMasterBook: (data) => request('/marketplace/admin/upload-master-book', { method: 'POST', body: JSON.stringify(data) }),
   updateAdminMasterBook: (id, data) => request(`/marketplace/admin/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAdminMasterBook: (id) => request(`/marketplace/admin/book/${id}`, { method: 'DELETE' }),

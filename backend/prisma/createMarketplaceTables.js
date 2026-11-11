@@ -107,9 +107,9 @@ async function run() {
           coverImageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80',
           isGlobal: true,
           isFeatured: true,
-          salesCount: 412,
-          rating: 4.95,
-          reviewsCount: 38,
+          salesCount: 0,
+          rating: 5.0,
+          reviewsCount: 0,
         },
         {
           id: 'qs-book-jee-maths-pyq',
@@ -129,9 +129,9 @@ async function run() {
           coverImageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80',
           isGlobal: true,
           isFeatured: true,
-          salesCount: 326,
-          rating: 4.90,
-          reviewsCount: 29,
+          salesCount: 0,
+          rating: 5.0,
+          reviewsCount: 0,
         },
         {
           id: 'qs-book-eapcet-grand-mock',
@@ -151,9 +151,9 @@ async function run() {
           coverImageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80',
           isGlobal: true,
           isFeatured: true,
-          salesCount: 518,
-          rating: 4.98,
-          reviewsCount: 54,
+          salesCount: 0,
+          rating: 5.0,
+          reviewsCount: 0,
         },
         {
           id: 'qs-book-neet-bio-diagrams',
@@ -173,9 +173,9 @@ async function run() {
           coverImageUrl: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=600&q=80',
           isGlobal: true,
           isFeatured: false,
-          salesCount: 287,
-          rating: 4.88,
-          reviewsCount: 22,
+          salesCount: 0,
+          rating: 5.0,
+          reviewsCount: 0,
         }
       ]
     });

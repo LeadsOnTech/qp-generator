@@ -58,22 +58,24 @@ const pdfUpload = multer({
   },
 });
 
-// Robust Institute ID resolver to prevent "Institute ID is required" blocker
+// Robust Institute ID resolver to prevent "Institute ID is required" blocker while strictly enforcing tenant isolation
 async function resolveMarketplaceInstituteId(req, explicitId = null) {
-  let target = explicitId || (req.user?.role === 'ADMIN' ? (req.query?.instituteId || req.body?.instituteId) : req.user?.instituteId);
-  if (target) return target;
+  if (req.user?.role === 'ADMIN') {
+    const target = explicitId || req.query?.instituteId || req.body?.instituteId || req.user?.instituteId;
+    if (target) return target;
+    const fallback = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
+    return fallback?.id || null;
+  }
+
+  // Non-admin (Institute User): strictly scoped to their own verified institute
+  if (req.user?.instituteId) return req.user.instituteId;
   if (req.user?.userId) {
     try {
-      const u = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { instituteId: true, email: true } });
+      const u = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { instituteId: true } });
       if (u?.instituteId) return u.instituteId;
-      if (u?.email) {
-        const inst = await prisma.institute.findFirst({ where: { contactEmail: u.email } });
-        if (inst) return inst.id;
-      }
     } catch (e) {}
   }
-  const fallback = await prisma.institute.findFirst({ orderBy: { createdAt: 'asc' } });
-  return fallback?.id || null;
+  return null;
 }
 
 // ============================================================================
@@ -82,12 +84,12 @@ async function resolveMarketplaceInstituteId(req, explicitId = null) {
 
 /**
  * GET /api/marketplace/public/catalog
- * Returns available study materials for a specific college portal (or global)
- * Query filters: slug, exam, subject, category, search
+ * Returns available study materials for a specific college portal (or central marketplace)
+ * Query filters: slug, exam, subject, category, fulfillmentType, search, sort
  */
 router.get('/public/catalog', async (req, res) => {
   try {
-    const { slug, exam, subject, category, search } = req.query;
+    const { slug, exam, subject, category, fulfillmentType, search, sort } = req.query;
 
     let targetInstitute = null;
     if (slug) {
@@ -99,14 +101,25 @@ router.get('/public/catalog', async (req, res) => {
 
     const where = {
       isActive: true,
-      OR: [
-        { isGlobal: true }, // Super Admin Master Publications (visible on ALL college sites)
-      ],
     };
 
-    // If viewing a specific college's portal, also include books authored by that college
     if (targetInstitute) {
-      where.OR.push({ instituteId: targetInstitute.id });
+      // College storefront view:
+      // Show either:
+      // 1) Globally approved publications syndicated across all colleges
+      // 2) Publications authored by this college that are active and not rejected/archived
+      where.OR = [
+        { isGlobal: true, moderationStatus: 'APPROVED_GLOBAL' },
+        {
+          instituteId: targetInstitute.id,
+          moderationStatus: { notIn: ['REJECTED', 'ARCHIVED'] },
+        },
+      ];
+    } else {
+      // Central Marketplace view:
+      // ONLY approved global publications
+      where.isGlobal = true;
+      where.moderationStatus = 'APPROVED_GLOBAL';
     }
 
     if (exam && exam !== 'ALL') {
@@ -121,26 +134,46 @@ router.get('/public/catalog', async (req, res) => {
       where.category = category;
     }
 
+    if (fulfillmentType && fulfillmentType !== 'ALL') {
+      where.fulfillmentType = fulfillmentType;
+    }
+
     if (search && search.trim()) {
-      where.AND = [
-        {
-          OR: [
-            { title: { contains: search.trim() } },
-            { subtitle: { contains: search.trim() } },
-            { description: { contains: search.trim() } },
-            { author: { contains: search.trim() } },
-          ],
-        },
-      ];
+      const term = search.trim();
+      const searchClause = {
+        OR: [
+          { title: { contains: term } },
+          { subtitle: { contains: term } },
+          { description: { contains: term } },
+          { author: { contains: term } },
+        ],
+      };
+      if (where.AND) {
+        where.AND.push(searchClause);
+      } else {
+        where.AND = [searchClause];
+      }
+    }
+
+    // Dynamic sorting
+    let orderBy = [
+      { isFeatured: 'desc' },
+      { salesCount: 'desc' },
+      { createdAt: 'desc' },
+    ];
+    if (sort === 'price_asc') {
+      orderBy = [{ priceRupees: 'asc' }];
+    } else if (sort === 'price_desc') {
+      orderBy = [{ priceRupees: 'desc' }];
+    } else if (sort === 'newest') {
+      orderBy = [{ createdAt: 'desc' }];
+    } else if (sort === 'rating') {
+      orderBy = [{ rating: 'desc' }, { reviewsCount: 'desc' }];
     }
 
     const books = await prisma.marketplaceBook.findMany({
       where,
-      orderBy: [
-        { isFeatured: 'desc' },
-        { salesCount: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy,
       include: {
         institute: {
           select: { id: true, name: true, slug: true },
@@ -150,6 +183,7 @@ router.get('/public/catalog', async (req, res) => {
 
     const catalog = books.map((b) => ({
       id: b.id,
+      sku: b.sku,
       title: b.title,
       subtitle: b.subtitle,
       description: b.description,
@@ -158,23 +192,31 @@ router.get('/public/catalog', async (req, res) => {
       classYear: b.classYear,
       author: b.author,
       category: b.category,
+      fulfillmentType: b.fulfillmentType || 'DIGITAL_PDF',
+      stockQuantity: b.stockQuantity ?? 0,
+      lowStockThreshold: b.lowStockThreshold ?? 10,
+      weightGrams: b.weightGrams ?? 300,
       priceRupees: b.priceRupees,
       mrpRupees: b.mrpRupees,
       discountPct: b.mrpRupees && b.mrpRupees > b.priceRupees ? Math.round(((b.mrpRupees - b.priceRupees) / b.mrpRupees) * 100) : 0,
       coverImageUrl: b.coverImageUrl,
+      sampleFileKey: b.sampleFileKey,
       pageCount: b.pageCount,
       rating: b.rating,
       reviewsCount: b.reviewsCount,
       salesCount: b.salesCount,
       isFeatured: b.isFeatured,
       isMasterBook: !b.instituteId,
+      isGlobal: b.isGlobal,
+      moderationStatus: b.moderationStatus,
       collegeAuthor: b.institute ? b.institute.name : null,
+      instituteId: b.instituteId,
       affiliateCommissionPct: b.affiliateCommissionPct,
     }));
 
     res.json({
       success: true,
-      college: targetInstitute ? { name: targetInstitute.name, slug: targetInstitute.slug } : null,
+      college: targetInstitute ? { id: targetInstitute.id, name: targetInstitute.name, slug: targetInstitute.slug } : null,
       total: catalog.length,
       books: catalog,
     });
@@ -194,12 +236,12 @@ router.get('/public/book/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         institute: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, phone: true, address: true, website: true },
         },
       },
     });
 
-    if (!book || !book.isActive) {
+    if (!book || !book.isActive || book.moderationStatus === 'REJECTED' || book.moderationStatus === 'ARCHIVED') {
       return res.status(404).json({ error: 'Study material publication not found.' });
     }
 
@@ -207,6 +249,10 @@ router.get('/public/book/:id', async (req, res) => {
       success: true,
       book: {
         ...book,
+        fulfillmentType: book.fulfillmentType || 'DIGITAL_PDF',
+        stockQuantity: book.stockQuantity ?? 0,
+        lowStockThreshold: book.lowStockThreshold ?? 10,
+        weightGrams: book.weightGrams ?? 300,
         discountPct: book.mrpRupees && book.mrpRupees > book.priceRupees ? Math.round(((book.mrpRupees - book.priceRupees) / book.mrpRupees) * 100) : 0,
         isMasterBook: !book.instituteId,
         collegeAuthor: book.institute ? book.institute.name : null,
@@ -303,32 +349,25 @@ router.post('/checkout/create-order', async (req, res) => {
       data: { salesCount: { increment: 1 } },
     });
 
-    // If a college earned revenue, credit their institutional wallet & add QP generation credits!
-    let creditsAwarded = 0;
+    // Marketplace Commission Ledger: Accrued Earnings Mode
+    // Commission is accrued in the financial ledger (marketplaceEarningsPaise).
+    // Note: Auto-conversion to QP credits is strictly disabled per financial safety policy.
+    // Payout settlements remain pending until a settlement policy is separately approved.
+    const creditsAwarded = 0;
     if (sellingInstitute && collegeShareRupees > 0) {
       const sharePaise = Math.round(collegeShareRupees * 100);
-      creditsAwarded = Math.round(collegeShareRupees); // ₹1 = 1 Free Question Credit
 
-      await prisma.$transaction([
-        prisma.institute.update({
-          where: { id: sellingInstitute.id },
-          data: {
-            marketplaceEarningsPaise: { increment: sharePaise },
-            creditBalance: { increment: creditsAwarded },
-          },
-        }),
-        prisma.creditTransaction.create({
-          data: {
-            instituteId: sellingInstitute.id,
-            amount: creditsAwarded,
-            reason: `Affiliate Revenue: Sold "${book.title.substring(0, 40)}" (Order #${orderNumber})`,
-          },
-        }),
-        prisma.marketplaceOrder.update({
-          where: { id: order.id },
-          data: { creditsAwarded },
-        }),
-      ]);
+      await prisma.institute.update({
+        where: { id: sellingInstitute.id },
+        data: {
+          marketplaceEarningsPaise: { increment: sharePaise },
+        },
+      });
+
+      await prisma.marketplaceOrder.update({
+        where: { id: order.id },
+        data: { creditsAwarded: 0 },
+      });
     }
 
     res.json({
@@ -529,18 +568,34 @@ router.post('/institute/upload-material', requireAuth, async (req, res) => {
       mrpRupees = 499.00,
       coverImageUrl,
       category = 'STUDY_MATERIAL',
-      isGlobal = false, // Defaults to college's private site unless requested
+      fulfillmentType = 'DIGITAL_PDF',
+      stockQuantity = 0,
+      lowStockThreshold = 10,
+      weightGrams = 300,
+      sku,
+      pageCount = 120,
+      isGlobal = false,
+      requestedScope,
     } = req.body;
 
     if (!title || !title.trim()) return res.status(400).json({ error: 'Publication title is required.' });
 
     const institute = await prisma.institute.findUnique({
       where: { id: instituteId },
-      select: { name: true },
+      select: { name: true, slug: true },
     });
+
+    const wantsGlobal = requestedScope === 'GLOBAL' || Boolean(isGlobal);
+    // If requesting global syndication: queued for review (isGlobal remains false until Super Admin approves)
+    // If college only: draft status, visible immediately on own college portal
+    const moderationStatus = wantsGlobal ? 'SUBMITTED_FOR_REVIEW' : 'DRAFT';
+    const effectiveIsGlobal = false;
+
+    const generatedSku = sku ? sku.trim().toUpperCase() : `SKU-${institute?.slug?.toUpperCase().slice(0, 4) || 'COL'}-${Date.now().toString().slice(-6)}`;
 
     const book = await prisma.marketplaceBook.create({
       data: {
+        sku: generatedSku,
         title: title.trim(),
         subtitle: subtitle ? subtitle.trim() : null,
         description: description ? description.trim() : null,
@@ -549,19 +604,30 @@ router.post('/institute/upload-material', requireAuth, async (req, res) => {
         classYear,
         author: author ? author.trim() : `${institute?.name || 'College'} Senior Faculty`,
         category,
+        fulfillmentType: ['DIGITAL_PDF', 'PHYSICAL_PRINT', 'BUNDLE_HYBRID'].includes(fulfillmentType) ? fulfillmentType : 'DIGITAL_PDF',
         priceRupees: parseFloat(priceRupees) || 199.00,
         mrpRupees: parseFloat(mrpRupees) || 499.00,
+        stockQuantity: parseInt(stockQuantity) || 0,
+        lowStockThreshold: parseInt(lowStockThreshold) || 10,
+        weightGrams: parseInt(weightGrams) || 300,
         coverImageUrl: coverImageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
         fileKey: `college_${instituteId}_${Date.now()}.pdf`,
         sampleFileKey: `preview_${instituteId}_${Date.now()}.pdf`,
-        pageCount: 120,
-        isGlobal: Boolean(isGlobal),
+        pageCount: parseInt(pageCount) || 120,
+        isGlobal: effectiveIsGlobal,
+        moderationStatus,
         instituteId,
         affiliateCommissionPct: 10.0,
       },
     });
 
-    res.json({ success: true, book });
+    res.json({
+      success: true,
+      message: wantsGlobal
+        ? 'Publication submitted for Super Admin review to syndicate globally.'
+        : 'Publication added to your college bookstore.',
+      book,
+    });
   } catch (err) {
     console.error('Error uploading college study material:', err);
     res.status(500).json({ error: 'Failed to publish study material: ' + err.message });
@@ -569,12 +635,300 @@ router.post('/institute/upload-material', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
-// 5. SUPER ADMIN MASTER MARKETPLACE COMMAND
+// 5. COLLEGE SELLER STUDIO ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/marketplace/seller/my-products
+ * Returns all products published by the authenticated college with status breakdown
+ */
+router.get('/seller/my-products', requireAuth, async (req, res) => {
+  try {
+    const instituteId = await resolveMarketplaceInstituteId(req);
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
+    }
+
+    const { status, fulfillmentType, search } = req.query;
+    const where = { instituteId };
+
+    if (status && status !== 'ALL') {
+      where.moderationStatus = status;
+    }
+    if (fulfillmentType && fulfillmentType !== 'ALL') {
+      where.fulfillmentType = fulfillmentType;
+    }
+    if (search && search.trim()) {
+      where.title = { contains: search.trim() };
+    }
+
+    const [products, counts] = await Promise.all([
+      prisma.marketplaceBook.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.marketplaceBook.groupBy({
+        by: ['moderationStatus'],
+        where: { instituteId },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const statusCounts = {
+      TOTAL: 0,
+      DRAFT: 0,
+      SUBMITTED_FOR_REVIEW: 0,
+      APPROVED_GLOBAL: 0,
+      REJECTED: 0,
+      ARCHIVED: 0,
+    };
+    counts.forEach((c) => {
+      statusCounts[c.moderationStatus] = c._count._all;
+      statusCounts.TOTAL += c._count._all;
+    });
+
+    res.json({
+      success: true,
+      instituteId,
+      statusCounts,
+      products,
+    });
+  } catch (err) {
+    console.error('Error fetching seller products:', err);
+    res.status(500).json({ error: 'Failed to load seller products: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/marketplace/seller/products
+ * College creates a new product (either College-Only or submitted for Global review)
+ */
+router.post('/seller/products', requireAuth, async (req, res) => {
+  try {
+    const instituteId = await resolveMarketplaceInstituteId(req, req.body.instituteId);
+    if (!instituteId) {
+      return res.status(400).json({ error: 'Please configure your college profile first.' });
+    }
+
+    const {
+      title,
+      subtitle,
+      description,
+      examTarget = 'NEET',
+      subject = 'Comprehensive',
+      classYear = 'Class 12',
+      author,
+      category = 'STUDY_MATERIAL',
+      fulfillmentType = 'DIGITAL_PDF',
+      priceRupees = 199.00,
+      mrpRupees = 499.00,
+      stockQuantity = 0,
+      lowStockThreshold = 10,
+      weightGrams = 300,
+      sku,
+      coverImageUrl,
+      fileKey,
+      sampleFileKey,
+      pageCount = 100,
+      requestedScope = 'COLLEGE_ONLY', // 'COLLEGE_ONLY' | 'GLOBAL'
+    } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Product title is required.' });
+    }
+
+    const validFulfillment = ['DIGITAL_PDF', 'PHYSICAL_PRINT', 'BUNDLE_HYBRID'];
+    const resolvedFulfillment = validFulfillment.includes(fulfillmentType) ? fulfillmentType : 'DIGITAL_PDF';
+
+    const institute = await prisma.institute.findUnique({
+      where: { id: instituteId },
+      select: { name: true, slug: true },
+    });
+
+    const isRequestingGlobal = requestedScope === 'GLOBAL';
+    const moderationStatus = isRequestingGlobal ? 'SUBMITTED_FOR_REVIEW' : 'DRAFT';
+    const isGlobal = false; // Always starts false until Super Admin approves!
+
+    const generatedSku = sku ? sku.trim().toUpperCase() : `SKU-${institute?.slug?.toUpperCase().slice(0, 4) || 'QS'}-${Date.now().toString().slice(-6)}`;
+
+    const newProduct = await prisma.marketplaceBook.create({
+      data: {
+        sku: generatedSku,
+        title: title.trim(),
+        subtitle: subtitle ? subtitle.trim() : null,
+        description: description ? description.trim() : null,
+        examTarget,
+        subject,
+        classYear,
+        author: author ? author.trim() : `${institute?.name || 'College'} Senior Faculty`,
+        category,
+        fulfillmentType: resolvedFulfillment,
+        priceRupees: parseFloat(priceRupees) || 199.00,
+        mrpRupees: parseFloat(mrpRupees) || 499.00,
+        stockQuantity: parseInt(stockQuantity) || 0,
+        lowStockThreshold: parseInt(lowStockThreshold) || 10,
+        weightGrams: parseInt(weightGrams) || 300,
+        coverImageUrl: coverImageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+        fileKey: fileKey || `college_${instituteId}_${Date.now()}.pdf`,
+        sampleFileKey: sampleFileKey || null,
+        pageCount: parseInt(pageCount) || 100,
+        isGlobal,
+        moderationStatus,
+        instituteId,
+        affiliateCommissionPct: 10.0,
+      },
+      include: {
+        institute: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: isRequestingGlobal
+        ? 'Product submitted for Super Admin review to syndicate globally across all colleges.'
+        : 'Product published successfully to your college portal.',
+      product: newProduct,
+    });
+  } catch (err) {
+    console.error('Error creating seller product:', err);
+    res.status(500).json({ error: 'Failed to create product: ' + err.message });
+  }
+});
+
+/**
+ * PUT /api/marketplace/seller/products/:id
+ * College updates an existing product with strict tenant isolation enforcement
+ */
+router.put('/seller/products/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const userInstituteId = await resolveMarketplaceInstituteId(req);
+
+    // Strict tenant isolation: If not platform admin, user MUST own this product
+    if (req.user.role !== 'ADMIN') {
+      if (!userInstituteId || existing.instituteId !== userInstituteId) {
+        return res.status(403).json({ error: 'Unauthorized: You can only edit your own college products.' });
+      }
+    }
+
+    const {
+      title,
+      subtitle,
+      description,
+      examTarget,
+      subject,
+      classYear,
+      author,
+      category,
+      fulfillmentType,
+      priceRupees,
+      mrpRupees,
+      stockQuantity,
+      lowStockThreshold,
+      weightGrams,
+      sku,
+      coverImageUrl,
+      sampleFileKey,
+      pageCount,
+      requestedScope, // 'COLLEGE_ONLY' | 'GLOBAL'
+      isActive,
+    } = req.body;
+
+    const updateData = {};
+    if (title) updateData.title = title.trim();
+    if (subtitle !== undefined) updateData.subtitle = subtitle ? subtitle.trim() : null;
+    if (description !== undefined) updateData.description = description ? description.trim() : null;
+    if (examTarget !== undefined) updateData.examTarget = examTarget;
+    if (subject !== undefined) updateData.subject = subject;
+    if (classYear !== undefined) updateData.classYear = classYear;
+    if (author !== undefined) updateData.author = author.trim();
+    if (category !== undefined) updateData.category = category;
+    if (fulfillmentType !== undefined) {
+      const valid = ['DIGITAL_PDF', 'PHYSICAL_PRINT', 'BUNDLE_HYBRID'];
+      if (valid.includes(fulfillmentType)) updateData.fulfillmentType = fulfillmentType;
+    }
+    if (priceRupees !== undefined) updateData.priceRupees = parseFloat(priceRupees) || 199.00;
+    if (mrpRupees !== undefined) updateData.mrpRupees = parseFloat(mrpRupees) || 499.00;
+    if (stockQuantity !== undefined) updateData.stockQuantity = parseInt(stockQuantity) || 0;
+    if (lowStockThreshold !== undefined) updateData.lowStockThreshold = parseInt(lowStockThreshold) || 10;
+    if (weightGrams !== undefined) updateData.weightGrams = parseInt(weightGrams) || 300;
+    if (sku !== undefined) updateData.sku = sku ? sku.trim().toUpperCase() : existing.sku;
+    if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl;
+    if (sampleFileKey !== undefined) updateData.sampleFileKey = sampleFileKey;
+    if (pageCount !== undefined) updateData.pageCount = parseInt(pageCount) || 100;
+    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+
+    // If changing scope or resubmitting after rejection:
+    if (requestedScope === 'GLOBAL' && existing.moderationStatus !== 'APPROVED_GLOBAL') {
+      updateData.moderationStatus = 'SUBMITTED_FOR_REVIEW';
+      updateData.isGlobal = false;
+      updateData.rejectionReason = null;
+    } else if (requestedScope === 'COLLEGE_ONLY') {
+      updateData.moderationStatus = 'DRAFT';
+      updateData.isGlobal = false;
+    }
+
+    const updated = await prisma.marketplaceBook.update({
+      where: { id },
+      data: updateData,
+      include: {
+        institute: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully.',
+      product: updated,
+    });
+  } catch (err) {
+    console.error('Error updating seller product:', err);
+    res.status(500).json({ error: 'Failed to update product: ' + err.message });
+  }
+});
+
+/**
+ * DELETE /api/marketplace/seller/products/:id
+ * College deletes their own product with strict tenant isolation enforcement
+ */
+router.delete('/seller/products/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+
+    const userInstituteId = await resolveMarketplaceInstituteId(req);
+
+    // Strict tenant isolation:
+    if (req.user.role !== 'ADMIN') {
+      if (!userInstituteId || existing.instituteId !== userInstituteId) {
+        return res.status(403).json({ error: 'Unauthorized: You can only delete your own college products.' });
+      }
+    }
+
+    await prisma.marketplaceBook.delete({ where: { id } });
+
+    res.json({ success: true, message: 'Product deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting seller product:', err);
+    res.status(500).json({ error: 'Failed to delete product: ' + err.message });
+  }
+});
+
+// ============================================================================
+// 6. SUPER ADMIN MASTER MARKETPLACE COMMAND & MODERATION
 // ============================================================================
 
 /**
  * GET /api/marketplace/admin/reconciliation
- * Platform-wide financial report across all 800 colleges
+ * Platform-wide financial report across all participating colleges
  */
 router.get('/admin/reconciliation', requireAuth, requireAdmin, async (req, res) => {
   try {
@@ -597,7 +951,20 @@ router.get('/admin/reconciliation', requireAuth, requireAdmin, async (req, res) 
     const grossSalesRupees = allOrders.reduce((sum, o) => sum + o.amountRupees, 0);
     const totalCollegePayoutsRupees = allOrders.reduce((sum, o) => sum + o.collegeShareRupees, 0);
     const netPlatformRevenueRupees = allOrders.reduce((sum, o) => sum + o.platformShareRupees, 0);
-    const totalCreditsAwarded = allOrders.reduce((sum, o) => sum + (o.creditsAwarded || 0), 0);
+
+    // Compute verified transaction counts strictly from actual completed orders
+    const verifiedOrderCounts = {};
+    for (const order of allOrders) {
+      if (order.bookId) {
+        verifiedOrderCounts[order.bookId] = (verifiedOrderCounts[order.bookId] || 0) + 1;
+      }
+    }
+
+    const booksWithVerifiedCounts = allBooks.map((b) => ({
+      ...b,
+      salesCount: verifiedOrderCounts[b.id] || 0,
+      verifiedSalesCount: verifiedOrderCounts[b.id] || 0,
+    }));
 
     res.json({
       success: true,
@@ -607,17 +974,128 @@ router.get('/admin/reconciliation', requireAuth, requireAdmin, async (req, res) 
         collegeBooksCount: allBooks.filter((b) => b.instituteId).length,
         totalOrders: allOrders.length,
         grossSalesRupees,
+        refundsRupees: 0,
+        accruedCommissionsRupees: totalCollegePayoutsRupees,
+        availableBalancesRupees: totalCollegePayoutsRupees,
+        approvedSettlementsRupees: 0,
+        completedPayoutsRupees: 0,
         totalCollegePayoutsRupees,
         netPlatformRevenueRupees,
-        totalCreditsAwarded,
         totalActiveColleges: totalInstitutes,
       },
       orders: allOrders.slice(0, 50),
-      books: allBooks,
+      books: booksWithVerifiedCounts,
     });
   } catch (err) {
     console.error('Error in admin marketplace reconciliation:', err);
     res.status(500).json({ error: 'Failed to load marketplace reconciliation.' });
+  }
+});
+
+/**
+ * GET /api/marketplace/admin/moderation-queue
+ * Super Admin retrieves all college publications submitted for global syndication
+ */
+router.get('/admin/moderation-queue', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const queue = await prisma.marketplaceBook.findMany({
+      where: {
+        moderationStatus: 'SUBMITTED_FOR_REVIEW',
+      },
+      include: {
+        institute: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            phone: true,
+            address: true,
+            website: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' }, // FIFO queue
+    });
+
+    res.json({
+      success: true,
+      count: queue.length,
+      queue,
+    });
+  } catch (err) {
+    console.error('Error fetching moderation queue:', err);
+    res.status(500).json({ error: 'Failed to load moderation queue: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/marketplace/admin/moderate/:id
+ * Super Admin approves or rejects a college publication
+ */
+router.post('/admin/moderate/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, rejectionReason } = req.body;
+
+    if (!['APPROVE', 'REJECT'].includes(action)) {
+      return res.status(400).json({ error: 'Action must be either APPROVE or REJECT.' });
+    }
+
+    const book = await prisma.marketplaceBook.findUnique({
+      where: { id },
+      include: { institute: { select: { id: true, name: true, slug: true } } },
+    });
+
+    if (!book) {
+      return res.status(404).json({ error: 'Publication not found.' });
+    }
+
+    if (action === 'APPROVE') {
+      const updated = await prisma.marketplaceBook.update({
+        where: { id },
+        data: {
+          isGlobal: true,
+          moderationStatus: 'APPROVED_GLOBAL',
+          rejectionReason: null,
+          reviewedAt: new Date(),
+        },
+        include: { institute: { select: { id: true, name: true, slug: true } } },
+      });
+
+      return res.json({
+        success: true,
+        action: 'APPROVE',
+        message: `Book "${updated.title}" approved and syndicated globally across all college storefronts.`,
+        book: updated,
+      });
+    }
+
+    if (action === 'REJECT') {
+      if (!rejectionReason || !rejectionReason.trim()) {
+        return res.status(400).json({ error: 'Rejection reason is required when rejecting a submission.' });
+      }
+
+      const updated = await prisma.marketplaceBook.update({
+        where: { id },
+        data: {
+          isGlobal: false,
+          moderationStatus: 'REJECTED',
+          rejectionReason: rejectionReason.trim(),
+          reviewedAt: new Date(),
+        },
+        include: { institute: { select: { id: true, name: true, slug: true } } },
+      });
+
+      return res.json({
+        success: true,
+        action: 'REJECT',
+        message: `Book "${updated.title}" rejected and returned to college with feedback.`,
+        book: updated,
+      });
+    }
+  } catch (err) {
+    console.error('Error moderating book:', err);
+    res.status(500).json({ error: 'Failed to moderate publication: ' + err.message });
   }
 });
 
@@ -628,6 +1106,7 @@ router.get('/admin/reconciliation', requireAuth, requireAdmin, async (req, res) 
 router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, res) => {
   try {
     const {
+      sku,
       title,
       subtitle,
       description,
@@ -637,6 +1116,10 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
       author = 'QuestionStudio Academic Editorial Board',
       priceRupees = 199.00,
       mrpRupees = 499.00,
+      fulfillmentType = 'DIGITAL_PDF',
+      stockQuantity = 0,
+      lowStockThreshold = 10,
+      weightGrams = 300,
       coverImageUrl,
       category = 'FORMULA_BOOK',
       pageCount = 160,
@@ -644,8 +1127,11 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
 
     if (!title || !title.trim()) return res.status(400).json({ error: 'Book title is required.' });
 
+    const generatedSku = sku ? sku.trim().toUpperCase() : `MASTER-${Date.now().toString().slice(-6)}`;
+
     const masterBook = await prisma.marketplaceBook.create({
       data: {
+        sku: generatedSku,
         title: title.trim(),
         subtitle: subtitle ? subtitle.trim() : null,
         description: description ? description.trim() : null,
@@ -654,6 +1140,10 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
         classYear,
         author: author.trim(),
         category,
+        fulfillmentType: ['DIGITAL_PDF', 'PHYSICAL_PRINT', 'BUNDLE_HYBRID'].includes(fulfillmentType) ? fulfillmentType : 'DIGITAL_PDF',
+        stockQuantity: parseInt(stockQuantity) || 0,
+        lowStockThreshold: parseInt(lowStockThreshold) || 10,
+        weightGrams: parseInt(weightGrams) || 300,
         priceRupees: parseFloat(priceRupees) || 199.00,
         mrpRupees: parseFloat(mrpRupees) || 499.00,
         coverImageUrl: coverImageUrl || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80',
@@ -661,6 +1151,7 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
         sampleFileKey: `preview_master_${Date.now()}.pdf`,
         pageCount: parseInt(pageCount) || 160,
         isGlobal: true, // Syndicates to ALL 800 colleges!
+        moderationStatus: 'APPROVED_GLOBAL',
         instituteId: null, // Super Admin Master content
         affiliateCommissionPct: 10.0, // 10% commission to selling college
       },
@@ -674,7 +1165,7 @@ router.post('/admin/upload-master-book', requireAuth, requireAdmin, async (req, 
 });
 
 // ============================================================================
-// 6. ASSET UPLOADS & BOOK LIFECYCLE MANAGEMENT (EDIT / DELETE)
+// 7. ASSET UPLOADS & BOOK LIFECYCLE MANAGEMENT (EDIT / DELETE)
 // ============================================================================
 
 /**
@@ -718,6 +1209,7 @@ router.put('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const {
+      sku,
       title,
       subtitle,
       description,
@@ -727,6 +1219,10 @@ router.put('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
       author,
       priceRupees,
       mrpRupees,
+      fulfillmentType,
+      stockQuantity,
+      lowStockThreshold,
+      weightGrams,
       coverImageUrl,
       category,
       pageCount,
@@ -738,6 +1234,7 @@ router.put('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
     const updated = await prisma.marketplaceBook.update({
       where: { id },
       data: {
+        ...(sku !== undefined && { sku: sku ? sku.trim().toUpperCase() : null }),
         ...(title && { title: title.trim() }),
         ...(subtitle !== undefined && { subtitle: subtitle ? subtitle.trim() : null }),
         ...(description !== undefined && { description: description ? description.trim() : null }),
@@ -746,6 +1243,10 @@ router.put('/admin/book/:id', requireAuth, requireAdmin, async (req, res) => {
         ...(classYear && { classYear }),
         ...(author && { author: author.trim() }),
         ...(category && { category }),
+        ...(fulfillmentType && { fulfillmentType }),
+        ...(stockQuantity !== undefined && { stockQuantity: parseInt(stockQuantity) || 0 }),
+        ...(lowStockThreshold !== undefined && { lowStockThreshold: parseInt(lowStockThreshold) || 10 }),
+        ...(weightGrams !== undefined && { weightGrams: parseInt(weightGrams) || 300 }),
         ...(priceRupees !== undefined && { priceRupees: parseFloat(priceRupees) || 199 }),
         ...(mrpRupees !== undefined && { mrpRupees: parseFloat(mrpRupees) || 499 }),
         ...(coverImageUrl !== undefined && { coverImageUrl }),
@@ -788,7 +1289,8 @@ router.put('/institute/book/:id', requireAuth, async (req, res) => {
     const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Publication not found' });
 
-    if (req.user.role !== 'ADMIN' && existing.instituteId !== req.user.instituteId) {
+    const userInstituteId = await resolveMarketplaceInstituteId(req);
+    if (req.user.role !== 'ADMIN' && (!userInstituteId || existing.instituteId !== userInstituteId)) {
       return res.status(403).json({ error: 'Unauthorized: You can only edit your own college publications.' });
     }
 
@@ -801,6 +1303,8 @@ router.put('/institute/book/:id', requireAuth, async (req, res) => {
       classYear,
       priceRupees,
       mrpRupees,
+      fulfillmentType,
+      stockQuantity,
       coverImageUrl,
       category,
       pageCount,
@@ -816,6 +1320,8 @@ router.put('/institute/book/:id', requireAuth, async (req, res) => {
         ...(subject && { subject }),
         ...(classYear && { classYear }),
         ...(category && { category }),
+        ...(fulfillmentType && { fulfillmentType }),
+        ...(stockQuantity !== undefined && { stockQuantity: parseInt(stockQuantity) || 0 }),
         ...(priceRupees !== undefined && { priceRupees: parseFloat(priceRupees) || 199 }),
         ...(mrpRupees !== undefined && { mrpRupees: parseFloat(mrpRupees) || 499 }),
         ...(coverImageUrl !== undefined && { coverImageUrl }),
@@ -840,7 +1346,8 @@ router.delete('/institute/book/:id', requireAuth, async (req, res) => {
     const existing = await prisma.marketplaceBook.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Publication not found' });
 
-    if (req.user.role !== 'ADMIN' && existing.instituteId !== req.user.instituteId) {
+    const userInstituteId = await resolveMarketplaceInstituteId(req);
+    if (req.user.role !== 'ADMIN' && (!userInstituteId || existing.instituteId !== userInstituteId)) {
       return res.status(403).json({ error: 'Unauthorized: You can only delete your own college publications.' });
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BOOK_COVER_PRESETS } from '../lib/marketplacePresets';
 import { api } from '../lib/api';
 
@@ -9,23 +9,60 @@ export default function EcommerceBookEditorModal({
   isMaster = true,
   onSave,
 }) {
-  const [form, setForm] = useState(
-    initialData || {
-      title: '',
-      subtitle: '',
-      description: '',
-      examTarget: 'NEET',
-      subject: 'Comprehensive',
-      classYear: 'Class 12',
-      author: isMaster ? 'QuestionStudio Academic Editorial Board' : 'Senior Department Faculty',
-      priceRupees: 199,
-      mrpRupees: 499,
-      category: 'FORMULA_BOOK',
-      coverImageUrl: BOOK_COVER_PRESETS[0].coverUrl,
-      samplePreviewText: BOOK_COVER_PRESETS[0].samplePreviewText,
-      pageCount: 240,
+  const [form, setForm] = useState({
+    title: '',
+    subtitle: '',
+    description: '',
+    examTarget: 'NEET',
+    subject: 'Comprehensive',
+    classYear: 'Class 12',
+    author: isMaster ? 'QuestionStudio Academic Editorial Board' : 'Senior Department Faculty',
+    priceRupees: 199,
+    mrpRupees: 499,
+    category: 'FORMULA_BOOK',
+    fulfillmentType: 'DIGITAL_PDF',
+    stockQuantity: 100,
+    weightGrams: 300,
+    sku: '',
+    requestedScope: 'COLLEGE_ONLY',
+    coverImageUrl: BOOK_COVER_PRESETS[0].coverUrl,
+    samplePreviewText: BOOK_COVER_PRESETS[0].samplePreviewText,
+    pageCount: 240,
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        ...initialData,
+        fulfillmentType: initialData.fulfillmentType || 'DIGITAL_PDF',
+        stockQuantity: initialData.stockQuantity ?? 100,
+        weightGrams: initialData.weightGrams ?? 300,
+        sku: initialData.sku || '',
+        requestedScope: initialData.isGlobal ? 'GLOBAL' : (initialData.requestedScope || (initialData.moderationStatus === 'SUBMITTED_FOR_REVIEW' || initialData.moderationStatus === 'APPROVED_GLOBAL' ? 'GLOBAL' : 'COLLEGE_ONLY')),
+      });
+    } else {
+      setForm({
+        title: '',
+        subtitle: '',
+        description: '',
+        examTarget: 'NEET',
+        subject: 'Comprehensive',
+        classYear: 'Class 12',
+        author: isMaster ? 'QuestionStudio Academic Editorial Board' : 'Senior Department Faculty',
+        priceRupees: 199,
+        mrpRupees: 499,
+        category: 'FORMULA_BOOK',
+        fulfillmentType: 'DIGITAL_PDF',
+        stockQuantity: 100,
+        weightGrams: 300,
+        sku: '',
+        requestedScope: 'COLLEGE_ONLY',
+        coverImageUrl: BOOK_COVER_PRESETS[0].coverUrl,
+        samplePreviewText: BOOK_COVER_PRESETS[0].samplePreviewText,
+        pageCount: 240,
+      });
     }
-  );
+  }, [initialData, isMaster, isOpen]);
 
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverSource, setCoverSource] = useState('preset'); // 'preset' | 'upload' | 'url'
@@ -342,10 +379,72 @@ export default function EcommerceBookEditorModal({
                 </div>
               </div>
 
+              {/* Publication Scope & Visibility (for College Admin Sellers) */}
+              {!isMaster && (
+                <div style={{ marginBottom: 18, padding: 14, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#0F172A', marginBottom: 8 }}>
+                    Publication Visibility &amp; Syndication Scope *
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: 12,
+                        borderRadius: 10,
+                        border: form.requestedScope === 'COLLEGE_ONLY' ? '2px solid #0284c7' : '1px solid #CBD5E1',
+                        background: form.requestedScope === 'COLLEGE_ONLY' ? '#EFF6FF' : '#FFFFFF',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 13, color: '#0F172A' }}>
+                        <input
+                          type="radio"
+                          name="requestedScope"
+                          value="COLLEGE_ONLY"
+                          checked={form.requestedScope === 'COLLEGE_ONLY'}
+                          onChange={(e) => setForm({ ...form, requestedScope: e.target.value })}
+                        />
+                        🏛️ College Website Only
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4, paddingLeft: 20, lineHeight: 1.4 }}>
+                        Instant publication to your private college portal. Retain <strong>90% publisher revenue</strong>. No platform moderation required.
+                      </div>
+                    </label>
+
+                    <label
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: 12,
+                        borderRadius: 10,
+                        border: form.requestedScope === 'GLOBAL' ? '2px solid #059669' : '1px solid #CBD5E1',
+                        background: form.requestedScope === 'GLOBAL' ? '#ECFDF5' : '#FFFFFF',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 13, color: '#0F172A' }}>
+                        <input
+                          type="radio"
+                          name="requestedScope"
+                          value="GLOBAL"
+                          checked={form.requestedScope === 'GLOBAL'}
+                          onChange={(e) => setForm({ ...form, requestedScope: e.target.value })}
+                        />
+                        🌐 Global Marketplace
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4, paddingLeft: 20, lineHeight: 1.4 }}>
+                        Submitted to Super Admin for syndication across participating colleges upon approval. Earn <strong>80% publisher revenue</strong>.
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* Section 2: Core Details */}
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>
-                  2. Master Book Title *
+                  {isMaster ? '2. Master Book Title *' : '2. Study Material Title *'}
                 </label>
                 <input
                   type="text"
@@ -462,6 +561,52 @@ export default function EcommerceBookEditorModal({
                     type="number"
                     value={form.pageCount}
                     onChange={(e) => setForm({ ...form, pageCount: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Fulfillment Type & Physical Inventory Controls */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Fulfillment Mode *
+                  </label>
+                  <select
+                    value={form.fulfillmentType || 'DIGITAL_PDF'}
+                    onChange={(e) => setForm({ ...form, fulfillmentType: e.target.value })}
+                    style={{ width: '100%', padding: '9px 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5 }}
+                  >
+                    <option value="DIGITAL_PDF">📄 Digital PDF (DRM Protected)</option>
+                    <option value="PHYSICAL_PRINT">📦 Physical Printed Book</option>
+                    <option value="BUNDLE_HYBRID">⚡ Hybrid Bundle (Print + PDF)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Stock Units {form.fulfillmentType === 'DIGITAL_PDF' ? '(Unlimited)' : '*'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    disabled={form.fulfillmentType === 'DIGITAL_PDF'}
+                    value={form.fulfillmentType === 'DIGITAL_PDF' ? '' : form.stockQuantity}
+                    placeholder={form.fulfillmentType === 'DIGITAL_PDF' ? 'Unlimited (Digital)' : '100'}
+                    onChange={(e) => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', background: form.fulfillmentType === 'DIGITAL_PDF' ? '#F1F5F9' : '#FFFFFF' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Custom SKU (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. QS-NEET-2026"
+                    value={form.sku || ''}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>
