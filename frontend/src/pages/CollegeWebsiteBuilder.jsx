@@ -1215,6 +1215,99 @@ function FaqsVisualEditor({ value, onChange }) {
   );
 }
 
+// =========================================================================
+// SMART HTML5 CANVAS COLOR PALETTE EXTRACTOR
+// =========================================================================
+function extractPaletteFromImage(imageSrc) {
+  return new Promise((resolve) => {
+    if (!imageSrc) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 64;
+        canvas.width = size;
+        canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+
+        const imgData = ctx.getImageData(0, 0, size, size).data;
+        const colorCounts = {};
+
+        for (let i = 0; i < imgData.length; i += 4) {
+          const r = imgData[i];
+          const g = imgData[i + 1];
+          const b = imgData[i + 2];
+          const a = imgData[i + 3];
+
+          // Filter out transparent, near-white (>230), and near-black (<25) pixels
+          if (a < 128) continue;
+          if (r > 230 && g > 230 && b > 230) continue;
+          if (r < 25 && g < 25 && b < 25) continue;
+
+          // Quantize color into buckets of 16 for clustering
+          const qr = Math.round(r / 16) * 16;
+          const qg = Math.round(g / 16) * 16;
+          const qb = Math.round(b / 16) * 16;
+          const key = `${qr},${qg},${qb}`;
+
+          colorCounts[key] = (colorCounts[key] || 0) + 1;
+        }
+
+        const sortedColors = Object.entries(colorCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([k]) => {
+            const [r, g, b] = k.split(',').map(Number);
+            return {
+              r, g, b,
+              hex: `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`,
+              saturation: Math.max(r, g, b) - Math.min(r, g, b),
+              brightness: (r * 299 + g * 587 + b * 114) / 1000,
+            };
+          });
+
+        if (sortedColors.length === 0) {
+          return resolve({ primary: '#1e40af', secondary: '#0f766e', accent: '#f59e0b' });
+        }
+
+        // Primary: most prominent brand color
+        const primary = sortedColors[0].hex;
+
+        // Secondary: distinct harmonic tone
+        let secondary = sortedColors.find((c) => {
+          const diff = Math.abs(c.r - sortedColors[0].r) + Math.abs(c.g - sortedColors[0].g) + Math.abs(c.b - sortedColors[0].b);
+          return diff > 80;
+        })?.hex;
+        if (!secondary) {
+          const sr = Math.max(10, Math.round(sortedColors[0].r * 0.65));
+          const sg = Math.max(10, Math.round(sortedColors[0].g * 0.65));
+          const sb = Math.max(10, Math.round(sortedColors[0].b * 0.65));
+          secondary = `#${((1 << 24) + (sr << 16) + (sg << 8) + sb).toString(16).slice(1)}`;
+        }
+
+        // Accent: vibrant contrasting accent
+        let accent = sortedColors.find((c) => {
+          const diffP = Math.abs(c.r - sortedColors[0].r) + Math.abs(c.g - sortedColors[0].g) + Math.abs(c.b - sortedColors[0].b);
+          return diffP > 120 && c.saturation > 50;
+        })?.hex;
+        if (!accent) {
+          accent = '#f59e0b';
+        }
+
+        resolve({ primary, secondary, accent });
+      } catch (err) {
+        console.warn('Canvas palette extraction error:', err);
+        resolve({ primary: '#1e40af', secondary: '#0f766e', accent: '#f59e0b' });
+      }
+    };
+    img.onerror = () => {
+      resolve({ primary: '#1e40af', secondary: '#0f766e', accent: '#f59e0b' });
+    };
+    img.src = imageSrc;
+  });
+}
+
 export default function CollegeWebsiteBuilder() {
   const { user, hasModuleAccess } = useAuth();
   const [website, setWebsite] = useState(null);
@@ -1225,6 +1318,8 @@ export default function CollegeWebsiteBuilder() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [colorExtractNotice, setColorExtractNotice] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Core Form state for Website record
   const [form, setForm] = useState({});
@@ -1286,7 +1381,11 @@ export default function CollegeWebsiteBuilder() {
 
       setWebsite(data.website);
       setInstitute(data.institute);
-      setForm(data.website);
+      setForm({
+        ...data.website,
+        logoFilename: data.institute?.logoFilename || null,
+        logoUrl: data.institute?.logoUrl || (data.institute?.logoFilename ? `/uploads/images/${data.institute.logoFilename}` : null),
+      });
       setCourses(data.website.courses || []);
       setFaculty(data.website.faculties || []);
       setFacilities(data.website.facilities || []);
@@ -1412,6 +1511,67 @@ export default function CollegeWebsiteBuilder() {
     } catch (err) {
       alert(err.message);
       return null;
+    }
+  }
+
+  // Dedicated Logo Upload & Color Extraction Handler
+  async function handleLogoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setColorExtractNotice('Analyzing logo crest and extracting brand palette...');
+    try {
+      const url = await handleFileUpload(file, 'logo');
+      if (url) {
+        const filename = url.replace('/uploads/images/', '');
+        const palette = await extractPaletteFromImage(url);
+        setForm((prev) => ({
+          ...prev,
+          logoFilename: filename,
+          logoUrl: url,
+          primaryColor: palette?.primary || prev.primaryColor || '#0b1a30',
+          secondaryColor: palette?.secondary || prev.secondaryColor || '#0f766e',
+          accentColor: palette?.accent || prev.accentColor || '#f59e0b',
+        }));
+        setColorExtractNotice(`✨ Brand colors auto-extracted from logo! (Primary: ${palette?.primary}, Secondary: ${palette?.secondary}, Accent: ${palette?.accent})`);
+        setTimeout(() => setColorExtractNotice(null), 8000);
+      }
+    } catch (err) {
+      alert('Failed to upload logo: ' + err.message);
+      setColorExtractNotice(null);
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleReExtractPalette() {
+    const logoSrc = form.logoUrl || (form.logoFilename ? `/uploads/images/${form.logoFilename}` : null);
+    if (!logoSrc) {
+      alert('Please upload a logo first.');
+      return;
+    }
+    setColorExtractNotice('Re-analyzing logo crest colors...');
+    const palette = await extractPaletteFromImage(logoSrc);
+    if (palette) {
+      setForm((prev) => ({
+        ...prev,
+        primaryColor: palette.primary,
+        secondaryColor: palette.secondary,
+        accentColor: palette.accent,
+      }));
+      setColorExtractNotice(`✨ Colors refreshed from logo! Primary: ${palette.primary}, Secondary: ${palette.secondary}, Accent: ${palette.accent}`);
+      setTimeout(() => setColorExtractNotice(null), 8000);
+    }
+  }
+
+  function handleRemoveLogo() {
+    if (confirm('Are you sure you want to remove the logo from this website?')) {
+      setForm((prev) => ({
+        ...prev,
+        logoFilename: null,
+        logoUrl: null,
+      }));
+      setColorExtractNotice(null);
     }
   }
 
@@ -2246,116 +2406,360 @@ export default function CollegeWebsiteBuilder() {
             <form onSubmit={handleSaveWebsiteSettings}>
               <div className="cwb-section-header">
                 <div>
-                  <h2 className="cwb-section-title">Branding, Colors & Institutional Palettes</h2>
-                  <p className="cwb-section-desc">Customize primary and accent colors to match your college crest and identity guidelines.</p>
+                  <h2 className="cwb-section-title">Institutional Crest, Logo &amp; Smart Color Matching</h2>
+                  <p className="cwb-section-desc">
+                    Upload your official college logo to automatically synchronize website theme colors, or customize custom palettes to match your brand book.
+                  </p>
                 </div>
-                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
-                  {saving ? 'Saving...' : 'Save Theme Colors'}
+                <button type="submit" disabled={saving || uploadingLogo} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Branding &amp; Colors'}
                 </button>
               </div>
 
-              <div className="cwb-form-grid-3">
-                <div className="cwb-form-group">
-                  <label className="cwb-label">Primary Brand Color</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="color"
-                      value={form.primaryColor || '#0b1a30'}
-                      onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
-                    />
-                    <input
-                      type="text"
-                      value={form.primaryColor || '#0b1a30'}
-                      onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                      className="cwb-input"
-                    />
+              {/* Color Extraction Notification Banner */}
+              {colorExtractNotice && (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '12px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#065f46', fontSize: 13, fontWeight: 700 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>🎨</span>
+                    <span>{colorExtractNotice}</span>
                   </div>
+                  <button type="button" onClick={() => setColorExtractNotice(null)} style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: '#059669', fontWeight: 800 }}>✕</button>
+                </div>
+              )}
+
+              {/* 1. Official College Crest / Logo Upload Box */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 22, marginBottom: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
+                      Official Institutional Crest / Logo
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: '#64748b', margin: 0 }}>
+                      Displayed in the website navigation bar, mobile menu, question paper headers, and bookstore.
+                    </p>
+                  </div>
+                  {(form.logoUrl || form.logoFilename) && (
+                    <button
+                      type="button"
+                      onClick={handleReExtractPalette}
+                      style={{ background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      ✨ Re-Analyze Logo Colors
+                    </button>
+                  )}
                 </div>
 
-                <div className="cwb-form-group">
-                  <label className="cwb-label">Secondary Tone Color</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="color"
-                      value={form.secondaryColor || '#0f766e'}
-                      onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
-                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
-                    />
-                    <input
-                      type="text"
-                      value={form.secondaryColor || '#0f766e'}
-                      onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
-                      className="cwb-input"
-                    />
-                  </div>
-                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20, alignItems: 'center' }}>
+                  {/* Upload Controls */}
+                  <div>
+                    <label
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px dashed #cbd5e1',
+                        borderRadius: 12,
+                        padding: '24px 16px',
+                        cursor: uploadingLogo ? 'not-allowed' : 'pointer',
+                        background: '#f8fafc',
+                        textAlign: 'center',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/svg+xml, image/webp"
+                        onChange={handleLogoUpload}
+                        disabled={uploadingLogo}
+                        style={{ display: 'none' }}
+                      />
+                      <span style={{ fontSize: 32, marginBottom: 8 }}>🏛️</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1e293b' }}>
+                        {uploadingLogo ? 'Analyzing & Uploading Logo...' : 'Click to Upload College Logo'}
+                      </span>
+                      <span style={{ fontSize: 11.5, color: '#64748b', marginTop: 4 }}>
+                        Supports PNG (transparent recommended), JPG, SVG, WebP (Max 5MB)
+                      </span>
+                      <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 700, marginTop: 8, background: '#e0f2fe', padding: '3px 10px', borderRadius: 20 }}>
+                        ⚡ Smart Auto-Extracts Website Theme Colors
+                      </span>
+                    </label>
 
-                <div className="cwb-form-group">
-                  <label className="cwb-label">Accent Highlight Color</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="color"
-                      value={form.accentColor || '#b45309'}
-                      onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                      style={{ width: 42, height: 42, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1' }}
-                    />
-                    <input
-                      type="text"
-                      value={form.accentColor || '#b45309'}
-                      onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                      className="cwb-input"
-                    />
+                    {(form.logoUrl || form.logoFilename) && (
+                      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          ✕ Remove Logo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Logo Contrast Previews */}
+                  <div>
+                    <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 8 }}>
+                      Logo Live Contrast Preview:
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      {/* Light Navbar View */}
+                      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                          Light Background
+                        </span>
+                        {form.logoUrl || form.logoFilename ? (
+                          <img
+                            src={form.logoUrl || `/uploads/images/${form.logoFilename}`}
+                            alt="College Crest"
+                            style={{ height: 48, maxWidth: '100%', objectFit: 'contain', margin: '0 auto' }}
+                          />
+                        ) : (
+                          <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: 11 }}>
+                            No Logo Uploaded
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Dark Navbar View */}
+                      <div style={{ background: form.primaryColor || '#0b1a30', borderRadius: 10, padding: 12, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                          Branded Header
+                        </span>
+                        {form.logoUrl || form.logoFilename ? (
+                          <img
+                            src={form.logoUrl || `/uploads/images/${form.logoFilename}`}
+                            alt="College Crest"
+                            style={{ height: 48, maxWidth: '100%', objectFit: 'contain', margin: '0 auto', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                          />
+                        ) : (
+                          <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+                            No Logo Uploaded
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Curated Theme Presets */}
-              <div style={{ marginTop: 24 }}>
-                <label className="cwb-label" style={{ marginBottom: 10 }}>Recommended Curated Academic Palettes</label>
+              {/* 2. Brand Theme Colors (Manual Overrides & Fine-Tuning) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 22, marginBottom: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
+                    Institutional Theme Colors &amp; Overrides
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: '#64748b', margin: 0 }}>
+                    Auto-extracted from your logo crest. If you prefer different shades, simply click any color box below to change it.
+                  </p>
+                </div>
+
                 <div className="cwb-form-grid-3">
-                  {[
-                    { name: 'Heritage Navy & Bronze', p: '#0b1a30', s: '#0f766e', a: '#b45309' },
-                    { name: 'Oxford Royal Blue', p: '#1e3a8a', s: '#0369a1', a: '#f59e0b' },
-                    { name: 'Imperial Crimson', p: '#831843', s: '#9f1239', a: '#ea580c' },
-                  ].map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setForm({
-                        ...form,
-                        primaryColor: preset.p,
-                        secondaryColor: preset.s,
-                        accentColor: preset.a,
-                      })}
-                      style={{
-                        padding: '14px 16px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 12,
-                        background: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{preset.name}</span>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.p }} />
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.s }} />
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.a }} />
+                  <div className="cwb-form-group">
+                    <label className="cwb-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Primary Brand Color</span>
+                      <span style={{ fontSize: 10.5, color: '#64748b' }}>Navbar &amp; Major Headings</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="color"
+                        value={form.primaryColor || '#0b1a30'}
+                        onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
+                        style={{ width: 44, height: 44, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1', padding: 2 }}
+                      />
+                      <input
+                        type="text"
+                        value={form.primaryColor || '#0b1a30'}
+                        onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
+                        className="cwb-input"
+                        placeholder="#0b1a30"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cwb-form-group">
+                    <label className="cwb-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Secondary Tone Color</span>
+                      <span style={{ fontSize: 10.5, color: '#64748b' }}>Hero Gradients &amp; Footer</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="color"
+                        value={form.secondaryColor || '#0f766e'}
+                        onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
+                        style={{ width: 44, height: 44, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1', padding: 2 }}
+                      />
+                      <input
+                        type="text"
+                        value={form.secondaryColor || '#0f766e'}
+                        onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
+                        className="cwb-input"
+                        placeholder="#0f766e"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cwb-form-group">
+                    <label className="cwb-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Accent Highlight Color</span>
+                      <span style={{ fontSize: 10.5, color: '#64748b' }}>"Apply Now" &amp; Badges</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="color"
+                        value={form.accentColor || '#f59e0b'}
+                        onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
+                        style={{ width: 44, height: 44, borderRadius: 10, cursor: 'pointer', border: '1px solid #cbd5e1', padding: 2 }}
+                      />
+                      <input
+                        type="text"
+                        value={form.accentColor || '#f59e0b'}
+                        onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
+                        className="cwb-input"
+                        placeholder="#f59e0b"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6 Curated Academic Presets */}
+                <div style={{ marginTop: 20 }}>
+                  <label className="cwb-label" style={{ marginBottom: 10 }}>One-Click Curated Academic Palettes</label>
+                  <div className="cwb-form-grid-3">
+                    {[
+                      { name: '🏛️ Heritage Navy & Bronze', p: '#0b1a30', s: '#0f766e', a: '#b45309' },
+                      { name: '🎓 Oxford Royal Blue', p: '#1e3a8a', s: '#0369a1', a: '#f59e0b' },
+                      { name: '🏆 Imperial Crimson', p: '#831843', s: '#9f1239', a: '#ea580c' },
+                      { name: '🌿 Ivy League Emerald', p: '#065f46', s: '#047857', a: '#fbbf24' },
+                      { name: '⚡ Tech Purple & Cyan', p: '#4c1d95', s: '#6d28d9', a: '#06b6d4' },
+                      { name: '🌅 Golden Saffron & Slate', p: '#d97706', s: '#b45309', a: '#1e293b' },
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setForm({
+                          ...form,
+                          primaryColor: preset.p,
+                          secondaryColor: preset.s,
+                          accentColor: preset.a,
+                        })}
+                        style={{
+                          padding: '12px 14px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: 10,
+                          background: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0f172a' }}>{preset.name}</span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.p, border: '1px solid #cbd5e1' }} />
+                          <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.s, border: '1px solid #cbd5e1' }} />
+                          <span style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: preset.a, border: '1px solid #cbd5e1' }} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Live Interactive Mini Website Mockup Preview */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 16, padding: 22, marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    👀 Live Portal &amp; Bookstore Mockup Preview
+                  </h3>
+                  <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 700 }}>
+                    Updates in real-time as you tweak colors
+                  </span>
+                </div>
+
+                {/* Simulated Mini Website Frame */}
+                <div style={{ background: '#ffffff', borderRadius: 12, overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 8px 24px -6px rgba(0,0,0,0.1)' }}>
+                  {/* Simulated Navbar */}
+                  <div style={{ background: form.primaryColor || '#0b1a30', padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#ffffff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {form.logoUrl || form.logoFilename ? (
+                        <img
+                          src={form.logoUrl || `/uploads/images/${form.logoFilename}`}
+                          alt="Logo"
+                          style={{ height: 26, maxHeight: 26, objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 18 }}>🏛️</span>
+                      )}
+                      <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: '0.02em' }}>
+                        {form.displayName || institute?.name || 'Your College Name'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, fontWeight: 700, opacity: 0.9 }}>
+                      <span>Home</span>
+                      <span>Courses</span>
+                      <span>Online Exams</span>
+                      <span>Bookstore</span>
+                      <span style={{ background: form.accentColor || '#f59e0b', color: '#0f172a', padding: '4px 10px', borderRadius: 6, fontWeight: 800 }}>
+                        Apply Now
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Simulated Hero Banner */}
+                  <div
+                    style={{
+                      background: `linear-gradient(135deg, ${form.primaryColor || '#0b1a30'} 0%, ${form.secondaryColor || '#0f766e'} 100%)`,
+                      padding: '24px 20px',
+                      color: '#ffffff',
+                    }}
+                  >
+                    <span style={{ background: form.accentColor || '#f59e0b', color: '#0f172a', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.05em' }}>
+                      ADMISSIONS OPEN 2026-27
+                    </span>
+                    <h4 style={{ fontSize: 17, fontWeight: 900, margin: '8px 0 4px', color: '#ffffff' }}>
+                      {form.heroTitle || 'Empowering Future Leaders & Achievers'}
+                    </h4>
+                    <p style={{ fontSize: 11.5, opacity: 0.85, margin: '0 0 14px', maxWidth: 480 }}>
+                      {form.heroSubtitle || 'Excellence in Academic Preparation, Competitive Ranks & Holistic Development'}
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button type="button" style={{ background: form.accentColor || '#f59e0b', color: '#0f172a', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 800, fontSize: 11.5, cursor: 'pointer' }}>
+                        Explore Admissions
+                      </button>
+                      <button type="button" style={{ background: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', padding: '6px 14px', borderRadius: 6, fontWeight: 700, fontSize: 11.5, cursor: 'pointer' }}>
+                        Browse Bookstore
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Simulated Bookstore Strip */}
+                  <div style={{ padding: '14px 20px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>📚</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>NEET 2026 Biology Master Guide</div>
+                        <div style={{ fontSize: 10.5, color: '#64748b' }}>Authorized College Publication</div>
                       </div>
-                    </button>
-                  ))}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: '#0f172a' }}>₹499</span>
+                      <button type="button" style={{ background: form.primaryColor || '#0b1a30', color: '#ffffff', border: 'none', padding: '5px 12px', borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                        Buy Now
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="cwb-save-bar">
-                <span className="cwb-hint">Color changes take effect immediately across hero, buttons, and badges.</span>
-                <button type="submit" disabled={saving} className="cwb-btn cwb-btn-primary">
-                  {saving ? 'Saving...' : 'Save Theme Colors'}
+                <span className="cwb-hint">Logo and color changes automatically syndicate to your website, bookstore, and CBT portal.</span>
+                <button type="submit" disabled={saving || uploadingLogo} className="cwb-btn cwb-btn-primary">
+                  {saving ? 'Saving...' : 'Save Branding &amp; Colors'}
                 </button>
               </div>
             </form>

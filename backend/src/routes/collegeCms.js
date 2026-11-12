@@ -194,7 +194,10 @@ router.get('/website', async (req, res) => {
 
     res.json({
       website,
-      institute,
+      institute: institute ? {
+        ...institute,
+        logoUrl: institute.logoFilename ? `/uploads/images/${institute.logoFilename}` : null,
+      } : null,
       allInstitutes,
       isSuperAdmin: Boolean(req.user?.role === 'SUPER_ADMIN' || req.user?.role === 'ADMIN'),
     });
@@ -208,6 +211,13 @@ router.patch('/website', async (req, res) => {
   try {
     const instituteId = await resolveInstituteId(req);
     if (!instituteId) return res.status(403).json({ error: 'Unauthorized.' });
+
+    if (req.body.logoFilename !== undefined) {
+      await prisma.institute.update({
+        where: { id: instituteId },
+        data: { logoFilename: req.body.logoFilename || null },
+      });
+    }
 
     const allowed = [
       'themeTemplate', 'primaryColor', 'secondaryColor', 'accentColor', 'fontFamily',
