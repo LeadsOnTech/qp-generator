@@ -14,30 +14,39 @@ const BUNDLES = [
 const WHATSAPP_PACKS = [
   {
     id: 'wa_starter',
-    name: 'WhatsApp Starter Pack',
-    amount: 499,
-    messages: '~1,600 Messages',
-    rate: '₹0.31 / msg',
+    name: 'Starter Pack',
+    amount: 1999,
+    messages: '2,500 Messages',
+    rate: '₹0.80 / msg',
     badge: null,
-    desc: 'Instant delivery of CBT mock exam login credentials, passcodes & student OTPs.',
+    desc: 'Instant delivery of CBT exam credentials, student passcodes & OTPs.',
   },
   {
     id: 'wa_growth',
-    name: 'Growth Academy Pack',
-    amount: 999,
-    messages: '~3,300 Messages',
-    rate: '₹0.30 / msg',
+    name: 'Growth Pack',
+    amount: 3750,
+    messages: '5,000 Messages',
+    rate: '₹0.75 / msg',
     badge: 'MOST POPULAR',
-    desc: 'Automated student scorecards, chapter diagnostic cards & parent performance alerts.',
+    desc: 'Automated student scorecards, chapter diagnostic cards & parent alerts.',
   },
   {
-    id: 'wa_institutional',
-    name: 'Institutional Master Pack',
-    amount: 1999,
-    messages: '~7,000 Messages',
-    rate: '₹0.28 / msg',
+    id: 'wa_institution',
+    name: 'Institution Pack',
+    amount: 6999,
+    messages: '10,000 Messages',
+    rate: '₹0.70 / msg',
     badge: 'BEST VALUE',
-    desc: 'High-volume batch dispatches, statewide mock tests & college announcements.',
+    desc: 'Full semester coverage. Automated parent report cards & bookstore notices.',
+  },
+  {
+    id: 'wa_mega',
+    name: 'Mega Campus Pack',
+    amount: 14999,
+    messages: '25,000 Messages',
+    rate: '₹0.60 / msg',
+    badge: 'MAX SAVINGS',
+    desc: 'High-volume statewide mock tests, multi-branch campuses & announcements.',
   },
 ];
 
@@ -735,19 +744,28 @@ export default function Recharge() {
                         display: 'inline-block',
                       }}
                     >
-                      <img
-                        src={
-                          upi?.qrFilename
-                            ? `/uploads/images/${upi.qrFilename}`
-                            : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                                `upi://pay?pa=${upi?.upiId || 'admin@upi'}&pn=${encodeURIComponent(
-                                  upi?.payeeName || 'QuestionStudio'
-                                )}&am=${numAmount}&cu=INR`
-                              )}`
-                        }
-                        alt="UPI QR Code"
-                        style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
-                      />
+                      {upi?.qrUrl ? (
+                        <img
+                          src={upi.qrUrl.startsWith('http') ? upi.qrUrl : `${api.imageBase()}${upi.qrUrl}`}
+                          alt="Official Super Admin UPI QR"
+                          style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
+                        />
+                      ) : upi?.upiId ? (
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                            `upi://pay?pa=${encodeURIComponent(upi.upiId.trim())}&pn=${encodeURIComponent(
+                              upi.payeeName || 'QuestionStudio'
+                            )}&am=${numAmount}&cu=INR`
+                          )}`}
+                          alt="UPI QR Code"
+                          style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
+                        />
+                      ) : (
+                        <div style={{ width: 170, height: 170, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', border: '1.5px dashed #CBD5E1', borderRadius: 10, padding: 12 }}>
+                          <span style={{ fontSize: 24, marginBottom: 4 }}>⚠️</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textAlign: 'center' }}>Official UPI QR Not Uploaded Yet</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 6 }}>
                       Scan via GPay / PhonePe / Paytm
@@ -760,7 +778,7 @@ export default function Recharge() {
                       <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600 }}>Super Admin UPI ID:</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                         <code style={{ fontSize: 15, fontWeight: 800, color: NAVY, background: '#F1F5F9', padding: '4px 10px', borderRadius: 6 }}>
-                          {upi?.upiId || 'payments@questionstudio'}
+                          {upi?.upiId || 'Not Configured (Contact Super Admin)'}
                         </code>
                         <button type="button" onClick={copyUpiId} className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>
                           {copiedUpi ? '✓ Copied' : 'Copy'}
@@ -1038,19 +1056,28 @@ export default function Recharge() {
                       display: 'inline-block',
                     }}
                   >
-                    <img
-                      src={
-                        upi?.qrFilename
-                          ? `/uploads/images/${upi.qrFilename}`
-                          : `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                              `upi://pay?pa=${upi?.upiId || 'admin@upi'}&pn=${encodeURIComponent(
-                                upi?.payeeName || 'QuestionStudio'
-                              )}&am=${numWaAmount}&cu=INR&tn=WhatsApp Wallet Recharge`
-                            )}`
-                      }
-                      alt="WhatsApp UPI QR Code"
-                      style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
-                    />
+                    {upi?.qrUrl ? (
+                      <img
+                        src={upi.qrUrl.startsWith('http') ? upi.qrUrl : `${api.imageBase()}${upi.qrUrl}`}
+                        alt="Official Super Admin UPI QR"
+                        style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
+                      />
+                    ) : upi?.upiId ? (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                          `upi://pay?pa=${encodeURIComponent(upi.upiId.trim())}&pn=${encodeURIComponent(
+                            upi.payeeName || 'QuestionStudio'
+                          )}&am=${numWaAmount}&cu=INR&tn=WhatsApp Wallet Recharge`
+                        )}`}
+                        alt="WhatsApp UPI QR Code"
+                        style={{ width: 170, height: 170, objectFit: 'contain', display: 'block' }}
+                      />
+                    ) : (
+                      <div style={{ width: 170, height: 170, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', border: '1.5px dashed #CBD5E1', borderRadius: 10, padding: 12 }}>
+                        <span style={{ fontSize: 24, marginBottom: 4 }}>⚠️</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textAlign: 'center' }}>Official UPI QR Not Uploaded Yet</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: '#047857', marginTop: 6, fontWeight: 600 }}>
                     Scan with PhonePe / GPay / Paytm
@@ -1063,7 +1090,7 @@ export default function Recharge() {
                     <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600 }}>Super Admin UPI ID:</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                       <code style={{ fontSize: 15, fontWeight: 800, color: '#065f46', background: '#ecfdf5', padding: '4px 10px', borderRadius: 6 }}>
-                        {upi?.upiId || 'payments@questionstudio'}
+                        {upi?.upiId || 'Not Configured (Contact Super Admin)'}
                       </code>
                       <button type="button" onClick={copyUpiId} className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 12 }}>
                         {copiedUpi ? '✓ Copied' : 'Copy'}

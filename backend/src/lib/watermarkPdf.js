@@ -34,24 +34,54 @@ async function watermarkPdf(pdfSource, orderInfo) {
   const collegeName = orderInfo.collegeName || 'QuestionStudio Academic Portal';
 
   const diagonalText = `${buyerName}  •  ${buyerPhone}  •  ${orderNumber}`;
-  const footerText = `Licensed to: ${buyerName} (${buyerPhone}) • Order #${orderNumber} • ${collegeName} • Unauthorized sharing is prohibited.`;
+  const headerNotice = `PERSONAL LICENSED COPY • NOT FOR DISTRIBUTION • WATERMARKED FOR: ${buyerName} (+${buyerPhone})`;
+  const footerText = `Licensed to: ${buyerName} (+${buyerPhone}) • Order #${orderNumber} • ${collegeName} • Unauthorized forwarding on Telegram/WhatsApp will result in legal action.`;
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const { width, height } = page.getSize();
 
-    // 1. Subtle diagonal watermark across page center (12% opacity)
+    // 1. Subtle red anti-piracy watermark diagonally across the page (subtle 14% opacity)
+    // Repeated across two diagonal bands to prevent screenshot/cropping bypassing
     page.drawText(diagonalText, {
-      x: width * 0.15,
-      y: height * 0.35,
-      size: 18,
+      x: width * 0.12,
+      y: height * 0.32,
+      size: 19,
       font: font,
-      color: rgb(0.5, 0.5, 0.5),
-      opacity: 0.12,
+      color: rgb(0.86, 0.22, 0.22), // Subtle red anti-piracy watermark text
+      opacity: 0.14,
       rotate: degrees(45),
     });
 
-    // 2. High-security footer banner on every page (75% opacity)
+    page.drawText(diagonalText, {
+      x: width * 0.18,
+      y: height * 0.62,
+      size: 19,
+      font: font,
+      color: rgb(0.86, 0.22, 0.22), // Subtle red anti-piracy watermark text
+      opacity: 0.14,
+      rotate: degrees(45),
+    });
+
+    // 2. High-security header banner (top margin security stamp)
+    page.drawRectangle({
+      x: 0,
+      y: height - 16,
+      width: width,
+      height: 16,
+      color: rgb(0.99, 0.95, 0.95), // subtle warm red alert tint
+      opacity: 0.90,
+    });
+    page.drawText(headerNotice, {
+      x: 16,
+      y: height - 12,
+      size: 6.5,
+      font: font,
+      color: rgb(0.72, 0.18, 0.18),
+      opacity: 0.85,
+    });
+
+    // 3. High-security footer banner on every page (75% opacity)
     page.drawRectangle({
       x: 0,
       y: 0,
@@ -62,9 +92,9 @@ async function watermarkPdf(pdfSource, orderInfo) {
     });
 
     page.drawText(footerText, {
-      x: 20,
+      x: 16,
       y: 5,
-      size: 7.5,
+      size: 7,
       font: regularFont,
       color: rgb(0.3, 0.35, 0.4),
       opacity: 0.85,

@@ -31,19 +31,31 @@ export default function SuperAdminMarketplace() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [moderatingId, setModeratingId] = useState(null);
 
+  // Settlement Payout Requests State
+  const [payoutRequests, setPayoutRequests] = useState([]);
+  const [payoutProcessModal, setPayoutProcessModal] = useState(null);
+  const [payoutProcessForm, setPayoutProcessForm] = useState({
+    action: 'SETTLE',
+    transactionRef: '',
+    adminNotes: '',
+  });
+  const [processingPayout, setProcessingPayout] = useState(false);
+
   async function loadAllData() {
     try {
       setLoading(true);
       setError(null);
-      const [reconRes, queueRes] = await Promise.all([
+      const [reconRes, queueRes, payoutsRes] = await Promise.all([
         api.getAdminMarketplaceReconciliation(),
         api.getAdminModerationQueue().catch((err) => {
           console.warn('Could not load moderation queue:', err.message);
           return { queue: [] };
         }),
+        api.getAdminMarketplacePayoutRequests().catch(() => ({ requests: [] })),
       ]);
       setData(reconRes);
       setQueue(queueRes?.queue || []);
+      setPayoutRequests(payoutsRes?.requests || []);
     } catch (err) {
       setError(err.message || 'Failed to load master marketplace reconciliation data.');
     } finally {
@@ -101,6 +113,22 @@ export default function SuperAdminMarketplace() {
     setRejectTargetBook(book);
     setRejectionReason('');
     setRejectModalOpen(true);
+  }
+
+  async function handleProcessPayout(e) {
+    e.preventDefault();
+    if (!payoutProcessModal) return;
+    try {
+      setProcessingPayout(true);
+      await api.processAdminMarketplacePayoutRequest(payoutProcessModal.id, payoutProcessForm);
+      setPayoutProcessModal(null);
+      setPayoutProcessForm({ action: 'SETTLE', transactionRef: '', adminNotes: '' });
+      await loadAllData();
+    } catch (err) {
+      alert(err.message || 'Failed to process payout request.');
+    } finally {
+      setProcessingPayout(false);
+    }
   }
 
   async function handleConfirmReject() {
@@ -1363,6 +1391,136 @@ export default function SuperAdminMarketplace() {
                   <span>QuestionsStudio:</span> <strong style={{ color: '#0284c7' }}>10% Platform</strong>
                 </div>
               </div>
+            </div>
+
+            {/* College Settlement & Bank Payout Requests Queue */}
+            <div style={{ marginTop: 24, marginBottom: 24, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 3px 0' }}>
+                    🏦 College Settlement &amp; Bank Disbursement Queue ({payoutRequests.length} Total Requests)
+                  </h4>
+                  <p style={{ fontSize: 12.5, color: '#64748B', margin: 0 }}>
+                    Process pending college withdrawal requests and input bank UTR reference numbers to confirm fund transfers.
+                  </p>
+                </div>
+                <span className="badge badge-primary" style={{ padding: '6px 12px', fontSize: 11.5 }}>
+                  {payoutRequests.filter(p => p.status === 'PENDING').length} Pending Settlement
+                </span>
+              </div>
+
+              {payoutRequests.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 16px', background: '#F8FAFC', borderRadius: 12, border: '1px dashed #CBD5E1', color: '#64748B', fontSize: 13 }}>
+                  No college payout requests currently logged in the ledger.
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>College Institution</th>
+                        <th>Requested Amount</th>
+                        <th>Bank Account &amp; IFSC</th>
+                        <th>UPI VPA</th>
+                        <th>Requested Date</th>
+                        <th>Status</th>
+                        <th>Disbursement UTR</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payoutRequests.map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <div style={{ fontWeight: 800, color: '#0F172A' }}>{p.institute?.name || 'College'}</div>
+                            <code style={{ fontSize: 11, color: '#64748B' }}>{p.institute?.slug}</code>
+                          </td>
+                          <td>
+                            <strong style={{ color: '#059669', fontSize: 14 }}>₹{p.requestedAmountRupees.toFixed(2)}</strong>
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            <div>Name: <strong>{p.bankAccountName}</strong></div>
+                            <div>A/C: <code>{p.bankAccountNumber}</code></div>
+                            <div>IFSC: <code>{p.bankIfsc}</code> {p.bankName ? '(' + p.bankName + ')' : ''}</div>
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {p.upiId ? <code style={{ color: '#0284c7' }}>{p.upiId}</code> : <span style={{ color: '#94A3B8' }}>—</span>}
+                          </td>
+                          <td style={{ fontSize: 12, color: '#64748B' }}>
+                            {new Date(p.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td>
+                            {p.status === 'SETTLED' ? (
+                              <span className="badge badge-success" style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0' }}>
+                                ✓ SETTLED
+                              </span>
+                            ) : p.status === 'REJECTED' ? (
+                              <span className="badge badge-danger" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}>
+                                ✕ REJECTED
+                              </span>
+                            ) : (
+                              <span className="badge badge-warning" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                                ⏳ PENDING APPROVAL
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {p.transactionRef ? (
+                              <code style={{ fontSize: 11.5, color: '#059669', fontWeight: 800 }}>{p.transactionRef}</code>
+                            ) : (
+                              <span style={{ fontSize: 12, color: '#94A3B8' }}>—</span>
+                            )}
+                          </td>
+                          <td>
+                            {p.status === 'PENDING' ? (
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button
+                                  onClick={() => {
+                                    setPayoutProcessModal(p);
+                                    setPayoutProcessForm({ action: 'SETTLE', transactionRef: '', adminNotes: '' });
+                                  }}
+                                  style={{
+                                    background: '#059669',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    padding: '5px 12px',
+                                    fontSize: 11.5,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✓ Settle &amp; UTR
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setPayoutProcessModal(p);
+                                    setPayoutProcessForm({ action: 'REJECT', transactionRef: '', adminNotes: 'Bank details verification issue' });
+                                  }}
+                                  style={{
+                                    background: '#F1F5F9',
+                                    color: '#DC2626',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: 6,
+                                    padding: '5px 10px',
+                                    fontSize: 11.5,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#64748B' }}>Processed</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Payout & Settlement Phase Note */}

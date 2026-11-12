@@ -120,6 +120,7 @@ model Institute {
   marketplaceCreditsAutoConvert Boolean                       @default(true)
   marketplaceLedgerEntries      MarketplaceLedgerEntry[]
   marketplaceCoupons            MarketplaceCoupon[]
+  marketplacePayoutRequests     MarketplacePayoutRequest[]
 }
 
 // ---------- Credit ledger ----------
@@ -1252,6 +1253,7 @@ model MarketplaceOrder {
   
   // Financial Accounting
   amountRupees           Float
+  shippingAmountRupees   Float            @default(0.0) // Courier & packaging reimbursement
   collegeShareRupees     Float            // 10% affiliate share (for master books) or 90% revenue (for college books)
   platformShareRupees    Float            // 90% platform share (for master books) or 10% platform fee (for college books)
   
@@ -1441,6 +1443,26 @@ model MarketplaceCoupon {
   maxUses                Int                @default(1000)
   usedCount              Int                @default(0)
   isActive               Boolean            @default(true)
+}
+
+model MarketplacePayoutRequest {
+  id                    String      @id @default(cuid())
+  instituteId           String
+  institute             Institute   @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  requestedAmountRupees Float
+  status                String      @default("PENDING") // "PENDING", "APPROVED", "SETTLED", "REJECTED"
+  bankAccountName       String
+  bankAccountNumber     String
+  bankIfsc              String
+  bankName              String?
+  upiId                 String?
+  transactionRef        String?
+  adminNotes            String?
+  requestedAt           DateTime    @default(now())
+  processedAt           DateTime?
+
+  @@index([instituteId])
+  @@index([status])
 }
 
 

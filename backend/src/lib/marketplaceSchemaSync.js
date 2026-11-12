@@ -86,6 +86,7 @@ async function ensureMarketplaceSchema() {
       "buyerPhone" TEXT NOT NULL,
       "buyerEmail" TEXT NOT NULL,
       "amountRupees" REAL NOT NULL,
+      "shippingAmountRupees" REAL NOT NULL DEFAULT 0.0,
       "collegeShareRupees" REAL NOT NULL,
       "platformShareRupees" REAL NOT NULL,
       "payoutMode" TEXT NOT NULL DEFAULT 'WALLET_CREDITS',
@@ -104,6 +105,13 @@ async function ensureMarketplaceSchema() {
       CONSTRAINT "MarketplaceOrder_sellingInstituteId_fkey" FOREIGN KEY ("sellingInstituteId") REFERENCES "Institute" ("id") ON DELETE SET NULL ON UPDATE CASCADE
     );
   `);
+
+  try {
+    await db.$executeRawUnsafe(`ALTER TABLE "MarketplaceOrder" ADD COLUMN "shippingAmountRupees" REAL NOT NULL DEFAULT 0.0;`);
+    console.log('[MARKETPLACE SYNC] Added shippingAmountRupees to MarketplaceOrder');
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
 
   // 5. Ancillary marketplace tables
   await db.$executeRawUnsafe(`
@@ -243,6 +251,27 @@ async function ensureMarketplaceSchema() {
       "isActive" BOOLEAN NOT NULL DEFAULT 1
     );
   `);
+
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketplacePayoutRequest" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "instituteId" TEXT NOT NULL,
+      "requestedAmountRupees" REAL NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "bankAccountName" TEXT NOT NULL,
+      "bankAccountNumber" TEXT NOT NULL,
+      "bankIfsc" TEXT NOT NULL,
+      "bankName" TEXT,
+      "upiId" TEXT,
+      "transactionRef" TEXT,
+      "adminNotes" TEXT,
+      "requestedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "processedAt" DATETIME,
+      CONSTRAINT "MarketplacePayoutRequest_instituteId_fkey" FOREIGN KEY ("instituteId") REFERENCES "Institute" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );
+  `);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplacePayoutRequest_instituteId_idx" ON "MarketplacePayoutRequest"("instituteId");`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplacePayoutRequest_status_idx" ON "MarketplacePayoutRequest"("status");`);
 
   // Indexes
   await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MarketplaceOrder_orderNumber_key" ON "MarketplaceOrder"("orderNumber");`);

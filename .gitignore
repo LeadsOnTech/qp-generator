@@ -46,3 +46,14 @@ scratch/
 # Uploads
 backend/uploads/
 uploads/
+
+# Staging & Temporary Experiments
+*.pre-m1*
+backend/src/generated/
+backend/prisma/postgres_migrations/
+backend/prisma/schema.postgres.prisma
+backend/apply_pg_migration.js
+backend/audit_pg_staging.js
+backend/generate_pg_migration.js
+backend/capture_*.js
+backend/check_books.js

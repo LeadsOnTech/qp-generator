@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const prisma = require('../db');
+const whatsappService = require('./whatsapp');
 const { MODULE_KEYS, MODULE_PRICING } = require('./subscriptions');
 
 // ============================================================================
@@ -291,7 +292,7 @@ async function activatePaidSubscription({
   gatewayFeePaise = null,
   netSettledPaise = null,
 }) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Fetch current payment record
     const payment = await tx.subscriptionPayment.findUnique({
       where: { id: paymentId },
@@ -455,6 +456,46 @@ async function activatePaidSubscription({
       invoice,
     };
   });
+
+  // Asynchronous automated WhatsApp notifications for subscription activation
+  if (!result.alreadyProcessed) {
+    try {
+      const inst = await prisma.institute.findUnique({
+        where: { id: result.payment.instituteId },
+        select: { id: true, name: true, phone: true, trialPhoneNumber: true },
+      });
+      const collegePhone = inst?.phone || inst?.trialPhoneNumber;
+      const totalAmountRupees = Math.round(result.payment.totalAmountPaise / 100);
+
+      if (collegePhone) {
+        whatsappService.sendSubscriptionActivationNotification({
+          collegePhone,
+          collegeName: inst.name,
+          moduleKey: result.payment.moduleKey,
+          billingCycle: result.payment.billingCycle,
+          totalAmountRupees,
+          invoiceNumber: result.invoice.invoiceNumber,
+          validUntil: result.subscription.renewalDate,
+        }).catch(err => console.warn('[WHATSAPP] College subscription notification error:', err.message));
+      }
+
+      const adminPhone = process.env.ADMIN_WHATSAPP_PHONE;
+      if (adminPhone) {
+        whatsappService.sendAdminSubscriptionAlert({
+          adminPhone,
+          collegeName: inst?.name || 'A College',
+          moduleKey: result.payment.moduleKey,
+          billingCycle: result.payment.billingCycle,
+          totalAmountRupees,
+          invoiceNumber: result.invoice.invoiceNumber,
+        }).catch(err => console.warn('[WHATSAPP] Admin subscription alert error:', err.message));
+      }
+    } catch (waErr) {
+      console.warn('[WHATSAPP] Failed to queue subscription activation message:', waErr.message);
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================

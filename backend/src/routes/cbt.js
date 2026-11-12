@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const { requireAuth } = require('../lib/auth');
+const whatsappService = require('../lib/whatsapp');
 const { requireModuleAccess, MODULE_KEYS } = require('../lib/subscriptions');
 const {
   generateCbtCode,
@@ -388,6 +389,25 @@ router.post('/test/:code/submit', async (req, res) => {
     });
 
     const showSolutions = test.showSolutionsImmediate || test.isResultsReleased;
+
+    // Asynchronous automated WhatsApp result notification to student/parent
+    if (submission.studentPhone) {
+      try {
+        const siteUrl = process.env.BASE_URL || 'https://questionstudio.in';
+        const reportUrl = `${siteUrl}/#/cbt/result/${submission.id}`;
+        const message = `📊 *Exam Result — QuestionStudio CBT*\n\n` +
+          `Dear ${submission.studentName},\n\n` +
+          `Your test submission for *${test.title}* has been evaluated!\n\n` +
+          `🎯 Score: *${evalResult.score} / ${evalResult.maxScore}*\n` +
+          `📈 Accuracy: *${evalResult.accuracyPercentage}%*\n` +
+          `✅ Correct: ${evalResult.correctCount} | ❌ Incorrect: ${evalResult.incorrectCount}\n\n` +
+          `📄 *View Detailed Solutions & Scorecard:*\n${reportUrl}\n\n` +
+          `Keep practicing!\n*— Team QuestionStudio*`;
+        whatsappService.sendRawMessage(submission.studentPhone, message).catch(e => console.warn('[CBT WHATSAPP] Error:', e.message));
+      } catch (e) {
+        console.warn('[CBT WHATSAPP] Failed to queue:', e.message);
+      }
+    }
 
     res.json({
       ok: true,

@@ -1483,104 +1483,180 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* 4 PILLARS OF PLANNED WHATSAPP PRICING */}
+                    {/* OFFICIAL BULK WHATSAPP PACKAGES */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', 
-            gap: 18, 
-            marginBottom: 28 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', 
+            gap: 20, 
+            marginBottom: 32 
           }}>
             
-            {/* ITEM 1: SOFTWARE SUBSCRIPTION */}
+            {/* TIER 1: STARTER PACK */}
             <div style={{
-              background: '#F8FAFC',
-              borderRadius: 16,
-              padding: '22px 18px',
+              background: '#FFFFFF',
+              borderRadius: 18,
+              padding: '26px 22px',
               border: '1.5px solid var(--line)',
-              borderTop: '4px solid #25D366'
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
             }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 01 • Planned
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Starter Tier
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
-                WhatsApp Software Subscription
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+                Starter Pack
               </h3>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
-                ₹499 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', fontFamily: 'var(--font-body)' }}>/ month</span>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                ₹1,999
               </div>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Monthly software platform subscription for template approval management, broadcast dispatch queues, and automated score notifications.
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>
+                2,500 Messages • ₹0.80 / msg
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, margin: '0 0 18px 0', flex: 1 }}>
+                Ideal for single batches or class tests. Instant delivery of CBT exam credentials, student passcodes &amp; parent OTPs.
               </p>
+              <Link
+                to={user ? "/recharge" : "/signup"}
+                className="btn btn-secondary"
+                style={{ width: '100%', textAlign: 'center', justifyContent: 'center', padding: '10px 14px', fontSize: 13.5, fontWeight: 700, borderRadius: 10 }}
+              >
+                {user ? 'Recharge ₹1,999' : 'Get Started →'}
+              </Link>
             </div>
 
-            {/* ITEM 2: META MESSAGING CHARGES */}
+            {/* TIER 2: GROWTH PACK */}
             <div style={{
-              background: '#F8FAFC',
-              borderRadius: 16,
-              padding: '22px 18px',
-              border: '1.5px solid var(--line)',
-              borderTop: '4px solid #3B82F6'
+              background: '#FFFFFF',
+              borderRadius: 18,
+              padding: '26px 22px',
+              border: '2px solid #25D366',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              boxShadow: '0 8px 24px rgba(37, 211, 102, 0.12)',
             }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 02 • Pass-Through
+              <div style={{
+                position: 'absolute',
+                top: -12,
+                right: 20,
+                background: '#25D366',
+                color: '#FFFFFF',
+                fontSize: 11,
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: 20,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}>
+                ★ Most Popular
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
-                Actual Meta Messaging Charges
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Growth Tier
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+                Growth Pack
               </h3>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, height: 28, display: 'flex', alignItems: 'center' }}>
-                <span style={{ background: '#EFF6FF', color: '#1D4ED8', padding: '3px 9px', borderRadius: 8, fontSize: 12.5 }}>
-                  Additional (At Cost)
-                </span>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                ₹3,750
               </div>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Per-conversation fees charged directly by Meta (WhatsApp Business Platform) based on conversation category per official Meta India rate cards.
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>
+                5,000 Messages • ₹0.75 / msg
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, margin: '0 0 18px 0', flex: 1 }}>
+                Automated student exam scorecards, chapter diagnostic cards &amp; real-time parent performance notifications.
               </p>
+              <Link
+                to={user ? "/recharge" : "/signup"}
+                className="btn btn-primary"
+                style={{ width: '100%', textAlign: 'center', justifyContent: 'center', padding: '10px 14px', fontSize: 13.5, fontWeight: 700, borderRadius: 10, background: '#059669', borderColor: '#059669' }}
+              >
+                {user ? 'Recharge ₹3,750' : 'Select Growth →'}
+              </Link>
             </div>
 
-            {/* ITEM 3: PROVIDER CHARGES */}
+            {/* TIER 3: INSTITUTION PACK (10k) */}
             <div style={{
-              background: '#F8FAFC',
-              borderRadius: 16,
-              padding: '22px 18px',
-              border: '1.5px solid var(--line)',
-              borderTop: '4px solid #F59E0B'
+              background: '#FFFFFF',
+              borderRadius: 18,
+              padding: '26px 22px',
+              border: '2px solid #0284C7',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              boxShadow: '0 8px 24px rgba(2, 132, 199, 0.12)',
             }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 03 • Pass-Through
+              <div style={{
+                position: 'absolute',
+                top: -12,
+                right: 20,
+                background: '#0284C7',
+                color: '#FFFFFF',
+                fontSize: 11,
+                fontWeight: 800,
+                padding: '4px 10px',
+                borderRadius: 20,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}>
+                💎 Best Value (10k)
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
-                Actual WhatsApp Provider Charges
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Institution Master
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+                Institution Pack
               </h3>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 8, height: 28, display: 'flex', alignItems: 'center' }}>
-                <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 9px', borderRadius: 8, fontSize: 12.5 }}>
-                  Additional (At Cost)
-                </span>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                ₹6,999
               </div>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Underlying WhatsApp Business Solution Provider (BSP) infrastructure and telecom carrier network throughput charges passed through at direct cost.
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0284C7', marginBottom: 16 }}>
+                10,000 Messages • ₹0.70 / msg
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, margin: '0 0 18px 0', flex: 1 }}>
+                Full semester coverage for junior colleges and schools. Automated parent report cards, bookstore updates &amp; announcements.
               </p>
+              <Link
+                to={user ? "/recharge" : "/signup"}
+                className="btn btn-primary"
+                style={{ width: '100%', textAlign: 'center', justifyContent: 'center', padding: '10px 14px', fontSize: 13.5, fontWeight: 700, borderRadius: 10, background: '#0284C7', borderColor: '#0284C7' }}
+              >
+                {user ? 'Recharge ₹6,999' : 'Select 10k Pack →'}
+              </Link>
             </div>
 
-            {/* ITEM 4: QUESTIONSSTUDIO SERVICE FEE */}
+            {/* TIER 4: MEGA CAMPUS PACK */}
             <div style={{
-              background: '#F8FAFC',
-              borderRadius: 16,
-              padding: '22px 18px',
+              background: '#FFFFFF',
+              borderRadius: 18,
+              padding: '26px 22px',
               border: '1.5px solid var(--line)',
-              borderTop: '4px solid #7C3AED'
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
             }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Component 04 • Planned Model
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Mega Campus
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
-                QuestionsStudio Service Fee
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-950)', marginBottom: 6 }}>
+                Mega Campus Pack
               </h3>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>
-                ₹0.20 <span style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED', fontFamily: 'var(--font-body)' }}>(Planned Rate)</span>
+              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--navy-950)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                ₹14,999
               </div>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: 0 }}>
-                Planned processing fee per delivered message when colleges connect direct Meta Cloud API credentials. Zero fee for undelivered or failed messages.
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 16 }}>
+                25,000 Messages • ₹0.60 / msg
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, margin: '0 0 18px 0', flex: 1 }}>
+                High-volume statewide mock tests, multi-branch institutions &amp; automated announcements across thousands of students.
               </p>
+              <Link
+                to={user ? "/recharge" : "/signup"}
+                className="btn btn-secondary"
+                style={{ width: '100%', textAlign: 'center', justifyContent: 'center', padding: '10px 14px', fontSize: 13.5, fontWeight: 700, borderRadius: 10 }}
+              >
+                {user ? 'Recharge ₹14,999' : 'Get Mega Pack →'}
+              </Link>
             </div>
 
           </div>

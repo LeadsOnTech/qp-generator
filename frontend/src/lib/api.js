@@ -482,7 +482,13 @@ export const api = {
     return request(`/marketplace/public/catalog${q ? `?${q}` : ''}`);
   },
   getMarketplaceBook: (id) => request(`/marketplace/public/book/${id}`),
+  getMarketplaceShippingEstimate: (params) => {
+    const qs = new URLSearchParams(params || {}).toString();
+    return request(`/marketplace/shipping-estimate${qs ? `?${qs}` : ''}`);
+  },
   createMarketplaceOrder: (data) => request('/marketplace/checkout/create-order', { method: 'POST', body: JSON.stringify(data) }),
+  createMarketplaceRazorpayOrder: (data) => request('/marketplace/checkout/create-razorpay-order', { method: 'POST', body: JSON.stringify(data) }),
+  verifyMarketplacePayment: (data) => request('/marketplace/checkout/verify-payment', { method: 'POST', body: JSON.stringify(data) }),
   getInstituteMarketplaceEarnings: (instituteId) => request(`/marketplace/institute/earnings${instituteId ? `?instituteId=${instituteId}` : ''}`),
   uploadInstituteMarketplaceMaterial: (data) => request('/marketplace/institute/upload-material', { method: 'POST', body: JSON.stringify(data) }),
   updateInstituteMarketplaceMaterial: (id, data) => request(`/marketplace/institute/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -500,6 +506,11 @@ export const api = {
   uploadAdminMasterBook: (data) => request('/marketplace/admin/upload-master-book', { method: 'POST', body: JSON.stringify(data) }),
   updateAdminMasterBook: (id, data) => request(`/marketplace/admin/book/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAdminMasterBook: (id) => request(`/marketplace/admin/book/${id}`, { method: 'DELETE' }),
+  dispatchMarketplaceOrder: (id, data) => request(`/marketplace/seller/orders/${id}/dispatch`, { method: 'PUT', body: JSON.stringify(data) }),
+  requestMarketplacePayout: (data) => request('/marketplace/seller/payout-request', { method: 'POST', body: JSON.stringify(data) }),
+  getMarketplacePayoutRequests: () => request('/marketplace/seller/payout-requests'),
+  getAdminMarketplacePayoutRequests: () => request('/marketplace/admin/payout-requests'),
+  processAdminMarketplacePayoutRequest: (id, data) => request(`/marketplace/admin/payout-requests/${id}/process`, { method: 'POST', body: JSON.stringify(data) }),
   uploadMarketplaceCover: async (file) => {
     const formData = new FormData();
     formData.append('coverImage', file);

@@ -32,6 +32,28 @@ export default function CollegeBookstore() {
   // Quick Stock Update State
   const [updatingStockId, setUpdatingStockId] = useState(null);
 
+  // Dispatch Tracking Modal State
+  const [dispatchModalOrder, setDispatchModalOrder] = useState(null);
+  const [dispatchForm, setDispatchForm] = useState({
+    carrierName: 'DTDC',
+    trackingNumber: '',
+    trackingUrl: '',
+  });
+  const [dispatching, setDispatching] = useState(false);
+
+  // Settlement Payout Modal State
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({
+    requestedAmountRupees: '',
+    bankAccountName: '',
+    bankAccountNumber: '',
+    bankIfsc: '',
+    bankName: '',
+    upiId: '',
+  });
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutFeedback, setPayoutFeedback] = useState(null);
+
   async function loadAllSellerData() {
     try {
       setLoading(true);
@@ -781,7 +803,7 @@ export default function CollegeBookstore() {
                   <th>Origin</th>
                   <th>Order Value</th>
                   <th>College Royalty</th>
-                  <th>DRM Delivery</th>
+                  <th>Fulfillment &amp; Dispatch</th>
                 </tr>
               </thead>
               <tbody>
@@ -822,9 +844,59 @@ export default function CollegeBookstore() {
                         <strong style={{ color: '#059669' }}>+₹{o.collegeShareRupees.toFixed(2)}</strong>
                       </td>
                       <td>
-                        <span style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>
-                          ✓ Watermarked PDF
-                        </span>
+                        {o.fulfillmentType === 'PHYSICAL_PRINT' || o.fulfillmentType === 'BUNDLE_HYBRID' ? (
+                          o.shipment?.status === 'DISPATCHED' ? (
+                            <div>
+                              <span className="badge badge-success" style={{ fontSize: 11, background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0' }}>
+                                🚚 Dispatched ({o.shipment.carrierName || 'Courier'})
+                              </span>
+                              <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
+                                Tracking: <strong>{o.shipment.trackingNumber}</strong>
+                                {o.shipment.trackingUrl && (
+                                  <a href={o.shipment.trackingUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 6, color: '#0284c7', fontWeight: 700 }}>
+                                    Track ↗
+                                  </a>
+                                )}
+                              </div>
+                              {o.fulfillmentType === 'BUNDLE_HYBRID' && (
+                                <span style={{ fontSize: 10, color: '#059669', display: 'block', marginTop: 2 }}>+ Watermarked PDF</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="badge badge-warning" style={{ fontSize: 11, background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A', display: 'inline-block', marginBottom: 4 }}>
+                                📦 Ready to Dispatch
+                              </span>
+                              {o.shippingAddress && (
+                                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4 }}>
+                                  {o.shippingAddress.city}, {o.shippingAddress.state} ({o.shippingAddress.pincode})
+                                </div>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setDispatchModalOrder(o);
+                                  setDispatchForm({ carrierName: 'DTDC', trackingNumber: '', trackingUrl: '' });
+                                }}
+                                style={{
+                                  background: '#0284c7',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: 6,
+                                  padding: '4px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Paste Tracking # 🚚
+                              </button>
+                            </div>
+                          )
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>
+                            ✓ Watermarked PDF
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -850,9 +922,39 @@ export default function CollegeBookstore() {
                   Confirmed institutional revenue shares enforced by QuestionsStudio multi-tenant transaction engine.
                 </p>
               </div>
-              <span className="badge badge-neutral" style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>
-                🏦 Accrued Earnings Mode (Settlement Policy Pending Approval)
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span className="badge badge-neutral" style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1' }}>
+                  Accrued Balance: ₹{(stats.totalEarningsRupees || 0).toFixed(2)}
+                </span>
+                <button
+                  onClick={() => {
+                    setPayoutModalOpen(true);
+                    setPayoutFeedback(null);
+                    setPayoutForm({
+                      requestedAmountRupees: (stats.totalEarningsRupees || 0).toString(),
+                      bankAccountName: '',
+                      bankAccountNumber: '',
+                      bankIfsc: '',
+                      bankName: '',
+                      upiId: '',
+                    });
+                  }}
+                  disabled={(stats.totalEarningsRupees || 0) <= 0}
+                  style={{
+                    background: (stats.totalEarningsRupees || 0) > 0 ? '#059669' : '#94A3B8',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '8px 16px',
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: (stats.totalEarningsRupees || 0) > 0 ? 'pointer' : 'not-allowed',
+                    boxShadow: (stats.totalEarningsRupees || 0) > 0 ? '0 4px 12px rgba(5, 150, 105, 0.35)' : 'none',
+                  }}
+                >
+                  💸 Request Bank Payout
+                </button>
+              </div>
             </div>
 
             {/* 4 Revenue Rules for Colleges */}
@@ -902,6 +1004,77 @@ export default function CollegeBookstore() {
               </div>
             </div>
 
+            {/* Settlement Payout History */}
+            <div style={{ marginTop: 24, marginBottom: 24, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 18 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  🏦 Bank Settlement Payout Requests ({(earningsData?.payoutRequests || []).length})
+                </h4>
+                <span style={{ fontSize: 11.5, color: '#64748B' }}>Direct NEFT / RTGS / UPI Institutional Transfers</span>
+              </div>
+
+              {(earningsData?.payoutRequests || []).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 16px', background: '#F8FAFC', borderRadius: 12, border: '1px dashed #CBD5E1', color: '#64748B', fontSize: 13 }}>
+                  No settlement payout requests submitted yet. Click <strong>"Request Bank Payout"</strong> above to withdraw your accrued royalty earnings.
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Account Holder</th>
+                        <th>Bank / IFSC / UPI</th>
+                        <th>Status</th>
+                        <th>Transaction Ref / UTR</th>
+                        <th>Admin Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(earningsData?.payoutRequests || []).map((p) => (
+                        <tr key={p.id}>
+                          <td style={{ fontSize: 12, color: '#64748B' }}>
+                            {new Date(p.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td><strong>₹{p.requestedAmountRupees.toFixed(2)}</strong></td>
+                          <td style={{ fontWeight: 600 }}>{p.bankAccountName}</td>
+                          <td style={{ fontSize: 12 }}>
+                            <div>A/C: <code>{p.bankAccountNumber}</code></div>
+                            <div>IFSC: <code>{p.bankIfsc}</code></div>
+                            {p.upiId && <div style={{ color: '#0284c7' }}>UPI: {p.upiId}</div>}
+                          </td>
+                          <td>
+                            {p.status === 'SETTLED' ? (
+                              <span className="badge badge-success" style={{ background: '#DCFCE7', color: '#166534', border: '1px solid #BBF7D0' }}>
+                                ✓ SETTLED
+                              </span>
+                            ) : p.status === 'REJECTED' ? (
+                              <span className="badge badge-danger" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA' }}>
+                                ✕ REJECTED
+                              </span>
+                            ) : (
+                              <span className="badge badge-warning" style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}>
+                                ⏳ PENDING REVIEW
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {p.transactionRef ? (
+                              <code style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>{p.transactionRef}</code>
+                            ) : (
+                              <span style={{ fontSize: 12, color: '#94A3B8' }}>—</span>
+                            )}
+                          </td>
+                          <td style={{ fontSize: 12, color: '#64748B' }}>{p.adminNotes || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             {/* Financial Ledger Accrual Note */}
             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
               <span style={{ fontSize: 24 }}>🛡️</span>
@@ -927,6 +1100,301 @@ export default function CollegeBookstore() {
         isMaster={false}
         onSave={handleSaveProduct}
       />
+
+      {/* 5. Courier Dispatch Modal */}
+      {dispatchModalOrder && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => !dispatching && setDispatchModalOrder(null)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 20,
+              maxWidth: 500,
+              width: '100%',
+              padding: 24,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #E2E8F0', paddingBottom: 12 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#0284c7' }}>
+                  Logistics &amp; Dispatch Tracker
+                </span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: '3px 0 0' }}>
+                  Dispatch Order #{dispatchModalOrder.orderNumber}
+                </h3>
+              </div>
+              <button
+                onClick={() => setDispatchModalOrder(null)}
+                style={{ background: '#F1F5F9', border: 'none', borderRadius: 999, width: 32, height: 32, cursor: 'pointer', fontSize: 14 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleDispatchOrder}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Courier / Logistics Partner *
+                </label>
+                <select
+                  value={dispatchForm.carrierName}
+                  onChange={(e) => setDispatchForm({ ...dispatchForm, carrierName: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                >
+                  <option value="DTDC">DTDC Courier</option>
+                  <option value="Speed Post">India Post / Speed Post</option>
+                  <option value="Delhivery">Delhivery</option>
+                  <option value="BlueDart">BlueDart</option>
+                  <option value="The Professional Couriers">The Professional Couriers</option>
+                  <option value="Other Courier">Other Courier</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Consignment / Tracking Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. DTDC9876543210 or SP123456789IN"
+                  value={dispatchForm.trackingNumber}
+                  onChange={(e) => setDispatchForm({ ...dispatchForm, trackingNumber: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Custom Tracking URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={dispatchForm.trackingUrl}
+                  onChange={(e) => setDispatchForm({ ...dispatchForm, trackingUrl: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 3, display: 'block' }}>
+                  If left blank, QuestionStudio automatically maps standard tracking URLs for DTDC, India Post &amp; Delhivery.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setDispatchModalOrder(null)}
+                  disabled={dispatching}
+                  style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={dispatching}
+                  style={{ background: '#0284c7', color: '#FFFFFF', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: dispatching ? 'not-allowed' : 'pointer' }}
+                >
+                  {dispatching ? 'Saving Dispatch...' : 'Confirm Dispatch & Update Student'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Settlement Payout Request Modal */}
+      {payoutModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => !payoutSubmitting && setPayoutModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 20,
+              maxWidth: 540,
+              width: '100%',
+              padding: 24,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #E2E8F0', paddingBottom: 12 }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#059669' }}>
+                  Institutional Revenue Settlement
+                </span>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: '3px 0 0' }}>
+                  Request Bank Settlement Payout
+                </h3>
+              </div>
+              <button
+                onClick={() => setPayoutModalOpen(false)}
+                style={{ background: '#F1F5F9', border: 'none', borderRadius: 999, width: 32, height: 32, cursor: 'pointer', fontSize: 14 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {payoutFeedback && (
+              <div
+                style={{
+                  background: payoutFeedback.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+                  border: `1px solid ${payoutFeedback.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  color: payoutFeedback.type === 'success' ? '#065F46' : '#DC2626',
+                  fontSize: 12.5,
+                  marginBottom: 16,
+                }}
+              >
+                {payoutFeedback.message}
+              </div>
+            )}
+
+            <form onSubmit={handleRequestPayout}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Withdrawal Amount (₹) * (Max: ₹{(stats.totalEarningsRupees || 0).toFixed(2)})
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    max={stats.totalEarningsRupees || 0}
+                    required
+                    placeholder="Enter amount in ₹"
+                    value={payoutForm.requestedAmountRupees}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, requestedAmountRupees: e.target.value })}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPayoutForm({ ...payoutForm, requestedAmountRupees: (stats.totalEarningsRupees || 0).toString() })}
+                    style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Max
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Account Holder Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sri Chaitanya Educational Trust"
+                    value={payoutForm.bankAccountName}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, bankAccountName: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Bank Account Number *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 50200012345678"
+                    value={payoutForm.bankAccountNumber}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, bankAccountNumber: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Bank IFSC Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={11}
+                    placeholder="e.g. HDFC0001234"
+                    value={payoutForm.bankIfsc}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, bankIfsc: e.target.value.toUpperCase() })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Bank Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HDFC Bank"
+                    value={payoutForm.bankName}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, bankName: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                  Institutional UPI VPA (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. srichaitanya@okhdfcbank"
+                  value={payoutForm.upiId}
+                  onChange={(e) => setPayoutForm({ ...payoutForm, upiId: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setPayoutModalOpen(false)}
+                  disabled={payoutSubmitting}
+                  style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={payoutSubmitting}
+                  style={{ background: '#059669', color: '#FFFFFF', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: payoutSubmitting ? 'not-allowed' : 'pointer' }}
+                >
+                  {payoutSubmitting ? 'Submitting Request...' : 'Submit Settlement Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

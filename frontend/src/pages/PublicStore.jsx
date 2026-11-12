@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import MarketingHeader from '../components/MarketingHeader';
 import EcommerceBookModal from '../components/EcommerceBookModal';
+import StudentCheckoutModal from '../components/StudentCheckoutModal';
 
 export default function PublicStore() {
   const [books, setBooks] = useState([]);
@@ -15,9 +16,6 @@ export default function PublicStore() {
   const [selectedProductBook, setSelectedProductBook] = useState(null);
   const [sampleModalBook, setSampleModalBook] = useState(null);
   const [buyModalBook, setBuyModalBook] = useState(null);
-  const [buyForm, setBuyForm] = useState({ buyerName: '', buyerPhone: '', buyerEmail: '' });
-  const [buying, setBuying] = useState(false);
-  const [purchasedOrder, setPurchasedOrder] = useState(null);
 
   useEffect(() => {
     loadBooks();
@@ -33,29 +31,6 @@ export default function PublicStore() {
       setError(err.message || 'Failed to load bookstore catalog');
     } finally {
       setLoading(false);
-    }
-  }
-
-  // Handle instant checkout and DRM watermarked PDF generation
-  async function handleBuyBook(e) {
-    e.preventDefault();
-    if (!buyForm.buyerName.trim() || !buyForm.buyerPhone.trim()) {
-      return alert('Please enter student full name and valid WhatsApp mobile number.');
-    }
-    try {
-      setBuying(true);
-      const res = await api.createMarketplaceOrder({
-        bookId: buyModalBook.id,
-        buyerName: buyForm.buyerName.trim(),
-        buyerPhone: buyForm.buyerPhone.trim(),
-        buyerEmail: buyForm.buyerEmail.trim(),
-        paymentMethod: 'UPI_RAZORPAY',
-      });
-      setPurchasedOrder(res);
-    } catch (err) {
-      alert('Checkout failed: ' + (err.message || 'Please try again.'));
-    } finally {
-      setBuying(false);
     }
   }
 
@@ -420,7 +395,6 @@ export default function PublicStore() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPurchasedOrder(null);
                       setBuyModalBook(b);
                     }}
                     style={{
@@ -453,7 +427,6 @@ export default function PublicStore() {
           onClose={() => setSelectedProductBook(null)}
           onBuyClick={(b) => {
             setSelectedProductBook(null);
-            setPurchasedOrder(null);
             setBuyModalBook(b);
           }}
           onSampleClick={(b) => {
@@ -547,179 +520,14 @@ export default function PublicStore() {
       )}
 
       {/* =========================================================================
-          MODAL 3: INSTANT CHECKOUT & WATERMARKED PDF DOWNLOAD
+          MODAL 3: SECURED STUDENT CHECKOUT & DELIVERY
           ========================================================================= */}
-      {buyModalBook && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(6px)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 20,
-              maxWidth: 520,
-              width: '100%',
-              maxHeight: '92vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
-            }}
-          >
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: '#059669', letterSpacing: '0.05em' }}>
-                  ⚡ Instant Digital Download
-                </span>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '4px 0 0 0' }}>
-                  {purchasedOrder ? 'Payment Successful!' : 'Student Purchase & DRM License'}
-                </h3>
-              </div>
-              <button
-                onClick={() => { setBuyModalBook(null); setPurchasedOrder(null); }}
-                style={{ background: '#f1f5f9', border: 'none', width: 34, height: 34, borderRadius: '50%', fontSize: 16, cursor: 'pointer', color: '#64748b' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {purchasedOrder ? (
-              <div style={{ padding: '28px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
-                <h4 style={{ fontSize: 20, fontWeight: 900, color: '#059669', margin: '0 0 6px 0' }}>Order Confirmed!</h4>
-                <p style={{ fontSize: 13.5, color: '#64748b', margin: '0 0 20px 0' }}>
-                  Your licensed study material has been generated with custom anti-piracy watermarks.
-                </p>
-
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, textAlign: 'left', marginBottom: 24, fontSize: 13, lineHeight: 1.6 }}>
-                  <div><strong>Publication:</strong> {purchasedOrder.order?.book?.title || buyModalBook.title}</div>
-                  <div><strong>Order ID:</strong> <span style={{ fontFamily: 'monospace' }}>{purchasedOrder.order?.id}</span></div>
-                  <div><strong>Licensed To:</strong> {purchasedOrder.order?.buyerName} ({purchasedOrder.order?.buyerPhone})</div>
-                  <div><strong>Delivery:</strong> High-Resolution Protected PDF</div>
-                </div>
-
-                <a
-                  href={purchasedOrder.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    background: '#059669',
-                    color: '#ffffff',
-                    padding: '14px 20px',
-                    borderRadius: 12,
-                    fontWeight: 800,
-                    fontSize: 15,
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    boxShadow: '0 4px 15px rgba(5, 150, 105, 0.35)',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  📥 Download Watermarked PDF Now
-                </a>
-              </div>
-            ) : (
-              <div style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', gap: 14, marginBottom: 20, padding: 14, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                  <img
-                    src={buyModalBook.coverImageUrl || 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=600&q=80'}
-                    alt={buyModalBook.title}
-                    style={{ width: 56, height: 74, objectFit: 'cover', borderRadius: 6 }}
-                  />
-                  <div>
-                    <h5 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
-                      {buyModalBook.title}
-                    </h5>
-                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
-                      {buyModalBook.examTarget} &bull; {buyModalBook.category}
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: '#0284c7' }}>
-                      ₹{buyModalBook.priceRupees}
-                    </div>
-                  </div>
-                </div>
-
-                <form onSubmit={handleBuyBook}>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      Student Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Ramesh Kumar"
-                      value={buyForm.buyerName}
-                      onChange={(e) => setBuyForm({ ...buyForm, buyerName: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5, boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      WhatsApp Mobile Number * (Embedded on PDF)
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="e.g. 9876543210"
-                      value={buyForm.buyerPhone}
-                      onChange={(e) => setBuyForm({ ...buyForm, buyerPhone: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5, boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                      Email Address (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="e.g. student@gmail.com"
-                      value={buyForm.buyerEmail}
-                      onChange={(e) => setBuyForm({ ...buyForm, buyerEmail: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5, boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px', fontSize: 11.5, color: '#92400e', marginBottom: 18, lineHeight: 1.45 }}>
-                    🛡️ <strong>Anti-Piracy Security:</strong> Your name and mobile number will be indelibly watermarked diagonally across every page of your PDF to trace unauthorized distribution.
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={buying}
-                    style={{
-                      width: '100%',
-                      background: '#0284c7',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '13px 20px',
-                      borderRadius: 10,
-                      fontWeight: 800,
-                      fontSize: 14,
-                      cursor: buying ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
-                    }}
-                  >
-                    {buying ? 'Generating Watermarked PDF...' : `Pay ₹${buyModalBook.priceRupees} & Download Instantly`}
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <StudentCheckoutModal
+        book={buyModalBook}
+        isOpen={!!buyModalBook}
+        onClose={() => setBuyModalBook(null)}
+        primaryColor="#0284c7"
+      />
     </div>
   );
 }
