@@ -65,10 +65,11 @@ router.post('/', upload.single('file'), async (req, res) => {
   const caches = makeCaches();
   const rowErrors = [];
   let successCount = 0;
+  const hasOptionsInFile = 'optiona' in headerMap || 'optionb' in headerMap || 'optionc' in headerMap || 'optiond' in headerMap;
 
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 2; // +2 to account for 1-indexing and header row
-    const { ok, errors, data } = validateRow(rows[i], rowNum);
+    const { ok, errors, data } = validateRow(rows[i], rowNum, hasOptionsInFile);
 
     if (!ok) {
       rowErrors.push({ row: rowNum, errors });

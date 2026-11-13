@@ -24,12 +24,20 @@ function assertPaperAccess(req, paper) {
 
 function formatPaperQuestion(pq) {
   const q = pq.question;
+  const isNVQ = q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL' || q.questionType === 'NVT';
+  const hasOptions = Boolean(
+    (q.optionA && String(q.optionA).trim()) ||
+    (q.optionB && String(q.optionB).trim()) ||
+    (q.optionC && String(q.optionC).trim()) ||
+    (q.optionD && String(q.optionD).trim())
+  );
+
   return {
     paperQuestionId: pq.id,
     order: pq.order,
     id: q.id,
     questionText: q.questionText,
-    options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+    options: (!isNVQ && hasOptions) ? { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD } : {},
     optionImages: {
       A: q.optionAImage || null,
       B: q.optionBImage || null,

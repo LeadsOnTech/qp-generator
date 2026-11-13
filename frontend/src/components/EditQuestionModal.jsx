@@ -79,38 +79,50 @@ export default function EditQuestionModal({ question, onClose, onSave, onDelete 
               />
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-              <div className="field">
-                <label>Option A</label>
-                <input name="optionA" value={formData.optionA} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
+            {!(question.questionType === 'NVQ' || question.questionType === 'NUMERICAL' || question.questionType === 'DECIMAL') && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="field">
+                  <label>Option A</label>
+                  <input name="optionA" value={formData.optionA} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
+                </div>
+                <div className="field">
+                  <label>Option B</label>
+                  <input name="optionB" value={formData.optionB} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
+                </div>
+                <div className="field">
+                  <label>Option C</label>
+                  <input name="optionC" value={formData.optionC} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
+                </div>
+                <div className="field">
+                  <label>Option D</label>
+                  <input name="optionD" value={formData.optionD} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
+                </div>
               </div>
-              <div className="field">
-                <label>Option B</label>
-                <input name="optionB" value={formData.optionB} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
-              </div>
-              <div className="field">
-                <label>Option C</label>
-                <input name="optionC" value={formData.optionC} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
-              </div>
-              <div className="field">
-                <label>Option D</label>
-                <input name="optionD" value={formData.optionD} onChange={handleChange} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }} />
-              </div>
-            </div>
+            )}
 
             <div className="field">
-              <label>Correct Option</label>
-              <select 
-                name="correctOption" 
-                value={formData.correctOption} 
-                onChange={handleChange}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
-              >
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-              </select>
+              <label>{(question.questionType === 'NVQ' || question.questionType === 'NUMERICAL' || question.questionType === 'DECIMAL') ? 'Correct Numerical Answer' : 'Correct Option'}</label>
+              {(question.questionType === 'NVQ' || question.questionType === 'NUMERICAL' || question.questionType === 'DECIMAL') ? (
+                <input
+                  name="correctOption"
+                  value={formData.correctOption}
+                  onChange={handleChange}
+                  placeholder="e.g. 10 or 94 or 3.14"
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+                />
+              ) : (
+                <select 
+                  name="correctOption" 
+                  value={formData.correctOption} 
+                  onChange={handleChange}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: 4 }}
+                >
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              )}
             </div>
 
             <div className="field">

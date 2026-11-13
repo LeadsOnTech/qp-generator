@@ -96,15 +96,25 @@ function generateSetQuestions(paperId, baseQuestions, set = 'A') {
   return reordered;
 }
 
+function isQuestionNVQ(q) {
+  if (!q) return false;
+  const t = String(q.questionType || '').trim().toUpperCase();
+  if (t === 'NVQ' || t === 'NUMERICAL' || t === 'DECIMAL' || t === 'NVT') return true;
+  if (!q.options || !Object.keys(q.options).length) return true;
+  return Object.values(q.options).every((v) => !v || !String(v).trim());
+}
+
 /**
  * Translates an answer key value to the given option format.
  */
-function formatOptionKey(key, optionFormat = 'ALPHA') {
-  const k = String(key || '').trim().toUpperCase();
+function formatOptionKey(key, optionFormat = 'ALPHA', isNVQ = false) {
+  const k = String(key || '').trim();
+  if (isNVQ) return k; // Do not alter numerical value answers
+  const upper = k.toUpperCase();
   if (optionFormat === 'NUMERIC') {
-    return { A: '1', B: '2', C: '3', D: '4', '1': '1', '2': '2', '3': '3', '4': '4' }[k] || k;
+    return { A: '1', B: '2', C: '3', D: '4', '1': '1', '2': '2', '3': '3', '4': '4' }[upper] || k;
   }
-  return { A: 'A', B: 'B', C: 'C', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[k] || k;
+  return { A: 'A', B: 'B', C: 'C', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[upper] || k;
 }
 
 /**
@@ -137,20 +147,25 @@ function generateMasterKeyMatrix(paperId, baseQuestions, optionFormat = 'ALPHA')
     const posInC = setC.findIndex((q) => q.id === targetId) + 1;
     const posInD = setD.findIndex((q) => q.id === targetId) + 1;
 
+    const isNVQA = isQuestionNVQ(qA);
+    const isNVQB = isQuestionNVQ(qB);
+    const isNVQC = isQuestionNVQ(qC);
+    const isNVQD = isQuestionNVQ(qD);
+
     rows.push({
       qNumber: qNum,
       // Keys matching question number in each set:
-      keyA: formatOptionKey(qA?.correctOption, optionFormat),
-      keyB: formatOptionKey(qB?.correctOption, optionFormat),
-      keyC: formatOptionKey(qC?.correctOption, optionFormat),
-      keyD: formatOptionKey(qD?.correctOption, optionFormat),
+      keyA: formatOptionKey(qA?.correctOption, optionFormat, isNVQA),
+      keyB: formatOptionKey(qB?.correctOption, optionFormat, isNVQB),
+      keyC: formatOptionKey(qC?.correctOption, optionFormat, isNVQC),
+      keyD: formatOptionKey(qD?.correctOption, optionFormat, isNVQD),
       // Cross-reference index for Set A question:
       crossRef: {
         A: qNum,
         B: posInB,
         C: posInC,
         D: posInD,
-        key: formatOptionKey(qA?.correctOption, optionFormat),
+        key: formatOptionKey(qA?.correctOption, optionFormat, isNVQA),
       },
     });
   }

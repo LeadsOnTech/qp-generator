@@ -252,10 +252,19 @@ export default function Upload() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
           <div style={{ background: '#F8FAFC', padding: '14px 16px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#2563EB', textTransform: 'uppercase', marginBottom: 6 }}>
-              Required Columns
+              Required Columns (MCQ)
             </div>
             <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.6 }}>
               <code>Question</code>, <code>OptionA</code>, <code>OptionB</code>, <code>OptionC</code>, <code>OptionD</code>, <code>CorrectOption</code>, <code>Exam</code>, <code>Subject</code>, <code>Chapter</code>
+            </div>
+          </div>
+
+          <div style={{ background: '#F8FAFC', padding: '14px 16px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', marginBottom: 6 }}>
+              Numerical Value Questions (NVQ)
+            </div>
+            <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.6 }}>
+              <code>Question</code>, <code>CorrectOption</code> (numerical answer), <code>Exam</code>, <code>Subject</code>, <code>Chapter</code>, <code>QuestionType</code> (NVQ). <em>Options (A-D) not required.</em>
             </div>
           </div>
 
@@ -264,7 +273,7 @@ export default function Upload() {
               Optional Add-ons
             </div>
             <div style={{ fontSize: 13, color: '#1E293B', lineHeight: 1.6 }}>
-              <code>Topic</code>, <code>Difficulty</code> (EASY / MEDIUM / HARD), <code>Solution</code>, <code>QuestionImage</code>, <code>ImageFilename</code>
+              <code>Topic</code>, <code>Difficulty</code> (EASY / MEDIUM / HARD), <code>Solution</code>, <code>QuestionImage</code>, <code>ImageFilename</code>, <code>QuestionID</code>
             </div>
           </div>
         </div>

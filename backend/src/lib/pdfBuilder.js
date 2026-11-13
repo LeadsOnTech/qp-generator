@@ -108,9 +108,24 @@ function getOptionLabel(key, format = 'ALPHA') {
   return alphaMap[upper] || upper;
 }
 
-function formatAnswerKeyOption(correctOption, format = 'ALPHA') {
+function isQuestionNVQ(q) {
+  if (!q) return false;
+  const qType = String(q.questionType || '').trim().toUpperCase();
+  if (qType === 'NVQ' || qType === 'NUMERICAL' || qType === 'DECIMAL' || qType === 'NVT') {
+    return true;
+  }
+  if (!q.options || !Object.keys(q.options).length) {
+    return true;
+  }
+  return Object.values(q.options).every((v) => !v || !String(v).trim());
+}
+
+function formatAnswerKeyOption(correctOption, format = 'ALPHA', isNVQ = false) {
   if (!correctOption) return '-';
   const str = String(correctOption).trim();
+  if (isNVQ) {
+    return str; // Preserve exact number for Numerical Value Questions
+  }
   const upper = str.toUpperCase();
   if (['A', 'B', 'C', 'D', '1', '2', '3', '4'].includes(upper)) {
     return getOptionLabel(upper, format);
@@ -591,7 +606,7 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionG
   const optImgD = resolveOptionImage(doc, q.optionDImage || q.optionImages?.D);
   const hasOptionImages = Boolean(optImgA || optImgB || optImgC || optImgD);
 
-  const isNVQ = !q.options || !Object.keys(q.options).length;
+  const isNVQ = isQuestionNVQ(q);
   let optionsHeight = 0;
 
   if (!isNVQ) {
@@ -638,8 +653,9 @@ function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionG
 
 function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap = 5, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {
   const numWidth = 22;
+  const isNVQ = isQuestionNVQ(q);
   const showAnswerBox = (answerFormat === 'STUDENT_ANSWER' && !q.isHeader);
-  const bracketWidth = 24;
+  const bracketWidth = isNVQ ? 36 : 24;
   const bracketHeight = 13.5;
   const bracketArm = 3.5;
   const bracketGap = 6;
@@ -755,7 +771,7 @@ function drawQuestion(doc, q, index, x, y, colWidth, fontSize = 10, questionGap 
     doc.text(`(${labelD}) ${q.options.D || ''}`, x + numWidth + halfWidth + optionGutter, textY2, { width: halfWidth, align: 'center' });
 
     cursorY = textY2 + 16;
-  } else if (q.options && Object.keys(q.options).length) {
+  } else if (!isNVQ && q.options && Object.keys(q.options).length) {
     const layoutType = getOptionsLayoutType(doc, q, colWidth, fontSize, optionFormat);
     if (layoutType === 'VERY_COMPACT') {
       const quarterWidth = (colWidth - numWidth - 4) / 4;
@@ -811,7 +827,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
   let currentType = null;
   let qNumber = 1;
   questions.forEach((q) => {
-    const isNVQ = q.questionType === "NVQ" || q.questionType === "NUMERICAL" || q.questionType === "DECIMAL";
+    const isNVQ = isQuestionNVQ(q);
     const typeLabel = isNVQ ? "Numerical Value Questions" : "Multiple Choice Questions";
     if (currentType !== typeLabel) {
        currentType = typeLabel;
@@ -1036,7 +1052,8 @@ function drawAnswerKey(doc, questions, pageWidth, optionFormat = 'ALPHA', setLab
       doc.addPage();
       y = 54;
     }
-    const ansKey = formatAnswerKeyOption(q.correctOption, optionFormat);
+    const isNVQ = isQuestionNVQ(q);
+    const ansKey = formatAnswerKeyOption(q.correctOption, optionFormat, isNVQ);
     doc.fill(INK).font(FONT_REGULAR).fontSize(11).text(`${i + 1}.`, x, y, { width: 30 });
     doc.fill(GOLD).font(FONT_BOLD).text(ansKey, x + 30, y);
     x += colWidth;
@@ -1068,9 +1085,10 @@ function drawSolutions(doc, questions, pageWidth, pageHeight, optionFormat = 'AL
   const measuredItems = questions.map((q, i) => {
     const hasSolution = q.solutionText && String(q.solutionText).trim();
     const bodyText = hasSolution ? String(q.solutionText).trim() : 'Solution not provided for this question.';
-    const rawAns = formatAnswerKeyOption(q.correctOption, optionFormat);
+    const isNVQ = isQuestionNVQ(q);
+    const rawAns = formatAnswerKeyOption(q.correctOption, optionFormat, isNVQ);
     const ansKey = rawAns ? String(rawAns).trim() : '';
-    const ansDisplay = (['A', 'B', 'C', 'D', '(A)', '(B)', '(C)', '(D)', '1', '2', '3', '4'].includes(ansKey))
+    const ansDisplay = (!isNVQ && ['A', 'B', 'C', 'D', '(A)', '(B)', '(C)', '(D)', '1', '2', '3', '4'].includes(ansKey))
       ? `(${ansKey.replace(/[()]/g, '')})`
       : ansKey;
 
@@ -1664,7 +1682,7 @@ function estimatePaperPages(paper, questions = [], options = {}) {
   let currentType = null;
   let qNumber = 1;
   questions.forEach((q) => {
-    const isNVQ = q.questionType === "NVQ" || q.questionType === "NUMERICAL" || q.questionType === "DECIMAL";
+    const isNVQ = isQuestionNVQ(q);
     const typeLabel = isNVQ ? "Numerical Value Questions" : "Multiple Choice Questions";
     if (currentType !== typeLabel) {
        currentType = typeLabel;

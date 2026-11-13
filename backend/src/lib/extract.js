@@ -6,9 +6,14 @@ const XLSX = require('xlsx');
 // decision from planning (OCR introduces error rates we don't want in v1).
 // ---------------------------------------------------------------------------
 
+// Core required columns across all questions (MCQ, NVQ, etc.)
+const REQUIRED_CORE_COLUMNS = [
+  'question', 'correctoption', 'exam', 'subject', 'chapter',
+];
+
+// Legacy list of required columns for standard MCQ
 const REQUIRED_COLUMNS = [
-  'question', 'optiona', 'optionb', 'optionc', 'optiond', 'correctoption',
-  'exam', 'subject', 'chapter',
+  'question', 'optiona', 'optionb', 'optionc', 'optiond', 'correctoption', 'exam', 'subject', 'chapter',
 ];
 
 const VALID_OPTIONS = ['A', 'B', 'C', 'D'];
@@ -16,6 +21,36 @@ const VALID_QUESTION_TYPES = ['MCQ', 'ASSERTION_REASON', 'MATCH_FOLLOWING', 'STA
 
 function normalizeHeader(h) {
   return String(h || '').trim().toLowerCase().replace(/[\s_]+/g, '');
+}
+
+/**
+ * Resolves common column header aliases to their standard normalized keys.
+ */
+function resolveHeaderAliases(headerMap) {
+  if (!('question' in headerMap)) {
+    const qKey = ['questiontext', 'problem', 'questionstatement'].find((k) => k in headerMap);
+    if (qKey) headerMap['question'] = headerMap[qKey];
+  }
+  if (!('correctoption' in headerMap)) {
+    const aKey = ['correctanswer', 'answer', 'ans', 'numericalanswer', 'value', 'key'].find((k) => k in headerMap);
+    if (aKey) headerMap['correctoption'] = headerMap[aKey];
+  }
+  if (!('exam' in headerMap)) {
+    const eKey = ['examname', 'targetexam', 'testname'].find((k) => k in headerMap);
+    if (eKey) headerMap['exam'] = headerMap[eKey];
+  }
+  if (!('subject' in headerMap)) {
+    const sKey = ['subjectname'].find((k) => k in headerMap);
+    if (sKey) headerMap['subject'] = headerMap[sKey];
+  }
+  if (!('chapter' in headerMap)) {
+    const cKey = ['chaptername', 'unit', 'unitname'].find((k) => k in headerMap);
+    if (cKey) headerMap['chapter'] = headerMap[cKey];
+  }
+  if (!('questiontype' in headerMap)) {
+    const tKey = ['type', 'qtype', 'questionformat'].find((k) => k in headerMap);
+    if (tKey) headerMap['questiontype'] = headerMap[tKey];
+  }
 }
 
 /**
@@ -38,6 +73,8 @@ function parseSpreadsheet(buffer) {
     headerMap[normalizeHeader(h)] = h;
   });
 
+  resolveHeaderAliases(headerMap);
+
   const rows = rawRows.map((r) => {
     const normalized = {};
     Object.entries(r).forEach(([k, v]) => {
@@ -51,17 +88,31 @@ function parseSpreadsheet(buffer) {
 
 /**
  * Validates the header row has everything we need before touching any data.
- * Fails fast with a clear message rather than silently misreading columns.
+ * Supports both Multiple Choice Questions (with OptionA-D) and Numerical Value
+ * Questions (NVQ, where options are intentionally omitted).
  */
 function validateHeaders(headerMap) {
-  const missing = REQUIRED_COLUMNS.filter((col) => !(col in headerMap));
+  resolveHeaderAliases(headerMap);
+
+  const missing = REQUIRED_CORE_COLUMNS.filter((col) => !(col in headerMap));
   if (missing.length > 0) {
     throw new Error(
       `Missing required column(s): ${missing.join(', ')}. ` +
-      `Expected columns (any order): Question, OptionA, OptionB, OptionC, OptionD, ` +
-      `CorrectOption, Exam, Subject, Chapter, Topic (optional), QuestionType (optional), ` +
-      `Difficulty (optional), Solution (optional), ExamYear (optional), ExamSource (optional), PassageID (optional).`
+      `Expected columns (any order): Question, CorrectOption (or Answer), Exam, Subject, Chapter. ` +
+      `For MCQ: OptionA, OptionB, OptionC, OptionD. For NVQ: QuestionType (NVQ).`
     );
+  }
+
+  // If some options columns are present, but not all 4, and QuestionType isn't explicitly NVQ:
+  const hasSomeOptions = 'optiona' in headerMap || 'optionb' in headerMap || 'optionc' in headerMap || 'optiond' in headerMap;
+  const hasQuestionType = 'questiontype' in headerMap;
+  if (hasSomeOptions && !hasQuestionType) {
+    const missingOptions = ['optiona', 'optionb', 'optionc', 'optiond'].filter((c) => !(c in headerMap));
+    if (missingOptions.length > 0) {
+      throw new Error(
+        `Incomplete options columns: missing ${missingOptions.join(', ')}. Multiple Choice questions require OptionA, OptionB, OptionC, OptionD (or set QuestionType to NVQ).`
+      );
+    }
   }
 }
 
@@ -85,8 +136,11 @@ function normalizeExamName(raw) {
   if (clean === 'NEET' || clean === 'NEETUG') {
     return 'NEET';
   }
-  if (clean === 'JEE' || clean === 'JEEMAIN') {
+  if (clean === 'JEE' || clean === 'JEEMAIN' || clean === 'JEEMAINS' || clean === 'JEEMAIN2025' || clean === 'JEEMAINS2025') {
     return 'JEE Main';
+  }
+  if (clean === 'JEEADV' || clean === 'JEEADVANCED') {
+    return 'JEE Advanced';
   }
   return norm;
 }
@@ -111,25 +165,44 @@ function stripOptionPrefix(text) {
   return stripped.trim() || text.trim();
 }
 
-function validateRow(row, rowIndex) {
+function validateRow(row, rowIndex, hasOptionsInFile = true) {
   const errors = [];
 
-  const questionText = autoHealMathTypo(String(row.question || '').trim());
+  const rawQuestion = row.question ?? row.questiontext ?? row.problem ?? '';
+  const questionText = autoHealMathTypo(String(rawQuestion).trim());
+
   const optionA = autoHealMathTypo(stripOptionPrefix(String(row.optiona || '').trim()));
   const optionB = autoHealMathTypo(stripOptionPrefix(String(row.optionb || '').trim()));
   const optionC = autoHealMathTypo(stripOptionPrefix(String(row.optionc || '').trim()));
   const optionD = autoHealMathTypo(stripOptionPrefix(String(row.optiond || '').trim()));
-  let correctOption = String(row.correctoption || '').trim().toUpperCase();
 
-  const examName = normalizeExamName(String(row.exam || '').trim());
-  const subjectName = String(row.subject || '').trim();
-  const chapterName = String(row.chapter || '').trim();
-  const topicName = row.topic ? String(row.topic).trim() : null;
-  
+  const rawCorrect = row.correctoption ?? row.correctanswer ?? row.answer ?? row.ans ?? row.numericalanswer ?? row.value ?? '';
+  let correctOption = String(rawCorrect).trim();
+
+  const rawExam = row.exam ?? row.examname ?? row.targetexam ?? '';
+  const examName = normalizeExamName(String(rawExam).trim());
+
+  const rawSubject = row.subject ?? row.subjectname ?? '';
+  const subjectName = String(rawSubject).trim();
+
+  const rawChapter = row.chapter ?? row.chaptername ?? row.unit ?? '';
+  const chapterName = String(rawChapter).trim();
+
+  const topicName = (row.topic || row.topicname) ? String(row.topic || row.topicname).trim() : null;
   const groupId = row.passageid ? String(row.passageid).trim() : null;
 
-  let questionType = String(row.questiontype || row.type || 'MCQ').trim().toUpperCase();
+  // Determine question type: if row has no options and no explicit type, default to NVQ
+  const hasRowOptions = Boolean(optionA || optionB || optionC || optionD);
+  const rawType = row.questiontype ?? row.type ?? row.qtype ?? '';
+  let defaultType = (hasRowOptions || hasOptionsInFile) ? 'MCQ' : 'NVQ';
+  let questionType = String(rawType || defaultType).trim().toUpperCase();
   if (questionType === 'NVT') questionType = 'NVQ';
+
+  const isNVQ = questionType === 'DECIMAL' || questionType === 'NUMERICAL' || questionType === 'NVQ' || questionType === 'NVT';
+  if (!isNVQ && !['MATRIX', 'COMPREHENSION', 'MULTI'].includes(questionType)) {
+    correctOption = correctOption.toUpperCase();
+  }
+
   let difficulty = row.difficulty ? String(row.difficulty).trim().toUpperCase() : 'UNTAGGED';
   const imageFilename = (row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage)
     ? String(row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage).trim()
@@ -146,17 +219,11 @@ function validateRow(row, rowIndex) {
   const optionDImage = (row.optiondimage || row.optionimaged || row.imaged || row.optimaged)
     ? String(row.optiondimage || row.optionimaged || row.imaged || row.optimaged).trim()
     : null;
-  // Optional worked solution. Accept either "Solution" or "Solutions" as
-  // the column header. Blank is fine — that question simply has no
-  // solution available to include.
-  const solutionText = (row.solution || row.solutions)
-    ? autoHealMathTypo(String(row.solution || row.solutions).trim())
+
+  const solutionText = (row.solution || row.solutions || row.explanation || row.explanations)
+    ? autoHealMathTypo(String(row.solution || row.solutions || row.explanation || row.explanations).trim())
     : null;
 
-  // PYQ provenance. Accept an explicit "ExamYear" and/or "ExamSource"
-  // ("Source" also accepted) column. If ExamYear isn't given but a source
-  // label is, try to pull a 4-digit year (19xx/20xx) out of it so older
-  // files that only wrote "JEE Main 2024, ..." still get a usable year.
   const examSource = (row.examsource || row.source)
     ? String(row.examsource || row.source).trim()
     : null;
@@ -172,16 +239,15 @@ function validateRow(row, rowIndex) {
   if (!questionText) errors.push('Question text is empty');
   
   if (!VALID_QUESTION_TYPES.includes(questionType)) {
-    errors.push(`QuestionType "${questionType}" not recognized — defaulting to MCQ`);
-    questionType = 'MCQ';
+    errors.push(`QuestionType "${questionType}" not recognized — defaulting to ${hasRowOptions ? 'MCQ' : 'NVQ'}`);
+    questionType = hasRowOptions ? 'MCQ' : 'NVQ';
   }
 
-  if (questionType !== 'DECIMAL' && questionType !== 'NUMERICAL' && questionType !== 'NVQ' && questionType !== 'NVT' && questionType !== 'MATRIX' && questionType !== 'COMPREHENSION') {
+  if (!isNVQ && questionType !== 'MATRIX' && questionType !== 'COMPREHENSION') {
     if (!optionA || !optionB || !optionC || !optionD) errors.push('One or more options (A-D) are empty');
   }
 
   if (questionType === 'MULTI') {
-    // allow comma separated strings A,B,C,D
     const parts = correctOption.split(',').map(s => s.trim());
     if (parts.length === 0 || parts.some(p => !VALID_OPTIONS.includes(p))) {
       errors.push(`CorrectOption for MULTI must be comma separated A,B,C,D (got "${correctOption}")`);
@@ -190,9 +256,9 @@ function validateRow(row, rowIndex) {
     if (!correctOption) {
       errors.push(`CorrectOption for MATRIX must contain relational mapping (got "${correctOption}")`);
     }
-  } else if (questionType === 'DECIMAL' || questionType === 'NUMERICAL' || questionType === 'NVQ' || questionType === 'NVT') {
+  } else if (isNVQ) {
     if (!correctOption) {
-      errors.push(`CorrectOption for DECIMAL/NUMERICAL must contain a number or range (got "${correctOption}")`);
+      errors.push(`CorrectOption for NVQ / NUMERICAL must contain a numerical value (got empty)`);
     }
   } else {
     if (!VALID_OPTIONS.includes(correctOption)) {

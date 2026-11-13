@@ -25,14 +25,16 @@ function formatChemicals(text) {
 function formatHeadingText(text) {
   if (!text) return text;
   let formattedText = formatChemicals(String(text));
-  const regex = /(Statement I\s*[:\.]|Statement II\s*[:\.]|Statement 1\s*[:\.]|Statement 2\s*[:\.]|Assertion\s*(?:\(A\))?\s*[:\.]|Reason\s*(?:\(R\))?\s*[:\.]|Statement-1\s*[:\.]|Statement-2\s*[:\.]|Statement - 1\s*[:\.]|Statement - 2\s*[:\.])/gi;
-  
-  const headingRegex = /(?:\s*)(Statement I\s*[:\.]|Statement II\s*[:\.]|Statement 1\s*[:\.]|Statement 2\s*[:\.]|Assertion\s*(?:\(A\))?\s*[:\.]|Reason\s*(?:\(R\))?\s*[:\.]|Statement-1\s*[:\.]|Statement-2\s*[:\.]|Statement - 1\s*[:\.]|Statement - 2\s*[:\.])/gi;
-  formattedText = formattedText.replace(headingRegex, '\n$1').trim();
-  
-  const parts = formattedText.split(regex);
+  const headingNewlineRegex = /(?<!^)(?<![\r\n])\s*\b(Statement\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?)/gi;
+  formattedText = formattedText.replace(headingNewlineRegex, (m, g1) => '\n' + g1).trim();
+
+  const splitRegex = /(\b(?:Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?))/i;
+  const headingPattern = /^\s*(?:Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?)\s*$/i;
+
+  const parts = formattedText.split(splitRegex);
   return parts.map((part, i) => {
-    if (i % 2 === 1) return <strong key={i} style={{ color: '#0F172A' }}>{part}</strong>;
+    if (!part) return null;
+    if (headingPattern.test(part)) return <strong key={i} style={{ color: '#0F172A' }}>{part}</strong>;
     return part.split('\n').map((line, j) => <React.Fragment key={`${i}-${j}`}>{j > 0 && <br/>}{line}</React.Fragment>);
   });
 }
