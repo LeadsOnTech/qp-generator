@@ -438,6 +438,159 @@ Welcome to smarter question-paper generation.
 
     return true;
   }
+
+  /**
+   * Sends automated recharge reminder alerts (Level 1, 2, or 3) to college management cell phone
+   */
+  async sendRechargeReminderAlert({
+    collegeName,
+    phone,
+    currentCredits = 0,
+    alertLevel = 1,
+    rechargeUrl = 'https://questionstudio.in/#/recharge',
+  }) {
+    const normPhone = normalizePhoneNumber(phone);
+    if (!normPhone) return false;
+
+    let headline = '';
+    let bodyText = '';
+    let urgencyBadge = '';
+
+    if (alertLevel === 1) {
+      headline = '⚠️ *Recharge Reminder 1 of 3: Low Credit Balance*';
+      urgencyBadge = 'Notice';
+      bodyText = `Your QuestionStudio credit balance is running low at *${currentCredits} credits*.\n\n` +
+        `To ensure smooth and uninterrupted question paper generation, CBT exams, and student result publishing, we recommend topping up your account today.`;
+    } else if (alertLevel === 2) {
+      headline = '🔔 *Recharge Reminder 2 of 3: Action Required*';
+      urgencyBadge = 'Action Required';
+      bodyText = `This is a follow-up reminder. Your balance is now *${currentCredits} credits*.\n\n` +
+        `Question paper generation will pause once credits reach zero. Recharge now using instant UPI or Razorpay with instant credit activation.`;
+    } else {
+      headline = '🚨 *URGENT: QuestionStudio Credit Balance Critical / Exhausted*';
+      urgencyBadge = 'Critical / Final Notice';
+      bodyText = `Your question generation credits have reached *${currentCredits} credits*.\n\n` +
+        `Paper generation and test publishing services are currently on hold or about to be paused. Please recharge immediately to resume normal academic operations.`;
+    }
+
+    const messageBody = `${headline}\n\n` +
+      `Dear Management of *${collegeName}*,\n\n` +
+      `${bodyText}\n\n` +
+      `📊 Current Balance: *${currentCredits} Credits*\n` +
+      `⚡ Instant Recharge Link:\n${rechargeUrl}\n\n` +
+      `Need custom billing or enterprise support? Contact our dedicated account team at +91 98480 12345.\n\n` +
+      `*— QuestionStudio Academic Account Support*`;
+
+    console.log(`\n[WHATSAPP SERVICE] [${this.providerKey ? 'LIVE API' : 'SIMULATION'}] Recharge Alert (Level ${alertLevel}) to ${normPhone}:\n${messageBody}\n`);
+
+    if (this.providerKey && this.providerUrl) {
+      try {
+        await fetch(this.providerUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.providerKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: normPhone,
+            text: messageBody,
+            message: messageBody,
+          }),
+        });
+      } catch (err) {
+        console.warn('[WHATSAPP SERVICE] Could not dispatch WhatsApp recharge alert:', err.message);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Alerts Super Admin when a college/educator submits a Social Media Marketing & Promotion request
+   */
+  async sendMarketingLeadAlertToAdmin({ lead }) {
+    const adminPhone = process.env.ADMIN_WHATSAPP_PHONE || process.env.SUPER_ADMIN_PHONE || '9848012345';
+    const normPhone = normalizePhoneNumber(adminPhone);
+    if (!normPhone) return false;
+
+    const messageBody = `🚀 *New Promotion & Marketing Request Received!* 📢\n\n` +
+      `A college/institution has requested social media marketing and promotion:\n\n` +
+      `🏛️ College: *${lead.collegeName}*\n` +
+      `👤 Contact Person: *${lead.contactPerson}* ${lead.designation ? `(${lead.designation})` : ''}\n` +
+      `📞 Phone: *${lead.phone}*\n` +
+      `📧 Email: ${lead.email || 'Not provided'}\n` +
+      `🎯 Promotion Goals: *${lead.promotionGoals}*\n` +
+      `📍 Target Cities: ${lead.targetCities || 'Pan-AP/Telangana'}\n` +
+      `💰 Budget Range: *${lead.budgetRange || 'To be discussed'}*\n` +
+      `👥 Estimated Reach: ${lead.estimatedStudents || 'Not specified'}\n` +
+      `${lead.campaignNotes ? `📝 Notes: "${lead.campaignNotes}"\n` : ''}\n` +
+      `Open Admin Console to view & respond:\n` +
+      `https://questionstudio.in/#/admin/marketing\n\n` +
+      `*— QuestionStudio Growth & Marketing Desk*`;
+
+    console.log(`\n[WHATSAPP SERVICE] [${this.providerKey ? 'LIVE API' : 'SIMULATION'}] Admin Marketing Lead Alert to ${normPhone}:\n${messageBody}\n`);
+
+    if (this.providerKey && this.providerUrl) {
+      try {
+        await fetch(this.providerUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.providerKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: normPhone,
+            text: messageBody,
+            message: messageBody,
+          }),
+        });
+      } catch (err) {
+        console.warn('[WHATSAPP SERVICE] Could not dispatch WhatsApp marketing lead alert:', err.message);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Sends confirmation WhatsApp message to the college/lead after submitting promotion request
+   */
+  async sendMarketingConfirmationToCollege({ lead }) {
+    const normPhone = normalizePhoneNumber(lead.phone);
+    if (!normPhone) return false;
+
+    const messageBody = `🎓 *QuestionStudio Digital Marketing & Promotions*\n\n` +
+      `Hello *${lead.contactPerson}*,\n\n` +
+      `Thank you for reaching out! We have received your promotion & marketing request for *${lead.collegeName}*.\n\n` +
+      `📋 Requested Services: *${lead.promotionGoals}*\n` +
+      `📍 Target Locations: ${lead.targetCities || 'Statewide'}\n\n` +
+      `Our educational marketing strategists are reviewing your campaign requirements. A dedicated campaign manager will contact you within *24 hours* with a high-conversion outreach plan.\n\n` +
+      `Direct Helpline: +91 98480 12345 (Call / WhatsApp)\n\n` +
+      `*— QuestionStudio Educational Marketing Team*`;
+
+    console.log(`\n[WHATSAPP SERVICE] [${this.providerKey ? 'LIVE API' : 'SIMULATION'}] Marketing Confirmation to ${normPhone}:\n${messageBody}\n`);
+
+    if (this.providerKey && this.providerUrl) {
+      try {
+        await fetch(this.providerUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.providerKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: normPhone,
+            text: messageBody,
+            message: messageBody,
+          }),
+        });
+      } catch (err) {
+        console.warn('[WHATSAPP SERVICE] Could not dispatch marketing confirmation:', err.message);
+      }
+    }
+
+    return true;
+  }
 }
 
 module.exports = new WhatsAppService();

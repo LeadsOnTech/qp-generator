@@ -48,6 +48,7 @@ const superAdminWebsitesRoutes = require('./routes/superAdminWebsites');
 const subscriptionRoutes = require('./routes/subscriptions');
 const subscriptionPaymentRoutes = require('./routes/subscriptionPayment');
 const marketplaceRoutes = require('./routes/marketplace');
+const marketingRoutes = require('./routes/marketing');
 const { requireAuth, requireAdmin } = require('./lib/auth');
 
 const app = express();
@@ -131,6 +132,7 @@ app.use('/api/cbt', cbtRoutes);
 app.use('/api/public/results', publicResultRoutes);
 app.use('/api/public/colleges', publicCollegesRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/marketing', marketingRoutes);
 
 // Razorpay Webhooks (public server-to-server callback verified via HMAC signature)
 app.use('/api/subscriptions/payment', (req, res, next) => {

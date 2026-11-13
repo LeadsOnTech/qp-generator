@@ -522,4 +522,18 @@ export const api = {
     if (!res.ok) throw new Error(json.error || 'Failed to upload cover image');
     return json;
   },
+
+  // Recharge Reminders & Alerts (Phase 11)
+  sendRechargeReminder: (id, alertLevel) => request(`/institutes/${id}/send-recharge-reminder`, { method: 'POST', body: JSON.stringify({ alertLevel }) }),
+  sendBatchRechargeReminders: (threshold = 50) => request('/institutes/send-recharge-reminders-batch', { method: 'POST', body: JSON.stringify({ threshold }) }),
+
+  // Social Media Marketing & Promotions
+  submitMarketingPromotion: (data) => request('/marketing/promotions', { method: 'POST', body: JSON.stringify(data) }),
+  getMyMarketingLeads: () => request('/marketing/promotions/my'),
+  getAdminMarketingLeads: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return request(`/marketing/promotions${q ? `?${q}` : ''}`);
+  },
+  updateMarketingLead: (id, data) => request(`/marketing/promotions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteMarketingLead: (id) => request(`/marketing/promotions/${id}`, { method: 'DELETE' }),
 };

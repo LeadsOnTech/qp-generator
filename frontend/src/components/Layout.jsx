@@ -66,7 +66,8 @@ const paperEngineItems = [
 
 const adminOnlyExtras = [
   { to: '/images', label: 'Image Library', icon: '🖼' },
-  { to: '/institutes', label: 'Institutes', icon: '🏛' },
+  { to: '/institutes', label: 'Institutes & Reminders', icon: '🏛' },
+  { to: '/admin/marketing', label: 'Marketing Leads', icon: '📢' },
   { to: '/admin/subscriptions', label: 'College Subscriptions', icon: '🏷️' },
   { to: '/admin/websites', label: 'College Websites & Features', icon: '🌐' },
   { to: '/admin/marketplace', label: 'Master Bookstore & Syndication', icon: '📚' },
@@ -84,6 +85,7 @@ const instituteNavItems = [
   { to: '/student-analytics', label: 'Student Analytics', icon: '📈' },
   { to: '/bookstore', label: 'Study Materials & Store', icon: '📚' },
   { to: '/website-builder', label: 'College Website', icon: '🌐' },
+  { to: '/promote', label: 'Promote & Marketing', icon: '📢' },
   { to: '/questions', label: 'Question Bank', icon: '▤' },
   { to: '/my-institute', label: 'My Institute Profile', icon: '🏛' },
   { to: '/subscriptions', label: 'Plans & Modules', icon: '🏷️' },
@@ -117,6 +119,7 @@ export default function Layout() {
   const location = useLocation();
   const isAdmin = user?.role === 'ADMIN';
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [alertDismissed, setAlertDismissed] = useState(() => sessionStorage.getItem('dismiss_qs_recharge_alert') === 'true');
 
   useEffect(() => {
     setMobileOpen(false);
@@ -332,6 +335,109 @@ export default function Layout() {
 
       {/* Main Page Content */}
       <main className="main">
+        {/* Feature 1: College Admin Panel Recharge Reminder Banners */}
+        {!isAdmin && user && typeof user.creditBalance === 'number' && user.creditBalance <= 50 && (!alertDismissed || user.creditBalance <= 10) && (
+          <div
+            style={{
+              margin: '0 0 16px',
+              padding: '12px 16px',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+              background: user.creditBalance <= 10
+                ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'
+                : user.creditBalance <= 25
+                ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)'
+                : 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+              border: user.creditBalance <= 10
+                ? '1px solid #f87171'
+                : user.creditBalance <= 25
+                ? '1px solid #fb923c'
+                : '1px solid #facc15',
+              color: user.creditBalance <= 10 ? '#991b1b' : user.creditBalance <= 25 ? '#9a3412' : '#854d0e',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 260 }}>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>
+                {user.creditBalance <= 10 ? '🚨' : user.creditBalance <= 25 ? '🔔' : '⚠️'}
+              </span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>
+                    {user.creditBalance <= 10
+                      ? 'Recharge Alert 3 of 3: Critical / Balance Exhausted!'
+                      : user.creditBalance <= 25
+                      ? 'Recharge Reminder 2 of 3: Action Required'
+                      : 'Recharge Reminder 1 of 3: Low Balance Notice'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: user.creditBalance <= 10 ? '#b91c1c' : user.creditBalance <= 25 ? '#c2410c' : '#ca8a04',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {user.creditBalance} Credits Left
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, opacity: 0.92, marginTop: 2 }}>
+                  {user.creditBalance <= 10
+                    ? 'Your question generation balance is critically low. Paper generation & online exam activations are suspended until topped up.'
+                    : user.creditBalance <= 25
+                    ? 'Only a few credits remain for test generation. Recharge now to ensure uninterrupted staff access.'
+                    : 'Your balance is running low. Top up today with instant UPI or Razorpay with zero disruption to upcoming exams.'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <NavLink
+                to="/recharge"
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: 8,
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  textDecoration: 'none',
+                  background: user.creditBalance <= 10 ? '#dc2626' : user.creditBalance <= 25 ? '#ea580c' : '#d97706',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ⚡ Recharge Now
+              </NavLink>
+              {user.creditBalance > 10 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem('dismiss_qs_recharge_alert', 'true');
+                    setAlertDismissed(true);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    padding: '4px 8px',
+                    color: 'inherit',
+                    opacity: 0.7,
+                  }}
+                  title="Dismiss for this session"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <Outlet />
       </main>
 

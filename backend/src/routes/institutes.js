@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
 const { adjustCredits } = require('../lib/credits');
+const whatsAppService = require('../lib/whatsapp');
 
 const router = express.Router();
 
@@ -35,6 +36,9 @@ function formatInstitute(i) {
     whatsAppWalletBalance: i.whatsAppWalletBalance ?? 0.0,
     isTrial: i.isTrial,
     trialPhoneNumber: i.trialPhoneNumber,
+    rechargeReminderCount: i.rechargeReminderCount ?? 0,
+    lastRechargeReminderAt: i.lastRechargeReminderAt ?? null,
+    lastRechargeReminderLevel: i.lastRechargeReminderLevel ?? null,
   };
 }
 
@@ -462,6 +466,141 @@ router.get('/:id/login-info', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch login info' });
+  }
+});
+
+/**
+ * POST /api/institutes/:id/send-recharge-reminder
+ * ADMIN ONLY — sends WhatsApp recharge reminder (Level 1, 2, or 3) to the college management phone,
+ * and increments reminder counters.
+ */
+router.post('/:id/send-recharge-reminder', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requestedLevel = req.body.alertLevel ? Number(req.body.alertLevel) : null;
+
+    const institute = await prisma.institute.findUnique({ where: { id } });
+    if (!institute) return res.status(404).json({ error: 'Institute not found.' });
+
+    // Determine target phone number
+    const targetPhone = institute.phone || institute.trialPhoneNumber;
+    if (!targetPhone) {
+      return res.status(400).json({ error: 'This institute does not have a registered contact phone number to receive WhatsApp alerts.' });
+    }
+
+    // Determine alert level:
+    // If explicitly provided (1, 2, or 3), use that.
+    // Otherwise, auto-escalate based on previous count: 1 -> 2 -> 3 (max 3, cycles or holds at 3).
+    let alertLevel = requestedLevel;
+    if (!alertLevel || alertLevel < 1 || alertLevel > 3) {
+      const prevLevel = institute.lastRechargeReminderLevel || 0;
+      alertLevel = Math.min(prevLevel + 1, 3);
+    }
+
+    // Dispatch WhatsApp alert
+    const sent = await whatsAppService.sendRechargeReminderAlert({
+      collegeName: institute.name,
+      phone: targetPhone,
+      currentCredits: institute.creditBalance,
+      alertLevel,
+      rechargeUrl: `${process.env.APP_URL || 'https://questionstudio.in'}/#/recharge`,
+    });
+
+    // Update database records
+    const updated = await prisma.institute.update({
+      where: { id },
+      data: {
+        rechargeReminderCount: { increment: 1 },
+        lastRechargeReminderAt: new Date(),
+        lastRechargeReminderLevel: alertLevel,
+      },
+    });
+
+    res.json({
+      ok: true,
+      sent,
+      alertLevel,
+      phone: targetPhone,
+      rechargeReminderCount: updated.rechargeReminderCount,
+      lastRechargeReminderAt: updated.lastRechargeReminderAt,
+      message: `Recharge Reminder Level ${alertLevel} sent successfully to ${targetPhone} (${institute.name}).`,
+    });
+  } catch (err) {
+    console.error('Failed to send recharge reminder:', err);
+    res.status(500).json({ error: 'Failed to send recharge reminder: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/institutes/send-recharge-reminders-batch
+ * ADMIN ONLY — scans all colleges with low credit balances (<= 50 credits) and dispatches
+ * automated WhatsApp recharge reminders to their registered phone numbers.
+ */
+router.post('/send-recharge-reminders-batch', requireAdmin, async (req, res) => {
+  try {
+    const threshold = req.body.threshold ? Number(req.body.threshold) : 50;
+
+    const lowBalanceColleges = await prisma.institute.findMany({
+      where: {
+        creditBalance: { lte: threshold },
+      },
+    });
+
+    const results = [];
+    for (const inst of lowBalanceColleges) {
+      const phone = inst.phone || inst.trialPhoneNumber;
+      if (!phone) {
+        results.push({ id: inst.id, name: inst.name, sent: false, reason: 'No phone number' });
+        continue;
+      }
+
+      // Calculate level based on balance urgency
+      let level = 1;
+      if (inst.creditBalance <= 10) level = 3;
+      else if (inst.creditBalance <= 25) level = 2;
+      else level = 1;
+
+      try {
+        await whatsAppService.sendRechargeReminderAlert({
+          collegeName: inst.name,
+          phone,
+          currentCredits: inst.creditBalance,
+          alertLevel: level,
+          rechargeUrl: `${process.env.APP_URL || 'https://questionstudio.in'}/#/recharge`,
+        });
+
+        const updated = await prisma.institute.update({
+          where: { id: inst.id },
+          data: {
+            rechargeReminderCount: { increment: 1 },
+            lastRechargeReminderAt: new Date(),
+            lastRechargeReminderLevel: level,
+          },
+        });
+
+        results.push({
+          id: inst.id,
+          name: inst.name,
+          phone,
+          credits: inst.creditBalance,
+          alertLevel: level,
+          sent: true,
+          reminderCount: updated.rechargeReminderCount,
+        });
+      } catch (e) {
+        results.push({ id: inst.id, name: inst.name, sent: false, error: e.message });
+      }
+    }
+
+    res.json({
+      ok: true,
+      totalChecked: lowBalanceColleges.length,
+      dispatchedCount: results.filter((r) => r.sent).length,
+      results,
+    });
+  } catch (err) {
+    console.error('Failed batch recharge reminders:', err);
+    res.status(500).json({ error: 'Failed batch recharge reminders: ' + err.message });
   }
 });
 

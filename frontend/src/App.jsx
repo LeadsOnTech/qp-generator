@@ -56,6 +56,9 @@ import CollegeSubscriptionPlans from './pages/CollegeSubscriptionPlans';
 import CollegeBookstore from './pages/CollegeBookstore';
 import SuperAdminMarketplace from './pages/SuperAdminMarketplace';
 import PublicStore from './pages/PublicStore';
+import CollegeMarketingPromote from './pages/CollegeMarketingPromote';
+import SuperAdminMarketingLeads from './pages/SuperAdminMarketingLeads';
+import FloatingWhatsAppWidget from './components/FloatingWhatsAppWidget';
 
 export default function App() {
   return (
@@ -70,6 +73,8 @@ export default function App() {
           <Route path="/store" element={<PublicStore />} />
           <Route path="/books" element={<PublicStore />} />
           <Route path="/materials" element={<PublicStore />} />
+          <Route path="/promote" element={<CollegeMarketingPromote />} />
+          <Route path="/marketing" element={<CollegeMarketingPromote />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
@@ -118,6 +123,7 @@ export default function App() {
               <Route path="/institute-dashboard" element={<InstituteDashboard />} />
               <Route path="/bookstore" element={<CollegeBookstore />} />
               <Route path="/website-builder" element={<CollegeWebsiteBuilder />} />
+              <Route path="/promote" element={<CollegeMarketingPromote />} />
               <Route path="/my-institute" element={<MyInstituteProfile />} />
               <Route path="/subscriptions" element={<CollegeSubscriptionPlans />} />
               <Route path="/recharge" element={<Recharge />} />
@@ -136,6 +142,7 @@ export default function App() {
                 <Route path="/checks" element={<QualityChecks />} />
                 <Route path="/analytics/:chapterId" element={<ChapterAnalytics />} />
                 <Route path="/institutes" element={<Institutes />} />
+                <Route path="/admin/marketing" element={<SuperAdminMarketingLeads />} />
                 <Route path="/admin/websites" element={<SuperAdminWebsites />} />
                 <Route path="/admin/marketplace" element={<SuperAdminMarketplace />} />
                 <Route path="/admin/subscriptions" element={<CollegeSubscriptions />} />
@@ -146,6 +153,7 @@ export default function App() {
             </Route>
           </Route>
         </Routes>
+        <FloatingWhatsAppWidget />
       </ErrorBoundary>
     </AuthProvider>
   </HashRouter>

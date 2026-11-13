@@ -121,6 +121,12 @@ model Institute {
   marketplaceLedgerEntries      MarketplaceLedgerEntry[]
   marketplaceCoupons            MarketplaceCoupon[]
   marketplacePayoutRequests     MarketplacePayoutRequest[]
+
+  // Recharge Reminders & Alerts
+  rechargeReminderCount         Int                           @default(0)
+  lastRechargeReminderAt        DateTime?
+  lastRechargeReminderLevel     Int?
+  marketingPromotionLeads       MarketingPromotionLead[]
 }
 
 // ---------- Credit ledger ----------
@@ -1464,6 +1470,32 @@ model MarketplacePayoutRequest {
   @@index([instituteId])
   @@index([status])
 }
+
+model MarketingPromotionLead {
+  id                String     @id @default(cuid())
+  instituteId       String?
+  institute         Institute? @relation(fields: [instituteId], references: [id], onDelete: SetNull)
+  collegeName       String
+  contactPerson     String
+  designation       String?
+  phone             String
+  email             String?
+  promotionGoals    String
+  targetCities      String?
+  budgetRange       String?
+  estimatedStudents String?
+  campaignNotes     String?
+  status            String     @default("NEW") // NEW | CONTACTED | PROPOSAL_SENT | CONVERTED | CLOSED
+  adminNotes        String?
+  contactedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([instituteId])
+  @@index([status])
+  @@index([phone])
+}
+
 
 
 

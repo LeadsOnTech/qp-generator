@@ -22,6 +22,22 @@ async function ensureMarketplaceSchema() {
     // Column already exists, safe to ignore
   }
 
+  // Recharge Reminders & Alerts columns for Institute
+  try {
+    await db.$executeRawUnsafe(`ALTER TABLE "Institute" ADD COLUMN "rechargeReminderCount" INTEGER NOT NULL DEFAULT 0;`);
+    console.log('[MARKETPLACE SYNC] Added rechargeReminderCount to Institute');
+  } catch (e) {}
+
+  try {
+    await db.$executeRawUnsafe(`ALTER TABLE "Institute" ADD COLUMN "lastRechargeReminderAt" DATETIME;`);
+    console.log('[MARKETPLACE SYNC] Added lastRechargeReminderAt to Institute');
+  } catch (e) {}
+
+  try {
+    await db.$executeRawUnsafe(`ALTER TABLE "Institute" ADD COLUMN "lastRechargeReminderLevel" INTEGER;`);
+    console.log('[MARKETPLACE SYNC] Added lastRechargeReminderLevel to Institute');
+  } catch (e) {}
+
   // 2. MarketplaceBook base table
   await db.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "MarketplaceBook" (
@@ -272,6 +288,33 @@ async function ensureMarketplaceSchema() {
   `);
   await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplacePayoutRequest_instituteId_idx" ON "MarketplacePayoutRequest"("instituteId");`);
   await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketplacePayoutRequest_status_idx" ON "MarketplacePayoutRequest"("status");`);
+
+  // MarketingPromotionLead table
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "MarketingPromotionLead" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "instituteId" TEXT,
+      "collegeName" TEXT NOT NULL,
+      "contactPerson" TEXT NOT NULL,
+      "designation" TEXT,
+      "phone" TEXT NOT NULL,
+      "email" TEXT,
+      "promotionGoals" TEXT NOT NULL,
+      "targetCities" TEXT,
+      "budgetRange" TEXT,
+      "estimatedStudents" TEXT,
+      "campaignNotes" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'NEW',
+      "adminNotes" TEXT,
+      "contactedAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MarketingPromotionLead_instituteId_fkey" FOREIGN KEY ("instituteId") REFERENCES "Institute" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    );
+  `);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketingPromotionLead_instituteId_idx" ON "MarketingPromotionLead"("instituteId");`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketingPromotionLead_status_idx" ON "MarketingPromotionLead"("status");`);
+  await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "MarketingPromotionLead_phone_idx" ON "MarketingPromotionLead"("phone");`);
 
   // Indexes
   await db.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "MarketplaceOrder_orderNumber_key" ON "MarketplaceOrder"("orderNumber");`);

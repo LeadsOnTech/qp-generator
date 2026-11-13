@@ -38,6 +38,8 @@ export default function MarketingFooter() {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
             <li><Link to="/features" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Features &amp; Highlights</Link></li>
             <li><Link to="/pricing" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Pricing &amp; Credit Bundles</Link></li>
+            <li><Link to="/store" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Books &amp; Materials Store</Link></li>
+            <li><Link to="/promote" style={{ color: '#F6C84C', fontWeight: 700, textDecoration: 'none' }}>📢 Promote Courses &amp; Exams</Link></li>
             <li><Link to="/signup" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Claim 200 Free Credits</Link></li>
             <li><Link to="/login" style={{ color: 'rgba(255,255,255,0.75)', textDecoration: 'none' }}>Institute Sign In</Link></li>
           </ul>

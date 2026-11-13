@@ -55,6 +55,53 @@ export default function Institutes() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(null);
 
+  // Recharge Reminders State (Phase 11)
+  const [reminderTarget, setReminderTarget] = useState(null);
+  const [reminderLevel, setReminderLevel] = useState(1);
+  const [reminderBusy, setReminderBusy] = useState(false);
+  const [batchReminderBusy, setBatchReminderBusy] = useState(false);
+
+  function openReminderModal(inst) {
+    setReminderTarget(inst);
+    // Auto-select smart level
+    const nextLevel = Math.min((inst.lastRechargeReminderLevel || 0) + 1, 3);
+    setReminderLevel(nextLevel || 1);
+    setError(null);
+  }
+
+  async function submitReminder() {
+    if (!reminderTarget) return;
+    setReminderBusy(true);
+    setError(null);
+    try {
+      const res = await api.sendRechargeReminder(reminderTarget.id, reminderLevel);
+      setMessage(`✅ ${res.message || `Recharge Reminder Level ${reminderLevel} dispatched to ${reminderTarget.name}.`}`);
+      setReminderTarget(null);
+      load();
+    } catch (err) {
+      setError(err.message || 'Failed to dispatch recharge reminder');
+    } finally {
+      setReminderBusy(false);
+    }
+  }
+
+  async function submitBatchReminders() {
+    if (!window.confirm('Send automated WhatsApp recharge reminders to all colleges with low balance (<= 50 credits)?')) {
+      return;
+    }
+    setBatchReminderBusy(true);
+    setError(null);
+    try {
+      const res = await api.sendBatchRechargeReminders(50);
+      setMessage(`✅ Batch reminders sent: ${res.dispatchedCount} colleges notified via WhatsApp.`);
+      load();
+    } catch (err) {
+      setError(err.message || 'Failed to send batch recharge reminders');
+    } finally {
+      setBatchReminderBusy(false);
+    }
+  }
+
   async function openLoginModal(inst) {
     setLoginTarget(inst);
     setLoginEmail('');
@@ -311,7 +358,24 @@ export default function Institutes() {
         </div>
       </div>
 
-      <h3 style={{ margin: '0 0 14px', fontSize: 17 }}>Saved institutes ({institutes.length})</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 14px', flexWrap: 'wrap', gap: 10 }}>
+        <h3 style={{ margin: 0, fontSize: 17 }}>Saved institutes ({institutes.length})</h3>
+        {institutes.filter((i) => (i.creditBalance ?? 0) <= 50).length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: '#b45309', fontWeight: 600 }}>
+              ⚠️ {institutes.filter((i) => (i.creditBalance ?? 0) <= 50).length} colleges low on credits (≤ 50)
+            </span>
+            <button
+              className="btn"
+              style={{ background: '#d97706', color: '#fff', fontSize: 12.5, padding: '5px 12px' }}
+              onClick={submitBatchReminders}
+              disabled={batchReminderBusy}
+            >
+              {batchReminderBusy ? 'Sending…' : '⚡ Batch WhatsApp Reminders'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <div className="skeleton" style={{ height: 160 }} />
@@ -334,6 +398,16 @@ export default function Institutes() {
               {inst.address && <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>{inst.address}</div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                 <span className="badge badge-gold">{inst.creditBalance ?? 0} Credits</span>
+                {(inst.creditBalance ?? 0) <= 50 && (
+                  <span className="badge" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontSize: 11, fontWeight: 700 }}>
+                    ⚠️ Low Balance
+                  </span>
+                )}
+                {inst.rechargeReminderCount > 0 && (
+                  <span className="badge" style={{ background: '#f1f5f9', color: '#475569', fontSize: 11 }}>
+                    📲 Reminded {inst.rechargeReminderCount}x (Lvl {inst.lastRechargeReminderLevel || 1})
+                  </span>
+                )}
                 <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: 11.5, fontWeight: 700 }}>
                   💬 ₹{(inst.whatsAppWalletBalance ?? 0).toFixed(2)} WA
                 </span>
@@ -343,6 +417,7 @@ export default function Institutes() {
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => startEdit(inst)}>Edit</button>
                 <button className="btn-danger-ghost" onClick={() => remove(inst.id, inst.name)}>Delete</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5 }} onClick={() => openRecharge(inst)}>+ Credits</button>
+                <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#d97706', fontWeight: 700 }} onClick={() => openReminderModal(inst)}>📲 Remind</button>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#047857', fontWeight: 700 }} onClick={() => openWaRecharge(inst)}>💬 + WA ₹</button>
                 <Link to="/admin/subscriptions" className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#7c3aed', fontWeight: 700 }}>🏷️ Subscriptions</Link>
                 <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12.5, color: '#2563eb', fontWeight: 600 }} onClick={() => openLoginModal(inst)}>🔑 Login</button>
@@ -492,6 +567,91 @@ export default function Institutes() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-primary" onClick={submitRecharge} disabled={rechargeBusy}>{rechargeBusy ? 'Saving…' : 'Confirm'}</button>
               <button className="btn btn-ghost" onClick={() => setRechargeTarget(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recharge Reminder Dispatch Modal */}
+      {reminderTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(16,29,51,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setReminderTarget(null)}
+        >
+          <div className="card card-pad" style={{ width: 480, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h3 style={{ margin: 0 }}>📲 Send Recharge Reminder</h3>
+              <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px' }} onClick={() => setReminderTarget(null)}>✕</button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 14 }}>
+              Dispatch an official WhatsApp low-balance reminder to college management.
+            </p>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                🏛️ {reminderTarget.name}
+              </div>
+              <div style={{ fontSize: 12.5, color: '#475569', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                <span><b>Balance:</b> <span style={{ color: reminderTarget.creditBalance <= 10 ? '#dc2626' : '#d97706', fontWeight: 700 }}>{reminderTarget.creditBalance ?? 0} Credits</span></span>
+                <span><b>Phone:</b> {reminderTarget.phone || reminderTarget.trialPhoneNumber || <span style={{ color: '#dc2626' }}>No phone registered</span>}</span>
+                <span><b>Sent so far:</b> {reminderTarget.rechargeReminderCount || 0} times</span>
+              </div>
+            </div>
+
+            <div className="field">
+              <label style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, display: 'block' }}>Choose Reminder Level (1, 2, or 3):</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {[
+                  { lvl: 1, label: 'Level 1', title: 'Gentle Notice', desc: 'Credits running low', color: '#d97706', bg: '#fef3c7' },
+                  { lvl: 2, label: 'Level 2', title: 'Action Required', desc: 'Exhaustion approaching', color: '#ea580c', bg: '#ffedd5' },
+                  { lvl: 3, label: 'Level 3', title: 'Urgent Alert', desc: 'Critical / Suspended', color: '#dc2626', bg: '#fee2e2' },
+                ].map((tier) => (
+                  <button
+                    key={tier.lvl}
+                    type="button"
+                    onClick={() => setReminderLevel(tier.lvl)}
+                    style={{
+                      border: reminderLevel === tier.lvl ? `2px solid ${tier.color}` : '1px solid #cbd5e1',
+                      background: reminderLevel === tier.lvl ? tier.bg : '#ffffff',
+                      borderRadius: 8,
+                      padding: '10px 8px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: 13, color: tier.color }}>{tier.label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#334155' }}>{tier.title}</div>
+                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{tier.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background: '#f1f5f9', borderRadius: 8, padding: 12, marginTop: 12, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>
+                WhatsApp Notification Preview:
+              </div>
+              <div style={{ fontSize: 12, color: '#1e293b', whiteSpace: 'pre-wrap', fontFamily: 'sans-serif' }}>
+                {reminderLevel === 1 && `⚠️ Recharge Reminder 1 of 3: Low Credit Balance\n\nDear Management of ${reminderTarget.name},\nYour QuestionStudio credit balance is running low at ${reminderTarget.creditBalance ?? 0} credits. To ensure smooth and uninterrupted question paper generation, CBT exams, and student result publishing, we recommend topping up your account today.\n\n⚡ Instant Recharge Link: https://questionstudio.in/#/recharge`}
+                {reminderLevel === 2 && `🔔 Recharge Reminder 2 of 3: Action Required\n\nDear Management of ${reminderTarget.name},\nThis is a follow-up reminder. Your balance is now ${reminderTarget.creditBalance ?? 0} credits. Question paper generation will pause once credits reach zero. Recharge now using instant UPI or Razorpay with instant credit activation.\n\n⚡ Instant Recharge Link: https://questionstudio.in/#/recharge`}
+                {reminderLevel === 3 && `🚨 URGENT: QuestionStudio Credit Balance Critical / Exhausted\n\nDear Management of ${reminderTarget.name},\nYour question generation credits have reached ${reminderTarget.creditBalance ?? 0} credits. Paper generation and test publishing services are currently on hold. Please recharge immediately to resume normal academic operations.\n\n⚡ Instant Recharge Link: https://questionstudio.in/#/recharge`}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                style={{
+                  background: reminderLevel === 3 ? '#dc2626' : reminderLevel === 2 ? '#ea580c' : '#d97706',
+                  borderColor: 'transparent',
+                }}
+                onClick={submitReminder}
+                disabled={reminderBusy || (!reminderTarget.phone && !reminderTarget.trialPhoneNumber)}
+              >
+                {reminderBusy ? 'Dispatching WhatsApp…' : `📲 Send Level ${reminderLevel} WhatsApp Reminder`}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setReminderTarget(null)}>Cancel</button>
             </div>
           </div>
         </div>
