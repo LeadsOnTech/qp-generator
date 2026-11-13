@@ -427,11 +427,16 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
       return res.status(404).send('No questions found for this upload batch.');
     }
 
-    // Default to ALL questions in the batch unless a specific numeric limit is explicitly requested
-    let limit = undefined;
-    if (req.query.limit && req.query.limit !== 'all') {
+    // Fast Smart Preview: Default to first 50 questions for large batches (> 50 Qs) for instant 1-2s preview,
+    // or allow ?limit=all to render full batch. For batches with <= 50 Qs, renders all questions.
+    let limit = 50;
+    if (req.query.limit === 'all') {
+      limit = undefined;
+    } else if (req.query.limit) {
       const parsed = parseInt(req.query.limit, 10);
-      if (!isNaN(parsed) && parsed > 0) limit = parsed;
+      if (!isNaN(parsed) && parsed > 0) limit = Math.min(parsed, 1000);
+    } else if (totalCount <= 50) {
+      limit = undefined;
     }
 
     const questions = await prisma.question.findMany({
@@ -447,7 +452,7 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
 
     const baseName = (batch?.fileName || `batch-${req.params.batchId}`).replace(/\.xlsx?$|\.csv$/i, '');
     const isSample = totalCount > questions.length;
-    const filename = `preview-${baseName}_${questions.length}Q.pdf`;
+    const filename = `preview-${baseName}${isSample ? `_sample_${questions.length}Q` : `_${questions.length}Q`}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
@@ -455,7 +460,7 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
     const examName = questions[0]?.chapter?.subject?.exam?.name || 'Question Bank';
     const paper = {
       title: batch
-        ? `Batch Ingestion Preview: ${baseName} (${questions.length} Questions)`
+        ? `Batch Ingestion Preview: ${baseName}${isSample ? ` (Sample: 1 to ${questions.length} of ${totalCount} Questions)` : ` (${totalCount} Questions)`}`
         : 'Batch Upload Preview',
       instituteName: 'QuestionStudio Ingestion Suite',
       examName,

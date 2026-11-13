@@ -341,9 +341,9 @@ export default function Upload() {
                         style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
                         disabled={previewingBatchId === b.id}
                         onClick={() => handlePreviewBatch(b)}
-                        title="Download & Preview all questions in this batch as PDF"
+                        title="Download & Preview this batch as PDF"
                       >
-                        {previewingBatchId === b.id ? `⏳ Preparing ${(b.questionsAdded || b.successCount) ? `${b.questionsAdded || b.successCount} Qs...` : '...'}` : '📄 Preview PDF'}
+                        {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
                       </button>
                       <Link
                         to="/questions"
@@ -424,7 +424,7 @@ export default function Upload() {
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B' }}>
                     <strong>{previewModal.fileName}</strong>
-                    {previewModal.totalCount ? ` • Total ${previewModal.totalCount} questions in batch` : ''}
+                    {previewModal.totalCount ? ` • ${previewModal.totalCount > 50 ? `Preview sample (First 50 of ${previewModal.totalCount} questions in batch)` : `Total ${previewModal.totalCount} questions in batch`}` : ''}
                   </p>
                 </div>
               </div>
@@ -436,10 +436,10 @@ export default function Upload() {
                     className="btn btn-secondary"
                     style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600 }}
                     disabled={previewingBatchId === previewModal.batchId}
-                    onClick={() => handlePreviewBatch(previewModal.rawBatch || previewModal.batchId, 50)}
-                    title="Switch to quick 50-question sample"
+                    onClick={() => handlePreviewBatch(previewModal.rawBatch || previewModal.batchId, 'all')}
+                    title="Render all questions from this batch into a single complete PDF"
                   >
-                    ⚡ Sample First 50 Qs
+                    {previewingBatchId === previewModal.batchId ? '⏳ Compiling All Questions...' : '📦 Load Full Batch (All Qs)'}
                   </button>
                 )}
 
