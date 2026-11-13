@@ -238,39 +238,67 @@ router.delete('/:id', requireAdmin, async (req, res) => {
  * there is no way to retrieve it again later. Copy it now.
  */
 router.post('/trial', requireAdmin, async (req, res) => {
-  const { instituteName, phone } = req.body;
-  const { email, password } = generateDummyCredentials();
-  const passwordHash = await bcrypt.hash(password, 10);
+  try {
+    const { instituteName, phone } = req.body;
+    let { email, password } = generateDummyCredentials();
 
-  const name = (instituteName && instituteName.trim()) || `Trial Account ${new Date().toLocaleDateString('en-IN')}`;
-  let slug = slugify(name) + '-' + crypto.randomBytes(2).toString('hex');
+    // Prevent email collision
+    let existingUser = await prisma.user.findUnique({ where: { email } });
+    let attempts = 0;
+    while (existingUser && attempts < 5) {
+      const creds = generateDummyCredentials();
+      email = creds.email;
+      password = creds.password;
+      existingUser = await prisma.user.findUnique({ where: { email } });
+      attempts++;
+    }
 
-  const institute = await prisma.institute.create({
-    data: {
-      name,
-      slug,
-      isTrial: true,
-      trialPhoneNumber: phone || null,
-      trialPassword: password,
-      creditBalance: 200,
-    },
-  });
+    const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.creditTransaction.create({
-    data: { instituteId: institute.id, amount: 200, reason: 'Trial account created', balanceAfter: 200 },
-  });
+    const name = (instituteName && instituteName.trim()) || `Trial Account ${new Date().toLocaleDateString('en-IN')}`;
+    let baseSlug = slugify(name);
+    if (!baseSlug) baseSlug = 'trial';
+    let slug = `${baseSlug}-${crypto.randomBytes(2).toString('hex')}`;
 
-  const user = await prisma.user.create({
-    data: { email, passwordHash, role: 'INSTITUTE', instituteId: institute.id },
-  });
+    // Prevent slug collision
+    let existingSlug = await prisma.institute.findUnique({ where: { slug } });
+    let slugAttempts = 0;
+    while (existingSlug && slugAttempts < 5) {
+      slug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`;
+      existingSlug = await prisma.institute.findUnique({ where: { slug } });
+      slugAttempts++;
+    }
 
-  res.json({
-    instituteId: institute.id,
-    instituteName: institute.name,
-    email,
-    password, // plain text — shown once, never retrievable again
-    creditsGranted: 200,
-  });
+    const institute = await prisma.institute.create({
+      data: {
+        name,
+        slug,
+        isTrial: true,
+        trialPhoneNumber: phone ? phone.trim() : null,
+        trialPassword: password,
+        creditBalance: 200,
+      },
+    });
+
+    await prisma.creditTransaction.create({
+      data: { instituteId: institute.id, amount: 200, reason: 'Trial account created', balanceAfter: 200 },
+    });
+
+    const user = await prisma.user.create({
+      data: { email, passwordHash, role: 'INSTITUTE', instituteId: institute.id },
+    });
+
+    res.json({
+      instituteId: institute.id,
+      instituteName: institute.name,
+      email,
+      password, // plain text — shown once, never retrievable again
+      creditsGranted: 200,
+    });
+  } catch (err) {
+    console.error('[TRIAL CREATE ERROR]', err);
+    res.status(500).json({ error: 'Failed to generate trial login: ' + err.message });
+  }
 });
 
 /**
@@ -280,30 +308,35 @@ router.post('/trial', requireAdmin, async (req, res) => {
  * whether it's been logged into yet, and how many credits are left.
  */
 router.get('/trial/list', requireAdmin, async (req, res) => {
-  const trials = await prisma.institute.findMany({
-    where: { isTrial: true },
-    include: { users: { select: { email: true, lastLoginAt: true, createdAt: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  try {
+    const trials = await prisma.institute.findMany({
+      where: { isTrial: true },
+      include: { users: { select: { email: true, lastLoginAt: true, createdAt: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  res.json(trials.map((t) => {
-    const user = t.users[0] || null;
-    let status = 'Not yet used';
-    if (user?.lastLoginAt) {
-      status = t.creditBalance <= 0 ? 'Credits exhausted' : 'Active / in use';
-    }
-    return {
-      id: t.id,
-      name: t.name,
-      phone: t.trialPhoneNumber,
-      email: user?.email || null,
-      password: t.trialPassword || 'N/A', // Display the stored plaintext password
-      creditBalance: t.creditBalance,
-      status,
-      createdAt: t.createdAt,
-      lastLoginAt: user?.lastLoginAt || null,
-    };
-  }));
+    res.json(trials.map((t) => {
+      const user = t.users[0] || null;
+      let status = 'Not yet used';
+      if (user?.lastLoginAt) {
+        status = t.creditBalance <= 0 ? 'Credits exhausted' : 'Active / in use';
+      }
+      return {
+        id: t.id,
+        name: t.name,
+        phone: t.trialPhoneNumber,
+        email: user?.email || null,
+        password: t.trialPassword || 'N/A', // Display the stored plaintext password
+        creditBalance: t.creditBalance,
+        status,
+        createdAt: t.createdAt,
+        lastLoginAt: user?.lastLoginAt || null,
+      };
+    }));
+  } catch (err) {
+    console.error('[TRIAL LIST ERROR]', err);
+    res.status(500).json({ error: 'Failed to load trial accounts: ' + err.message });
+  }
 });
 
 /**
