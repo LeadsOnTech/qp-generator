@@ -824,10 +824,12 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
     let col = 0;
     let pages = 1;
     let pageItems = [[]];
+    const itemHeights = [];
 
     for (let i = 0; i < renderItems.length; i++) {
       const q = renderItems[i];
       const h = measureQuestionHeight(doc, q, q._renderIndex, cw, fs, gap, optionFormat, answerFormat);
+      itemHeights[i] = h;
       
       if (colY[col] + h > bLimit) {
         if (col === 0) {
@@ -859,6 +861,7 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
       fillRatio,
       lastPageItemsCount: lastPageItems.length,
       pageItems,
+      itemHeights,
       fontSize: fs,
       gap,
       margin: m,
@@ -961,7 +964,9 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
 
   renderItems.forEach((q, i) => {
     const index = q._renderIndex;
-    const h = measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap, optionFormat, answerFormat);
+    const h = (best.itemHeights && best.itemHeights[i] != null)
+      ? best.itemHeights[i]
+      : measureQuestionHeight(doc, q, index, colWidth, best.fontSize, best.gap, optionFormat, answerFormat);
 
     if (colY[col] + h > (col === 0 ? currentActiveBottomLimit : bottomLimit)) {
       if (col === 0) {

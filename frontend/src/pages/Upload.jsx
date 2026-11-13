@@ -341,9 +341,9 @@ export default function Upload() {
                         style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
                         disabled={previewingBatchId === b.id}
                         onClick={() => handlePreviewBatch(b)}
-                        title="Download & Preview this batch as PDF"
+                        title="Download & Preview all questions in this batch as PDF"
                       >
-                        {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
+                        {previewingBatchId === b.id ? `⏳ Preparing ${(b.questionsAdded || b.successCount) ? `${b.questionsAdded || b.successCount} Qs...` : '...'}` : '📄 Preview PDF'}
                       </button>
                       <Link
                         to="/questions"
@@ -436,10 +436,10 @@ export default function Upload() {
                     className="btn btn-secondary"
                     style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600 }}
                     disabled={previewingBatchId === previewModal.batchId}
-                    onClick={() => handlePreviewBatch(previewModal.rawBatch || previewModal.batchId, 'all')}
-                    title="Render all questions from this batch into a single complete PDF"
+                    onClick={() => handlePreviewBatch(previewModal.rawBatch || previewModal.batchId, 50)}
+                    title="Switch to quick 50-question sample"
                   >
-                    {previewingBatchId === previewModal.batchId ? '⏳ Compiling All Questions...' : '📦 Load Full Batch (All Qs)'}
+                    ⚡ Sample First 50 Qs
                   </button>
                 )}
 
