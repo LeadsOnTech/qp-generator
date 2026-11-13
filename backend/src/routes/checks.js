@@ -1,28 +1,41 @@
 const express = require('express');
 const prisma = require('../db');
-const { runChecks } = require('../lib/checkEngine');
+const { runChecks, ruleBasedCheck, isNVQQuestion } = require('../lib/checkEngine');
 
 const router = express.Router();
 
 /**
  * POST /api/checks/run
- * Runs the subject-specialist checkers on every question that hasn't been
- * checked yet (checkStatus is null). Stores PASSED/FLAGGED + issues.
- * A question keeps its existing difficulty/bank status either way — being
- * FLAGGED only affects whether it's eligible for paper generation.
+ * Runs the subject-specialist checkers on questions. If new unchecked questions
+ * exist, checks them. If no unchecked questions remain, re-evaluates FLAGGED
+ * questions so updated rules (like NVQ support) can automatically clear them.
  */
 router.post('/run', async (req, res) => {
-  const unchecked = await prisma.question.findMany({
+  const recheckFlagged = req.query.recheckFlagged === 'true' || req.body?.recheckFlagged === true;
+  let questionsToCheck = await prisma.question.findMany({
     where: { isActive: true, checkStatus: null },
     include: { chapter: { include: { subject: true } } },
     take: 500,
   });
 
-  if (unchecked.length === 0) {
-    return res.json({ checked: 0, engine: null, message: 'Every active question has already been checked.' });
+  let isRecheckMode = false;
+  if (questionsToCheck.length === 0 || recheckFlagged) {
+    const flagged = await prisma.question.findMany({
+      where: { isActive: true, checkStatus: 'FLAGGED' },
+      include: { chapter: { include: { subject: true } } },
+      take: 500,
+    });
+    if (flagged.length > 0) {
+      questionsToCheck = flagged;
+      isRecheckMode = true;
+    }
   }
 
-  const inputs = unchecked.map((q) => ({
+  if (questionsToCheck.length === 0) {
+    return res.json({ checked: 0, engine: null, message: 'Every active question has already been checked and no flagged questions remain.' });
+  }
+
+  const inputs = questionsToCheck.map((q) => ({
     questionText: q.questionText,
     options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
     correctOption: q.correctOption,
@@ -33,9 +46,9 @@ router.post('/run', async (req, res) => {
 
   const results = await runChecks(inputs);
 
-  for (let i = 0; i < unchecked.length; i++) {
+  for (let i = 0; i < questionsToCheck.length; i++) {
     await prisma.question.update({
-      where: { id: unchecked[i].id },
+      where: { id: questionsToCheck[i].id },
       data: {
         checkStatus: results[i].status,
         checkIssues: results[i].issues.length ? JSON.stringify(results[i].issues) : null,
@@ -47,16 +60,97 @@ router.post('/run', async (req, res) => {
   }
 
   const flaggedCount = results.filter((r) => r.status === 'FLAGGED').length;
+  const passedCount = questionsToCheck.length - flaggedCount;
   const engines = [...new Set(results.map((r) => r.engine))];
 
+  const prefix = isRecheckMode ? 'Re-checked' : 'Checked';
   res.json({
-    checked: unchecked.length,
+    checked: questionsToCheck.length,
     flagged: flaggedCount,
-    passed: unchecked.length - flaggedCount,
+    passed: passedCount,
     engine: engines.join(' + '),
-    message: engines.includes('CLAUDE')
-      ? `${unchecked.length} questions checked by Claude AI specialists — ${flaggedCount} flagged for review.`
-      : `${unchecked.length} questions checked by the built-in rule engine (no ANTHROPIC_API_KEY set) — ${flaggedCount} flagged for review.`,
+    message: `${prefix} ${questionsToCheck.length} questions — ${passedCount} passed and ${flaggedCount} flagged for review.`,
+  });
+});
+
+/**
+ * POST /api/checks/auto-heal-nvq
+ * Automatically re-checks and approves all FLAGGED questions that are valid NVQs.
+ */
+router.post('/auto-heal-nvq', async (req, res) => {
+  const flagged = await prisma.question.findMany({
+    where: { isActive: true, checkStatus: 'FLAGGED' },
+    include: { chapter: { include: { subject: true } } },
+  });
+
+  let approvedCount = 0;
+  for (const q of flagged) {
+    const isNVQ = isNVQQuestion({
+      questionType: q.questionType,
+      options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+      correctOption: q.correctOption,
+    });
+
+    if (isNVQ) {
+      const result = ruleBasedCheck({
+        questionText: q.questionText,
+        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+        correctOption: q.correctOption,
+        questionType: q.questionType,
+        subject: q.chapter?.subject?.name,
+        chapter: q.chapter?.name,
+      });
+
+      if (result.status === 'PASSED') {
+        await prisma.question.update({
+          where: { id: q.id },
+          data: {
+            checkStatus: 'PASSED',
+            checkIssues: null,
+            checkEngine: 'RULE_BASED',
+            checkedAt: new Date(),
+            workflowState: 'BANK',
+          },
+        });
+        approvedCount++;
+      }
+    }
+  }
+
+  return res.json({
+    ok: true,
+    approvedCount,
+    message: approvedCount > 0
+      ? `Successfully approved and unquarantined ${approvedCount} valid Numerical Value Question(s).`
+      : 'No valid NVQ questions needed auto-approval.',
+  });
+});
+
+/**
+ * POST /api/checks/review/bulk-approve
+ * Approves multiple questions at once. Body: { ids?: string[] } (if empty/omitted, approves all currently flagged)
+ */
+router.post('/review/bulk-approve', async (req, res) => {
+  const { ids } = req.body || {};
+  const where = { isActive: true, checkStatus: 'FLAGGED' };
+  if (Array.isArray(ids) && ids.length > 0) {
+    where.id = { in: ids };
+  }
+
+  const result = await prisma.question.updateMany({
+    where,
+    data: {
+      checkStatus: 'PASSED',
+      checkIssues: null,
+      workflowState: 'BANK',
+      checkedAt: new Date(),
+    },
+  });
+
+  res.json({
+    ok: true,
+    approvedCount: result.count,
+    message: `Successfully approved ${result.count} question(s) and added them to Question Bank.`,
   });
 });
 

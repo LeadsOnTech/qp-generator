@@ -239,6 +239,8 @@ export const api = {
   runChecks: () => request('/checks/run', { method: 'POST', body: JSON.stringify({}) }),
   checksReview: (page = 1, subject = '') => request(`/checks/review?page=${page}&pageSize=25${subject ? `&subject=${subject}` : ''}`),
   checksReviewAction: (id, payload) => request(`/checks/review/${id}`, { method: 'POST', body: JSON.stringify(payload) }),
+  checksAutoHealNVQ: () => request('/checks/auto-heal-nvq', { method: 'POST', body: JSON.stringify({}) }),
+  checksBulkApprove: (ids = []) => request('/checks/review/bulk-approve', { method: 'POST', body: JSON.stringify({ ids }) }),
   submitBatchQc: (batchId) => request(`/questions/batch/${batchId}/submit-qc`, { method: 'POST' }),
   checksStats: () => request('/checks/stats'),
   chapterAnalytics: (chapterId) => request(`/syllabus/analytics?chapterId=${chapterId}`),

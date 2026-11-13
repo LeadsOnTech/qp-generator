@@ -20,6 +20,17 @@ const BATCH_SIZE = 12;
 
 const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
+function isNVQQuestion(q) {
+  if (!q) return false;
+  const qType = String(q.questionType || '').trim().toUpperCase();
+  if (['NVQ', 'NUMERICAL', 'DECIMAL', 'NVT'].includes(qType)) return true;
+  const hasOptions = q.options && Object.values(q.options).some((v) => v && String(v).trim().length > 0);
+  if (!hasOptions && q.correctOption && !['A', 'B', 'C', 'D'].includes(String(q.correctOption).trim().toUpperCase())) {
+    return true;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Shared structural checks — apply to every question regardless of subject.
 // These are simple, deterministic, and catch the most common data-entry
@@ -27,24 +38,43 @@ const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 // ---------------------------------------------------------------------------
 function structuralChecks(q) {
   const issues = [];
-  const opts = OPTION_KEYS.map((k) => (q.options[k] || '').trim());
+  const isNVQ = isNVQQuestion(q);
+  const opts = OPTION_KEYS.map((k) => (q.options ? q.options[k] || '' : '').trim());
 
-  if (opts.some((o) => o.length === 0)) {
-    issues.push('One or more options is empty.');
+  if (isNVQ) {
+    // For Numerical Value Questions (NVQ):
+    // Options are intentionally omitted — validate the numerical answer
+    const ans = String(q.correctOption || '').trim();
+    if (!ans) {
+      issues.push('Numerical answer is empty for this question.');
+    } else {
+      // Must be a valid integer, decimal, negative number, scientific notation, or standard range
+      const isNumeric = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:\s*(?:to|-)\s*-?\d+(?:\.\d+)?)?$/i.test(ans) || !isNaN(Number(ans));
+      if (!isNumeric) {
+        issues.push(`Numerical answer "${ans}" is not a valid number or range.`);
+      }
+    }
+  } else {
+    // For Standard Multiple Choice Questions:
+    if (opts.some((o) => o.length === 0)) {
+      issues.push('One or more options is empty.');
+    }
+    const lower = opts.map((o) => o.toLowerCase());
+    const duplicates = lower.filter((o, i) => o && lower.indexOf(o) !== i);
+    if (duplicates.length > 0) {
+      issues.push('Two options have identical text.');
+    }
+    const cleanCorrect = String(q.correctOption || '').trim().toUpperCase();
+    if (!OPTION_KEYS.includes(cleanCorrect)) {
+      issues.push(`CorrectOption "${q.correctOption}" is not A/B/C/D.`);
+    }
   }
-  const lower = opts.map((o) => o.toLowerCase());
-  const duplicates = lower.filter((o, i) => o && lower.indexOf(o) !== i);
-  if (duplicates.length > 0) {
-    issues.push('Two options have identical text.');
-  }
-  if (!OPTION_KEYS.includes(q.correctOption)) {
-    issues.push(`CorrectOption "${q.correctOption}" is not A/B/C/D.`);
-  }
+
   if ((q.questionText || '').trim().length < 8) {
     issues.push('Question text looks too short to be a real question.');
   }
   const placeholderPattern = /\b(todo|tbd|xxx|lorem ipsum|placeholder)\b/i;
-  if (placeholderPattern.test(q.questionText) || opts.some((o) => placeholderPattern.test(o))) {
+  if (placeholderPattern.test(q.questionText) || (!isNVQ && opts.some((o) => placeholderPattern.test(o)))) {
     issues.push('Contains placeholder text (e.g. "TODO", "xxx").');
   }
   if (/\s{2,}/.test(q.questionText)) {
@@ -61,7 +91,17 @@ const UNIT_PATTERN = /\b(m|cm|mm|km|kg|g|s|hz|n|j|w|v|a|ohm|pa|mol|k|°c|°k)\b\
 
 function physicsChecks(q) {
   const issues = [];
-  const opts = OPTION_KEYS.map((k) => q.options[k] || '');
+  const isNVQ = isNVQQuestion(q);
+  if (isNVQ) {
+    const mentionsCalculate = /\b(calculate|find the|determine)\b/i.test(q.questionText);
+    const hasNumAnswer = /\d/.test(String(q.correctOption || ''));
+    if (mentionsCalculate && !hasNumAnswer) {
+      issues.push('Question asks to calculate/find a value, but marked numerical answer contains no number.');
+    }
+    return issues;
+  }
+
+  const opts = OPTION_KEYS.map((k) => (q.options ? q.options[k] || '' : ''));
   const withUnit = opts.map((o) => UNIT_PATTERN.test(o.trim()));
   const unitCount = withUnit.filter(Boolean).length;
   if (unitCount > 0 && unitCount < 4) {
@@ -77,7 +117,9 @@ function physicsChecks(q) {
 
 function chemistryChecks(q) {
   const issues = [];
-  const text = q.questionText + ' ' + OPTION_KEYS.map((k) => q.options[k] || '').join(' ');
+  const isNVQ = isNVQQuestion(q);
+  const optsText = (isNVQ || !q.options) ? '' : OPTION_KEYS.map((k) => q.options[k] || '').join(' ');
+  const text = q.questionText + (optsText ? ' ' + optsText : '');
   const openParens = (text.match(/\(/g) || []).length;
   const closeParens = (text.match(/\)/g) || []).length;
   if (openParens !== closeParens) {
@@ -98,9 +140,10 @@ const BIOLOGY_KNOWN_FACTS = [
 
 function biologyChecks(q) {
   const issues = [];
+  if (isNVQQuestion(q)) return issues;
   for (const fact of BIOLOGY_KNOWN_FACTS) {
     if (fact.pattern.test(q.questionText)) {
-      const correctText = q.options[q.correctOption] || '';
+      const correctText = (q.options ? q.options[q.correctOption] : '') || '';
       if (!fact.expectedOptionText.test(correctText)) {
         issues.push(`This looks like a well-known fact question, but the marked answer ("${correctText}") doesn't match the commonly known answer — please double-check.`);
       }
@@ -165,18 +208,29 @@ function ruleBasedCheck(q) {
 }
 
 async function claudeCheckBatch(questions) {
-  const numbered = questions.map((q, i) => (
-    `Q${i + 1} [${q.subject || 'General'} specialist — ${q.chapter || 'Unknown chapter'}]:\n` +
-    `${q.questionText}\n` +
-    `A) ${q.options.A}  B) ${q.options.B}  C) ${q.options.C}  D) ${q.options.D}\n` +
-    `Marked correct answer: ${q.correctOption}`
-  )).join('\n\n');
+  const numbered = questions.map((q, i) => {
+    const isNVQ = isNVQQuestion(q);
+    if (isNVQ) {
+      return (
+        `Q${i + 1} [${q.subject || 'General'} specialist — ${q.chapter || 'Unknown chapter'} (Numerical Value Question / NVQ)]:\n` +
+        `${q.questionText}\n` +
+        `Marked numerical answer: ${q.correctOption}`
+      );
+    }
+    return (
+      `Q${i + 1} [${q.subject || 'General'} specialist — ${q.chapter || 'Unknown chapter'}]:\n` +
+      `${q.questionText}\n` +
+      `A) ${q.options?.A}  B) ${q.options?.B}  C) ${q.options?.C}  D) ${q.options?.D}\n` +
+      `Marked correct answer: ${q.correctOption}`
+    );
+  }).join('\n\n');
 
   const prompt =
     `You are a panel of subject-specialist exam reviewers (Physics, Chemistry, Biology, Reasoning, ` +
     `English) for Indian competitive exams (NEET/JEE/EAPCET). For each question below, acting as the ` +
     `specialist matching its subject, check: (a) is the marked correct answer actually correct, ` +
-    `(b) are all four options well-formed and distinct, (c) any factual or formatting problems.\n\n` +
+    `(b) for MCQs: are all four options well-formed and distinct (NVQs intentionally have no options), ` +
+    `(c) any factual or formatting problems.\n\n` +
     `Respond ONLY with a JSON array, no other text:\n` +
     `[{"q": 1, "status": "PASSED"|"FLAGGED", "issues": ["short issue 1", ...]}, ...]\n` +
     `Use "PASSED" with an empty issues array if the question is fine.\n\n` +
@@ -245,4 +299,4 @@ async function runChecks(questions) {
   return results;
 }
 
-module.exports = { runChecks, ruleBasedCheck };
+module.exports = { runChecks, ruleBasedCheck, isNVQQuestion };

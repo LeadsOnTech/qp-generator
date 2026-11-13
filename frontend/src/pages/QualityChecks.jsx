@@ -3,6 +3,17 @@ import { api } from '../lib/api';
 
 const SUBJECTS = ['Physics', 'Chemistry', 'Biology', 'Reasoning', 'English'];
 
+function isNVQQuestion(q) {
+  if (!q) return false;
+  const t = String(q.questionType || '').toUpperCase();
+  if (['NVQ', 'NUMERICAL', 'DECIMAL', 'NVT'].includes(t)) return true;
+  const hasOptions = q.options && Object.values(q.options).some((v) => v && String(v).trim().length > 0);
+  if (!hasOptions && q.correctOption && !['A', 'B', 'C', 'D'].includes(String(q.correctOption).trim().toUpperCase())) {
+    return true;
+  }
+  return false;
+}
+
 export default function QualityChecks() {
   const [stats, setStats] = useState(null);
   const [queue, setQueue] = useState([]);
@@ -44,6 +55,39 @@ export default function QualityChecks() {
     setError(null);
     try {
       const res = await api.runChecks();
+      setMessage(res.message);
+      setPage(1);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function autoHealNVQ() {
+    setRunning(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await api.checksAutoHealNVQ();
+      setMessage(res.message);
+      setPage(1);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function bulkApproveAll() {
+    if (!window.confirm(`Approve all ${total} flagged questions and add them to the Question Bank?`)) return;
+    setRunning(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await api.checksBulkApprove();
       setMessage(res.message);
       setPage(1);
       load();
@@ -146,15 +190,39 @@ export default function QualityChecks() {
               Automated subject checkers inspect physics units, chemical valence, and biological key accuracy. Flagged questions are quarantined from generated papers until approved or corrected.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ padding: '10px 20px', fontSize: 13.5, fontWeight: 700 }}
-            onClick={run}
-            disabled={running}
-          >
-            {running ? '⚙️ Verification in Progress…' : '⚡ Run Specialist Checks'}
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ padding: '10px 18px', fontSize: 13.5, fontWeight: 700, background: '#7C3AED', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: 8 }}
+              onClick={autoHealNVQ}
+              disabled={running}
+              title="Automatically validate and approve all Numerical Value Questions with numbers"
+            >
+              {running ? 'Processing…' : '⚡ Auto-Approve Valid NVQs'}
+            </button>
+            {total > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '10px 16px', fontSize: 13.5, fontWeight: 700, background: '#059669', color: '#fff', border: 'none', cursor: 'pointer', borderRadius: 8 }}
+                onClick={bulkApproveAll}
+                disabled={running}
+                title="Approve all flagged questions at once"
+              >
+                ✓ Approve All Flagged ({total})
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ padding: '10px 20px', fontSize: 13.5, fontWeight: 700 }}
+              onClick={run}
+              disabled={running}
+            >
+              {running ? '⚙️ Verification in Progress…' : '⚡ Run Specialist Checks'}
+            </button>
+          </div>
         </div>
 
         {stats && (
@@ -296,64 +364,84 @@ export default function QualityChecks() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 180 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>A:</span>
-                              <input
-                                type="text"
-                                style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
-                                value={editForm.optionA}
-                                onChange={(e) => handleFieldChange('optionA', e.target.value)}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>B:</span>
-                              <input
-                                type="text"
-                                style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
-                                value={editForm.optionB}
-                                onChange={(e) => handleFieldChange('optionB', e.target.value)}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>C:</span>
-                              <input
-                                type="text"
-                                style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
-                                value={editForm.optionC}
-                                onChange={(e) => handleFieldChange('optionC', e.target.value)}
-                              />
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>D:</span>
-                              <input
-                                type="text"
-                                style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
-                                value={editForm.optionD}
-                                onChange={(e) => handleFieldChange('optionD', e.target.value)}
-                              />
-                            </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                <span style={{ fontSize: 12, fontWeight: 'bold' }}>Correct Option:</span>
-                                {q.questionType !== 'MCQ' ? (
+                            {isNVQQuestion(q) ? (
+                              <div style={{ background: '#F8FAFC', padding: '10px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', marginBottom: 6 }}>
+                                  Numerical Value Question (NVQ)
+                                </div>
+                                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4, color: '#334155' }}>
+                                  Correct Numerical Answer:
+                                </label>
+                                <input
+                                  type="text"
+                                  style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '13px', background: '#fff' }}
+                                  value={editForm.correctOption}
+                                  onChange={(e) => handleFieldChange('correctOption', e.target.value)}
+                                  placeholder="e.g. 35 or 1 or 7 or 405"
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>A:</span>
                                   <input
                                     type="text"
-                                    style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px', background: '#fff', width: '150px' }}
-                                    value={editForm.correctOption}
-                                    onChange={(e) => handleFieldChange('correctOption', e.target.value)}
+                                    style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
+                                    value={editForm.optionA}
+                                    onChange={(e) => handleFieldChange('optionA', e.target.value)}
                                   />
-                                ) : (
-                                  <select
-                                    style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px', background: '#fff' }}
-                                    value={editForm.correctOption}
-                                    onChange={(e) => handleFieldChange('correctOption', e.target.value)}
-                                  >
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                  </select>
-                                )}
-                              </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>B:</span>
+                                  <input
+                                    type="text"
+                                    style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
+                                    value={editForm.optionB}
+                                    onChange={(e) => handleFieldChange('optionB', e.target.value)}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>C:</span>
+                                  <input
+                                    type="text"
+                                    style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
+                                    value={editForm.optionC}
+                                    onChange={(e) => handleFieldChange('optionC', e.target.value)}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 'bold', width: 14 }}>D:</span>
+                                  <input
+                                    type="text"
+                                    style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px' }}
+                                    value={editForm.optionD}
+                                    onChange={(e) => handleFieldChange('optionD', e.target.value)}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 'bold' }}>Correct Option:</span>
+                                  {q.questionType !== 'MCQ' ? (
+                                    <input
+                                      type="text"
+                                      style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px', background: '#fff', width: '150px' }}
+                                      value={editForm.correctOption}
+                                      onChange={(e) => handleFieldChange('correctOption', e.target.value)}
+                                    />
+                                  ) : (
+                                    <select
+                                      style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px', background: '#fff' }}
+                                      value={editForm.correctOption}
+                                      onChange={(e) => handleFieldChange('correctOption', e.target.value)}
+                                    >
+                                      <option value="A">A</option>
+                                      <option value="B">B</option>
+                                      <option value="C">C</option>
+                                      <option value="D">D</option>
+                                    </select>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td style={{ fontSize: 12.5, maxWidth: 260 }}>
@@ -392,8 +480,24 @@ export default function QualityChecks() {
                           <span style={{ color: 'var(--ink-soft)' }}>{q.chapter}</span>
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-                          A) {q.options.A}<br />B) {q.options.B}<br />C) {q.options.C}<br />D) {q.options.D}
-                          <br /><strong>Marked: {q.correctOption}</strong>
+                          {isNVQQuestion(q) ? (
+                            <div>
+                              <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 4, background: '#EDE9FE', color: '#6D28D9', fontWeight: 700, fontSize: 11, marginBottom: 6 }}>
+                                Numerical Value (NVQ)
+                              </span>
+                              <div style={{ fontSize: 12.5, color: '#0F172A', marginTop: 2 }}>
+                                <span style={{ color: '#64748B', fontSize: 12 }}>Answer:</span>{' '}
+                                <strong style={{ fontSize: 13, background: '#F1F5F9', padding: '2px 8px', borderRadius: 4, color: '#0F172A', border: '1px solid #E2E8F0' }}>
+                                  {q.correctOption}
+                                </strong>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              A) {q.options.A}<br />B) {q.options.B}<br />C) {q.options.C}<br />D) {q.options.D}
+                              <br /><strong>Marked: {q.correctOption}</strong>
+                            </>
+                          )}
                         </td>
                         <td style={{ fontSize: 12.5, maxWidth: 260 }}>
                           {q.issues.map((issue, i) => (

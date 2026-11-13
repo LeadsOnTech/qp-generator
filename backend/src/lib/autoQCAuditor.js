@@ -35,8 +35,8 @@ async function runAIBackgroundAudit(uploadBatchId) {
       const prompt = `
 You are an expert JEE/NEET QC Auditor. Evaluate these 5 questions following these STRICT rules:
 1. CATEGORIZATION: Is it in the most accurate standard JEE/NEET Chapter and Topic? (If not, provide correct ones).
-2. LOGIC & DATA: Re-solve every question independently and validate all four options. Reject any question with missing data, multiple correct options, or no correct option.
-3. MATCH: Does the mathematical solution exactly match the correct option?
+2. LOGIC & DATA: For standard Multiple Choice Questions (MCQ), re-solve independently and validate all four options. For Numerical Value Questions (NVQ), options are intentionally absent; validate that the marked numerical answer is scientifically accurate. Reject any question with missing problem data, invalid numbers, or incorrect keys.
+3. MATCH: Does the mathematical solution match the correct answer?
 
 Return ONLY a strict JSON array (no markdown) in this exact format:
 [
@@ -51,14 +51,28 @@ Return ONLY a strict JSON array (no markdown) in this exact format:
 ]
 
 Input Questions:
-${batch.map(q => `
+${batch.map(q => {
+  const isNVQ = q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL' || q.questionType === 'NVT' || (!q.optionA && !q.optionB && !q.optionC && !q.optionD);
+  if (isNVQ) {
+    return `
 ID: ${q.id}
 Subject: ${q.chapter.subject.name} | Chapter: ${q.chapter.name} | Topic: ${q.topic?.name || 'None'}
+Type: Numerical Value Question (NVQ) — Options not applicable
+Question: ${q.questionText}
+Correct Numerical Answer: ${q.correctOption}
+Solution: ${q.solutionText || 'None'}
+`;
+  }
+  return `
+ID: ${q.id}
+Subject: ${q.chapter.subject.name} | Chapter: ${q.chapter.name} | Topic: ${q.topic?.name || 'None'}
+Type: Multiple Choice Question (MCQ)
 Question: ${q.questionText}
 Options: (A) ${q.optionA}, (B) ${q.optionB}, (C) ${q.optionC}, (D) ${q.optionD}
 Correct Option: ${q.correctOption}
 Solution: ${q.solutionText || 'None'}
-`).join('\n')}
+`;
+}).join('\n')}
 `;
 
       
