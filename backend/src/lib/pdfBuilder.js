@@ -1,5 +1,5 @@
 const PDFDocument = require('pdfkit');
-const { layoutRichText, drawRichText, containsMath } = require('./richTextLayout');
+const { layoutRichText, drawRichText, containsMath, containsHeadings } = require('./richTextLayout');
 const { generateSetQuestions, generateMasterKeyMatrix } = require('./multiSetEngine');
 const fs = require('fs');
 const path = require('path');
@@ -477,56 +477,67 @@ function drawStudentDetails(doc, pageWidth, topY, isCompact = false, margin = 36
 // ---------------------------------------------------------------------------
 function richMeasure(doc, text, width, fontSize, align = 'justify') {
   const value = text == null ? '' : String(text);
-  if (!containsMath(value)) {
+  if (!containsMath(value) && !containsHeadings(value)) {
     doc.font(FONT_REGULAR).fontSize(fontSize);
     return doc.heightOfString(formatChemicalFormulas(value), { width, lineGap: 0 });
   }
+  ensureFontsRegistered(doc);
   const { totalHeight } = layoutRichText(doc, value, {
     width,
     fontSize,
     font: FONT_REGULAR,
-      lineGap: 1,
-      align,
-      textTransform: formatChemicalFormulas,
+    fontBold: FONT_BOLD,
+    lineGap: 1,
+    align,
+    textTransform: formatChemicalFormulas,
   });
   return totalHeight;
 }
 
 function richWidth(doc, text, fontSize, align = 'left') {
   const value = text == null ? '' : String(text);
-  if (!containsMath(value)) {
+  if (!containsMath(value) && !containsHeadings(value)) {
     doc.font(FONT_REGULAR).fontSize(fontSize);
     return doc.widthOfString(formatChemicalFormulas(value));
   }
-  // Lay out with effectively unlimited width so everything lands on one
-  // line, then read that line's true rendered width.
+  ensureFontsRegistered(doc);
   const { lines } = layoutRichText(doc, value, {
     width: 100000,
     fontSize,
     font: FONT_REGULAR,
-      lineGap: 1,
-      align,
-      textTransform: formatChemicalFormulas,
+    fontBold: FONT_BOLD,
+    lineGap: 1,
+    align,
+    textTransform: formatChemicalFormulas,
   });
   return lines.length ? lines[0].width : 0;
 }
 
 function richDraw(doc, text, x, y, width, fontSize, color, align = 'justify') {
   const value = text == null ? '' : String(text);
-  if (!containsMath(value)) {
+  if (!containsMath(value) && !containsHeadings(value)) {
     doc.font(FONT_REGULAR).fontSize(fontSize).fill(color)
       .text(formatChemicalFormulas(value), x, y, { width, lineGap: 0, align });
     return doc.y;
   }
+  ensureFontsRegistered(doc);
   const { lines } = layoutRichText(doc, value, {
     width,
     fontSize,
     font: FONT_REGULAR,
-      lineGap: 1,
-      align,
-      textTransform: formatChemicalFormulas,
+    fontBold: FONT_BOLD,
+    lineGap: 1,
+    align,
+    textTransform: formatChemicalFormulas,
   });
-  return drawRichText(doc, lines, x, y, { fontSize, font: FONT_REGULAR, lineGap: 1, color, align });
+  return drawRichText(doc, lines, x, y, {
+    fontSize,
+    font: FONT_REGULAR,
+    fontBold: FONT_BOLD,
+    lineGap: 1,
+    color,
+    align,
+  });
 }
 
 
@@ -541,8 +552,8 @@ function drawSectionHeader(doc, text, x, y, colWidth) {
 
 function formatQuestionTextForLayout(text) {
   if (!text) return "";
-  const headingRegex = /(Statement ?[-:] ?\d+|Assertion ?[A-Z]? ?[-:]|Reason ?[A-Z]? ?[-:])/gi;
-  return text.replace(headingRegex, '\n$1').trim();
+  const headingNewlineRegex = /(?<!^)(?<![\r\n])\s*\b(Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?)/gi;
+  return text.replace(headingNewlineRegex, (m, g1) => '\n' + g1).trim();
 }
 
 function measureQuestionHeight(doc, q, index, colWidth, fontSize = 10, questionGap = 5, optionFormat = 'ALPHA', answerFormat = 'STANDARD') {

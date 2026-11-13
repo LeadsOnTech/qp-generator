@@ -12,6 +12,20 @@ const { renderMath, parseSegments, containsMath } = require('./mathRenderer');
 // when equations appear in the middle of a sentence.
 // ---------------------------------------------------------------------------
 
+// Matches an individual heading pattern to test whether a substring IS a heading
+const HEADING_PATTERN = /^\s*(?:Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?)\s*$/i;
+
+// Used to check if an arbitrary string contains any such headings
+const CONTAINS_HEADING_REGEX = /\b(?:Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?)/i;
+
+// Capturing group for string.split() so headings are preserved in the split output array
+const SPLIT_HEADING_REGEX = /(\b(?:Statement\s*[-–—\u2011]\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?|Statement\s+(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)\s*[:\.\-–—\u2011]|Assertion(?:\s*\([Aa]\))?\s*[:\.\-–—\u2011]?|Reason(?:\s*\([Rr]\))?\s*[:\.\-–—\u2011]?|List\s*[-–—\u2011]?\s*(?:\([IVXLCDM0-9]+\)|[IVXLCDM]+|\d+)(?:\s*[:\.\-–—\u2011])?))/i;
+
+function containsHeadings(text) {
+  if (typeof text !== 'string') return false;
+  return CONTAINS_HEADING_REGEX.test(text);
+}
+
 /**
  * Builds a list of laid-out lines for mixed text/math content.
  *
@@ -22,7 +36,7 @@ const { renderMath, parseSegments, containsMath } = require('./mathRenderer');
  * each other rather than each sitting at a different height.
  */
 function layoutRichText(doc, text, options) {
-    const {
+  const {
     width,
     fontSize = 11,
     font,
@@ -30,8 +44,6 @@ function layoutRichText(doc, text, options) {
     lineGap = 2,
     textTransform = (t) => t,
   } = options;
-
-  const headingRegex = /(Statement I\s*[:\.]|Statement II\s*[:\.]|Statement 1\s*[:\.]|Statement 2\s*[:\.]|Assertion\s*(?:\(A\))?\s*[:\.]|Reason\s*(?:\(R\))?\s*[:\.]|Statement-1\s*[:\.]|Statement-2\s*[:\.]|Statement - 1\s*[:\.]|Statement - 2\s*[:\.])/gi;
 
   // Sanitize accidental newlines inside parenthetical clauses (e.g. "(\n \alpha = 5 \n)" -> "( \alpha = 5 )")
   let cleanSourceText = typeof text === 'string'
@@ -68,12 +80,17 @@ function layoutRichText(doc, text, options) {
     } else {
       const transformed = textTransform(segment.value);
       
-      const parts = transformed.split(headingRegex);
-      for (let i = 0; i < parts.length; i++) {
-        if (!parts[i]) continue;
-        const type = (i % 2 === 1) ? 'bold' : 'text';
-        for (const word of parts[i].split(/([ \t\r\n]+)/)) {
-          if (word.length) tokens.push({ type, value: word });
+      const parts = transformed.split(SPLIT_HEADING_REGEX);
+      for (const part of parts) {
+        if (!part) continue;
+        if (HEADING_PATTERN.test(part)) {
+          // Keep the heading as a single atomic token so it never breaks across lines,
+          // and render it in bold font.
+          tokens.push({ type: 'bold', value: part });
+        } else {
+          for (const word of part.split(/([ \t\r\n]+)/)) {
+            if (word.length) tokens.push({ type: 'text', value: word });
+          }
         }
       }
     }
@@ -289,4 +306,4 @@ function drawRichText(doc, lines, x, y, options) {
   return cursorY;
 }
 
-module.exports = { layoutRichText, drawRichText, containsMath };
+module.exports = { layoutRichText, drawRichText, containsMath, containsHeadings, HEADING_PATTERN };
