@@ -66,25 +66,33 @@ router.post('/run', async (req, res) => {
 router.get('/review', async (req, res) => {
   const { page = '1', pageSize = '25', subject } = req.query;
   const take = Math.min(parseInt(pageSize, 10) || 25, 200);
-  const skip = (Math.max(parseInt(page, 10) || 1, 1) - 1) * take;
+  let requestedPage = Math.max(parseInt(page, 10) || 1, 1);
 
   const where = { isActive: true, checkStatus: 'FLAGGED' };
   if (subject) where.chapter = { subject: { name: subject } };
 
-  const [items, total] = await Promise.all([
-    prisma.question.findMany({
-      where,
-      include: { chapter: { include: { subject: { include: { exam: true } } } } },
-      orderBy: { checkedAt: 'desc' },
-      take, skip,
-    }),
-    prisma.question.count({ where }),
-  ]);
+  const total = await prisma.question.count({ where });
+  const maxPage = Math.max(Math.ceil(total / take), 1);
+
+  // Auto-clamp requestedPage if it exceeds the maximum available pages
+  if (requestedPage > maxPage && total > 0) {
+    requestedPage = maxPage;
+  }
+  const skip = (requestedPage - 1) * take;
+
+  const items = await prisma.question.findMany({
+    where,
+    include: { chapter: { include: { subject: { include: { exam: true } } } } },
+    orderBy: { checkedAt: 'desc' },
+    take,
+    skip,
+  });
 
   res.json({
     total,
-    page: parseInt(page, 10) || 1,
+    page: requestedPage,
     pageSize: take,
+    totalPages: maxPage,
     items: items.map((q) => ({
       id: q.id,
       questionText: q.questionText,

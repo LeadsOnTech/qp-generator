@@ -20,7 +20,18 @@ export default function QualityChecks() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([api.checksStats(), api.checksReview(page, subjectFilter)])
-      .then(([s, q]) => { setStats(s); setQueue(q.items); setTotal(q.total); })
+      .then(([s, q]) => {
+        setStats(s);
+        const maxPage = Math.max(Math.ceil((q.total || 0) / 25), 1);
+        if (q.page && q.page !== page) {
+          setPage(q.page);
+        } else if (page > maxPage && q.total > 0) {
+          setPage(maxPage);
+          return;
+        }
+        setQueue(q.items || []);
+        setTotal(q.total || 0);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [page, subjectFilter]);
@@ -47,9 +58,20 @@ export default function QualityChecks() {
     setBusy((b) => ({ ...b, [id]: true }));
     try {
       await api.checksReviewAction(id, payload);
-      setQueue((q) => q.filter((item) => item.id !== id));
-      setTotal((t) => t - 1);
-      setStats((s) => s ? { ...s, flagged: s.flagged - 1 } : s);
+      const remainingInQueue = queue.filter((item) => item.id !== id);
+      setQueue(remainingInQueue);
+      const nextTotal = Math.max(total - 1, 0);
+      setTotal(nextTotal);
+      setStats((s) => (s ? { ...s, flagged: Math.max(s.flagged - 1, 0) } : s));
+
+      // Auto-replenish queue when current page is reviewed
+      if (remainingInQueue.length === 0 && nextTotal > 0) {
+        if (page > 1) {
+          setPage((p) => Math.max(p - 1, 1));
+        } else {
+          load();
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,10 +103,21 @@ export default function QualityChecks() {
         action: 'edit',
         data: editForm,
       });
-      setQueue((q) => q.filter((item) => item.id !== id));
-      setTotal((t) => t - 1);
-      setStats((s) => s ? { ...s, flagged: s.flagged - 1, unchecked: s.unchecked + 1 } : s);
+      const remainingInQueue = queue.filter((item) => item.id !== id);
+      setQueue(remainingInQueue);
+      const nextTotal = Math.max(total - 1, 0);
+      setTotal(nextTotal);
+      setStats((s) => (s ? { ...s, flagged: Math.max(s.flagged - 1, 0), unchecked: (s.unchecked || 0) + 1 } : s));
       setEditingId(null);
+
+      // Auto-replenish queue when current page is reviewed
+      if (remainingInQueue.length === 0 && nextTotal > 0) {
+        if (page > 1) {
+          setPage((p) => Math.max(p - 1, 1));
+        } else {
+          load();
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,26 +192,68 @@ export default function QualityChecks() {
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="filter-bar">
-        <div className="field">
+      <div className="filter-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
+        <div className="field" style={{ marginBottom: 0 }}>
           <label>Filter by subject</label>
           <select value={subjectFilter} onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}>
             <option value="">All subjects</option>
             {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {page > 1 && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: '6px 12px', fontSize: 12.5 }}
+              onClick={() => setPage(1)}
+            >
+              « Back to Page 1
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ padding: '6px 12px', fontSize: 12.5 }}
+            onClick={() => load()}
+          >
+            🔄 Refresh List
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="skeleton" style={{ height: 320 }} />
       ) : queue.length === 0 ? (
-        <div className="card empty-state">
-          <h3>No questions pending review</h3>
-          <p>
-            {stats && stats.unchecked > 0
-              ? `You have ${stats.unchecked} question(s) awaiting quality check. Click "Run specialist checks" above to analyze them.`
-              : 'All checked questions have passed quality validation! If any question has errors or data issues, it will be flagged and appear here for your review.'}
-          </p>
+        <div className="card empty-state" style={{ padding: '40px 24px', textAlign: 'center' }}>
+          {total > 0 || (stats && stats.flagged > 0) ? (
+            <div style={{ maxWidth: 520, margin: '0 auto' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>⚠️</div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>
+                {total || stats?.flagged} Flagged Question{(total || stats?.flagged) === 1 ? '' : 's'} Awaiting Review
+              </h3>
+              <p style={{ color: '#64748b', fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
+                You are currently on page {page}. Because previously reviewed questions have been approved, the remaining {total || stats?.flagged} flagged question(s) are waiting on Page 1.
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '9px 24px', fontSize: 13.5, fontWeight: 700 }}
+                onClick={() => setPage(1)}
+              >
+                ← View Remaining {total || stats?.flagged} Flagged Questions (Page 1)
+              </button>
+            </div>
+          ) : (
+            <>
+              <h3>No questions pending review</h3>
+              <p>
+                {stats && stats.unchecked > 0
+                  ? `You have ${stats.unchecked.toLocaleString()} question(s) awaiting quality check. Click "Run specialist checks" above to analyze them.`
+                  : 'All checked questions have passed quality validation! If any question has errors or data issues, it will be flagged and appear here for your review.'}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -362,13 +437,25 @@ export default function QualityChecks() {
             </table>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
             <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-              {total} flagged — page {page} of {totalPages}
+              Showing {queue.length} of {total} flagged question{total === 1 ? '' : 's'} — page {page} of {totalPages}
             </span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
-              <button className="btn btn-ghost" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {page > 1 && (
+                <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12.5 }} onClick={() => setPage(1)}>
+                  « Page 1
+                </button>
+              )}
+              <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </button>
+              <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: 13, fontWeight: 700 }}>
+                {page} / {totalPages}
+              </span>
+              <button className="btn btn-ghost" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                Next
+              </button>
             </div>
           </div>
         </>
