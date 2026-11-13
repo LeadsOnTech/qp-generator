@@ -11,7 +11,31 @@ export default function Upload() {
   const [error, setError] = useState(null);
   const [batches, setBatches] = useState([]);
   const [loadingBatches, setLoadingBatches] = useState(true);
+  const [previewingBatchId, setPreviewingBatchId] = useState(null);
+  const [previewModal, setPreviewModal] = useState(null);
   const inputRef = useRef(null);
+
+  async function handlePreviewBatch(b, limit = null) {
+    const batchId = typeof b === 'string' ? b : b.id;
+    const fileName = (typeof b === 'object' && b?.fileName) ? b.fileName : 'batch-upload';
+    const totalCount = typeof b === 'object' ? (b?.questionsAdded || b?.totalRows || null) : null;
+
+    setPreviewingBatchId(batchId);
+    try {
+      const { url, filename } = await api.downloadBatchPreview(batchId, fileName, limit);
+      setPreviewModal({
+        url,
+        fileName: filename,
+        batchId,
+        rawBatch: b,
+        totalCount,
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to generate PDF preview.');
+    } finally {
+      setPreviewingBatchId(null);
+    }
+  }
 
   function loadBatches() {
     setLoadingBatches(true);
@@ -170,17 +194,11 @@ export default function Upload() {
               <button 
                 type="button"
                 className="btn btn-ghost" 
-                onClick={async () => {
-                  try {
-                    const blob = await api.previewBatch(result.batchId);
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                  } catch (e) {
-                    alert(e.message);
-                  }
-                }}
+                disabled={previewingBatchId === result.batchId}
+                onClick={() => handlePreviewBatch({ id: result.batchId, fileName: result.fileName, questionsAdded: result.successCount })}
+                title="Download & Preview this uploaded batch as PDF"
               >
-                📄 Preview Batch PDF
+                {previewingBatchId === result.batchId ? '⏳ Preparing PDF...' : '📄 Preview Batch PDF'}
               </button>
             </div>
           )}
@@ -321,18 +339,11 @@ export default function Upload() {
                         type="button"
                         className="btn btn-ghost"
                         style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
-                        onClick={async () => {
-                          try {
-                            const blob = await api.previewBatch(b.id);
-                            const url = URL.createObjectURL(blob);
-                            window.open(url, '_blank');
-                          } catch (e) {
-                            alert(e.message);
-                          }
-                        }}
-                        title="Download/Preview this batch as PDF"
+                        disabled={previewingBatchId === b.id}
+                        onClick={() => handlePreviewBatch(b)}
+                        title="Download & Preview this batch as PDF"
                       >
-                        📄 Preview PDF
+                        {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
                       </button>
                       <Link
                         to="/questions"
@@ -358,6 +369,112 @@ export default function Upload() {
           </div>
         )}
       </div>
+
+      {/* Interactive In-App PDF Preview Modal */}
+      {previewModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+          onClick={() => setPreviewModal(null)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              width: '100%',
+              maxWidth: 1100,
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '14px 22px',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#F8FAFC',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 24 }}>📄</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+                    Batch Ingestion PDF Preview
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748B' }}>
+                    <strong>{previewModal.fileName}</strong>
+                    {previewModal.totalCount ? ` • Total ${previewModal.totalCount} questions in batch` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {previewModal.totalCount > 50 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600 }}
+                    disabled={previewingBatchId === previewModal.batchId}
+                    onClick={() => handlePreviewBatch(previewModal.rawBatch || previewModal.batchId, 'all')}
+                    title="Render all questions from this batch into a single complete PDF"
+                  >
+                    {previewingBatchId === previewModal.batchId ? '⏳ Compiling All Questions...' : '📦 Load Full Batch (All Qs)'}
+                  </button>
+                )}
+
+                <a
+                  href={previewModal.url}
+                  download={previewModal.fileName}
+                  className="btn btn-primary"
+                  style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+                >
+                  💾 Download PDF
+                </a>
+
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ padding: '6px 10px', fontSize: 18, lineHeight: 1, color: '#64748B' }}
+                  onClick={() => setPreviewModal(null)}
+                  title="Close Preview"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Embedded PDF Viewer */}
+            <div style={{ flex: 1, width: '100%', background: '#334155', position: 'relative' }}>
+              <iframe
+                src={previewModal.url}
+                title="Batch PDF Preview"
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -410,27 +410,54 @@ const { buildPaperPdf } = require('../lib/pdfBuilder');
  */
 router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
   try {
+    const batch = await prisma.uploadBatch.findUnique({ where: { id: req.params.batchId } });
+
+    const totalCount = await prisma.question.count({
+      where: { uploadBatchId: req.params.batchId, isActive: true },
+    });
+
+    if (totalCount === 0) {
+      return res.status(404).send('No active questions found for this upload batch.');
+    }
+
+    // Default to first 50 questions for instant preview on large batches (> 50 Qs), or allow ?limit=all or custom limit
+    let limit = 50;
+    if (req.query.limit === 'all') {
+      limit = undefined;
+    } else if (req.query.limit) {
+      const parsed = parseInt(req.query.limit, 10);
+      if (!isNaN(parsed) && parsed > 0) limit = Math.min(parsed, 1000);
+    } else if (totalCount <= 50) {
+      limit = undefined;
+    }
+
     const questions = await prisma.question.findMany({
       where: { uploadBatchId: req.params.batchId, isActive: true },
       include: { chapter: { include: { subject: { include: { exam: true } } } } },
       orderBy: { id: 'asc' },
+      ...(limit ? { take: limit } : {}),
     });
 
     if (questions.length === 0) {
       return res.status(404).send('No questions found for this upload batch.');
     }
 
-    const batch = await prisma.uploadBatch.findUnique({ where: { id: req.params.batchId } });
+    const baseName = (batch?.fileName || `batch-${req.params.batchId}`).replace(/\.xlsx?$|\.csv$/i, '');
+    const isSample = totalCount > questions.length;
+    const filename = `preview-${baseName}${isSample ? `_sample_${questions.length}Q` : ''}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="preview-${req.params.batchId}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
 
     const examName = questions[0]?.chapter?.subject?.exam?.name || 'Question Bank';
     const paper = {
-      title: batch ? `Preview: ${batch.fileName.replace(/\.xlsx?$|\.csv$/i, '')}` : 'Batch Upload Preview',
-      instituteName: 'QuestionStudio',
+      title: batch
+        ? `Batch Ingestion Preview: ${baseName}${isSample ? ` (Sample: 1 to ${questions.length} of ${totalCount} Questions)` : ` (${totalCount} Questions)`}`
+        : 'Batch Upload Preview',
+      instituteName: 'QuestionStudio Ingestion Suite',
       examName,
       paperType: 'PREVIEW',
+      ecoMode: 'PREVIEW',
       createdAt: batch?.createdAt || new Date(),
     };
 
@@ -438,6 +465,7 @@ router.get('/batch/:batchId/preview', requireAuth, async (req, res) => {
 
     buildPaperPdf(res, paper, formattedQuestions, req.query.answers === '1');
   } catch (err) {
+    console.error('Batch preview generation error:', err);
     res.status(500).json({ error: 'Error generating preview: ' + err.message });
   }
 });

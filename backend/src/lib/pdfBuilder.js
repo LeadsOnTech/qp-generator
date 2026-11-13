@@ -890,7 +890,9 @@ function layoutQuestionsTwoColumn(doc, questions, pageWidth, pageHeight, firstCo
     { fontSize: 8.5, gap: 2.5, margin: Math.min(defaultMargin, 22), gutter: 20, subsequentPageStartY: 50 },
   ];
 
-  if (ecoMode === 'TARGET_2') {
+  if (ecoMode === 'PREVIEW' || ecoMode === 'OFF') {
+    best = std;
+  } else if (ecoMode === 'TARGET_2') {
     if (std.pages > 2) {
       for (const cand of candidates) {
         const res = simulate(cand);
@@ -1506,7 +1508,9 @@ function drawMasterKeyTable(doc, matrix, paper, pageWidth, pageHeight) {
  * @param withAnswers  include the answer-key page
  */
 function buildPaperPdf(stream, paper, questions, withAnswers) {
-  const ecoMode = (paper.ecoMode || 'AUTO').toUpperCase();
+  const ecoMode = (paper.paperType === 'PREVIEW' || paper.ecoMode === 'PREVIEW')
+    ? 'PREVIEW'
+    : (paper.ecoMode || 'AUTO').toUpperCase();
   const isCompactHeader = ecoMode === 'TARGET_2' || ecoMode === 'TARGET_4' || ecoMode === 'COMPACT';
   const margin = isCompactHeader ? 28 : 36;
   const gutter = isCompactHeader ? 26 : 34;
@@ -1559,7 +1563,9 @@ function buildMasterKeyPdf(stream, paper, baseQuestions, optionFormat = 'ALPHA')
  * Writes a multi-set printable bundle (Set A, B, C, D + Synced Master Key) into stream.
  */
 function buildPaperBundlePdf(stream, paper, baseQuestions, withAnswers) {
-  const ecoMode = (paper.ecoMode || 'AUTO').toUpperCase();
+  const ecoMode = (paper.paperType === 'PREVIEW' || paper.ecoMode === 'PREVIEW')
+    ? 'PREVIEW'
+    : (paper.ecoMode || 'AUTO').toUpperCase();
   const isCompactHeader = ecoMode === 'TARGET_2' || ecoMode === 'TARGET_4' || ecoMode === 'COMPACT';
   const margin = isCompactHeader ? 28 : 36;
   const gutter = isCompactHeader ? 26 : 34;

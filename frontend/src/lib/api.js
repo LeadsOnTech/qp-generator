@@ -83,10 +83,11 @@ export const api = {
   duplicates: () => request('/duplicates'),
   removeBulkDuplicates: () => request('/duplicates/bulk-remove', { method: 'POST' }),
   removeDuplicateIds: (ids) => request('/duplicates/remove-ids', { method: 'POST', body: JSON.stringify({ ids }) }),
-  previewBatch: async (batchId) => {
+  previewBatch: async (batchId, limit = null) => {
     const token = getStoredToken();
-    const res = await fetch(`${API_BASE}/questions/batch/${batchId}/preview`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const query = limit ? `?limit=${limit}` : '';
+    const res = await fetch(`${API_BASE}/questions/batch/${batchId}/preview${query}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     if (!res.ok) {
       let errText = await res.text();
@@ -94,6 +95,21 @@ export const api = {
       throw new Error('Failed to load preview: ' + errText);
     }
     return res.blob();
+  },
+  downloadBatchPreview: async (batchId, fileName, limit = null) => {
+    const blob = await api.previewBatch(batchId, limit);
+    const url = URL.createObjectURL(blob);
+    const cleanName = (fileName || `batch-${batchId}`).replace(/\.xlsx?$|\.csv$/i, '');
+    const filename = `preview-${cleanName}${limit && limit !== 'all' ? `_sample_${limit}Q` : ''}.pdf`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      a.remove();
+    }, 1000);
+    return { blob, url, filename };
   },
 
   // ---- Phase 3 ----
