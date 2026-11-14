@@ -162,6 +162,9 @@ function autoHealMathTypo(text) {
   healed = healed.replace(/e\^\(1\/x\)\s*1\b/g, 'e^{1/x} - 1');
   healed = healed.replace(/,x0\s*;/g, ', x \\neq 0;');
 
+  // Auto-heal square-bracket exponents like s^[-1] or x^[-1] to proper LaTeX s^{-1} or x^{-1}
+  healed = healed.replace(/\^\[\s*([+-]?\w+)\s*\]/g, '^{$1}');
+
   return healed;
 }
 
@@ -249,9 +252,22 @@ function validateRow(row, rowIndex, hasOptionsInFile = true) {
   }
 
   let difficulty = row.difficulty ? String(row.difficulty).trim().toUpperCase() : 'UNTAGGED';
-  const imageFilename = (row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage)
+  let imageFilename = (row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage)
     ? String(row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage).trim()
     : null;
+
+  // Auto-detect image reference from question text if ImageFilename column was omitted in Excel
+  if (!imageFilename && questionText) {
+    const figMatch = questionText.match(/\b(?:Figure|Fig\.?|Diagram)\s*[:\-]?\s*([A-Za-z0-9_-]+(?:\s+[A-Za-z0-9_-]+)*)/i)
+      || questionText.match(/\b(FIG[\s_-]+[A-Za-z0-9_-]+)\b/i);
+    if (figMatch) {
+      let candidate = figMatch[1].trim().replace(/\s+/g, '-');
+      if (/[a-zA-Z]/.test(candidate) && /\d/.test(candidate)) {
+        if (!/\.(?:png|jpg|jpeg)$/i.test(candidate)) candidate += '.png';
+        imageFilename = candidate;
+      }
+    }
+  }
   const optionAImage = (row.optionaimage || row.optionimagea || row.imagea || row.optimagea)
     ? String(row.optionaimage || row.optionimagea || row.imagea || row.optimagea).trim()
     : null;
