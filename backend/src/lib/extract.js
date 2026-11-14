@@ -158,6 +158,10 @@ function autoHealMathTypo(text) {
   healed = healed.replace(/\b(sin|cos|tan|sec|cot|csc)\s*\^?\s*-1\b/gi, '\\$1^{-1}');
   healed = healed.replace(/\b(sin|cos|tan|sec|cot|csc)\s*¹\b/gi, '\\$1^{-1}');
 
+  // Auto-heal missing minus and condition typos in limit expressions like (e^(1/x)1)/(e^(1/x)+1)
+  healed = healed.replace(/e\^\(1\/x\)\s*1\b/g, 'e^{1/x} - 1');
+  healed = healed.replace(/,x0\s*;/g, ', x \\neq 0;');
+
   return healed;
 }
 
