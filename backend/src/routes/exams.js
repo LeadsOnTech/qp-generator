@@ -173,7 +173,7 @@ router.delete('/:name/blueprints/:blueprintId', async (req, res) => {
 
 /**
  * DELETE /api/exams/:id
- * Hard deletes an exam and EVERYTHING associated with it (Questions, Papers, Subjects, Chapters).
+ * Hard deletes an exam and EVERYTHING associated with it (Questions, Papers, Subjects, Chapters, and Upload Batches).
  */
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
@@ -181,40 +181,84 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     const exam = await prisma.exam.findUnique({ where: { id } });
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
+    const examName = exam.name;
+    const cleanExam = examName.toLowerCase().replace(/[\s_\-]+/g, '');
+
     // 1. Delete all PaperQuestions and Papers related to this exam
-    const papers = await prisma.paper.findMany({ where: { examName: exam.name }, select: { id: true } });
-    const paperIds = papers.map(p => p.id);
+    const papers = await prisma.paper.findMany({ where: { examName }, select: { id: true } });
+    const paperIds = papers.map((p) => p.id);
     if (paperIds.length > 0) {
-      await prisma.paperQuestion.deleteMany({ where: { paperId: { in: paperIds } } });
-      await prisma.paper.deleteMany({ where: { id: { in: paperIds } } });
+      await prisma.paperQuestion.deleteMany({ where: { paperId: { in: paperIds } } }).catch(() => {});
+      await prisma.paper.deleteMany({ where: { id: { in: paperIds } } }).catch(() => {});
     }
 
-    // 2. Find all subjects, chapters, questions
+    // 2. Find all subjects, chapters, questions under this exam taxonomy
     const subjects = await prisma.subject.findMany({ where: { examId: id }, select: { id: true } });
-    const subjectIds = subjects.map(s => s.id);
+    const subjectIds = subjects.map((s) => s.id);
 
     if (subjectIds.length > 0) {
       const chapters = await prisma.chapter.findMany({ where: { subjectId: { in: subjectIds } }, select: { id: true } });
-      const chapterIds = chapters.map(c => c.id);
+      const chapterIds = chapters.map((c) => c.id);
 
       if (chapterIds.length > 0) {
-        // Questions and Topics
-        await prisma.paperQuestion.deleteMany({ where: { question: { chapterId: { in: chapterIds } } } }).catch(() => {});
-        await prisma.questionExamMapping.deleteMany({ where: { question: { chapterId: { in: chapterIds } } } }).catch(() => {});
-        await prisma.question.deleteMany({ where: { chapterId: { in: chapterIds } } }).catch(() => {});
+        // Find questions under these chapters
+        const qList = await prisma.question.findMany({ where: { chapterId: { in: chapterIds } }, select: { id: true } });
+        const qIds = qList.map((q) => q.id);
+
+        if (qIds.length > 0) {
+          await prisma.paperQuestion.deleteMany({ where: { questionId: { in: qIds } } }).catch(() => {});
+          await prisma.questionExamMapping.deleteMany({ where: { questionId: { in: qIds } } }).catch(() => {});
+          await prisma.cbtSubmission.deleteMany({ where: { questionId: { in: qIds } } }).catch(() => {});
+          await prisma.question.deleteMany({ where: { id: { in: qIds } } }).catch(() => {});
+        }
+
         await prisma.topic.deleteMany({ where: { chapterId: { in: chapterIds } } }).catch(() => {});
         await prisma.chapter.deleteMany({ where: { id: { in: chapterIds } } }).catch(() => {});
       }
       await prisma.subject.deleteMany({ where: { id: { in: subjectIds } } }).catch(() => {});
     }
 
-    // 3. Delete Exam and its QuestionExamMappings
+    // 3. Purge Upload Batches and any questions matching this exam's name / spreadsheets
+    const allBatches = await prisma.uploadBatch.findMany({ select: { id: true, fileName: true } });
+    const matchingBatches = allBatches.filter((b) => {
+      if (!b.fileName) return false;
+      const bClean = b.fileName.toLowerCase().replace(/[\s_\-]+/g, '');
+      return bClean.includes(cleanExam) || (cleanExam.includes('jee') && bClean.includes('jee'));
+    });
+
+    const matchingBatchIds = matchingBatches.map((b) => b.id);
+    const matchingFileNames = matchingBatches.map((b) => b.fileName);
+
+    if (matchingBatchIds.length > 0 || matchingFileNames.length > 0) {
+      const batchQuestions = await prisma.question.findMany({
+        where: {
+          OR: [
+            ...(matchingBatchIds.length ? [{ uploadBatchId: { in: matchingBatchIds } }] : []),
+            ...(matchingFileNames.length ? [{ sourceFileName: { in: matchingFileNames } }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      const batchQIds = batchQuestions.map((q) => q.id);
+      if (batchQIds.length > 0) {
+        await prisma.paperQuestion.deleteMany({ where: { questionId: { in: batchQIds } } }).catch(() => {});
+        await prisma.questionExamMapping.deleteMany({ where: { questionId: { in: batchQIds } } }).catch(() => {});
+        await prisma.cbtSubmission.deleteMany({ where: { questionId: { in: batchQIds } } }).catch(() => {});
+        await prisma.question.deleteMany({ where: { id: { in: batchQIds } } }).catch(() => {});
+      }
+      await prisma.uploadBatch.deleteMany({ where: { id: { in: matchingBatchIds } } }).catch(() => {});
+    }
+
+    // 4. Delete Exam and its QuestionExamMappings
     await prisma.questionExamMapping.deleteMany({ where: { examId: id } }).catch(() => {});
     await prisma.exam.delete({ where: { id } });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: `Exam "${examName}", its questions, syllabus, generated papers, and upload logs were completely deleted.`,
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Failed to delete exam:', err);
     res.status(500).json({ error: err.message });
   }
 });

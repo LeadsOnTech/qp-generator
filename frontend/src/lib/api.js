@@ -53,8 +53,10 @@ export const api = {
     const params = new URLSearchParams(opts).toString();
     return request(`/upload${params ? `?${params}` : ''}`, { method: 'POST', body: form });
   },
-  uploadBatches: () => request('/upload/batches'),
+  uploadBatches: () => request('/upload/batches?limit=all'),
   deleteUploadBatch: (id) => request(`/upload/batches/${id}`, { method: 'DELETE' }),
+  bulkDeleteUploadBatches: (batchIds) => request('/upload/batches/bulk-delete', { method: 'POST', body: JSON.stringify({ batchIds }) }),
+  purgeUploadBatchesByKeyword: (keyword) => request('/upload/batches/purge-by-keyword', { method: 'POST', body: JSON.stringify({ keyword }) }),
 
   listQuestions: (filters = {}) => {
     const params = new URLSearchParams(filters).toString();

@@ -13,6 +13,9 @@ export default function Upload() {
   const [loadingBatches, setLoadingBatches] = useState(true);
   const [previewingBatchId, setPreviewingBatchId] = useState(null);
   const [previewModal, setPreviewModal] = useState(null);
+  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
+  const [batchSearch, setBatchSearch] = useState('');
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
   const inputRef = useRef(null);
 
   async function handlePreviewBatch(b, limit = null) {
@@ -65,14 +68,72 @@ export default function Upload() {
     }
   }
 
-  async function handleDeleteBatch(id) {
-    if (!window.confirm('Remove this upload record from history?')) return;
+  async function handleDeleteBatch(b) {
+    const batchId = typeof b === 'string' ? b : b.id;
+    const name = typeof b === 'object' && b.fileName ? b.fileName : 'this batch';
+    const qCount = typeof b === 'object' && b.successCount != null ? b.successCount : '';
+    const qCountMsg = qCount ? ` AND all ${qCount} questions imported with it` : ' and all its imported questions';
+
+    if (!window.confirm(`Permanently delete "${name}"${qCountMsg} from the Question Bank?\n\nThis will remove the spreadsheet log AND purge all its questions from database.`)) return;
+
     try {
-      await api.deleteUploadBatch(id);
-      setBatches((prev) => prev.filter((b) => b.id !== id));
+      const res = await api.deleteUploadBatch(batchId);
+      setBatches((prev) => prev.filter((item) => item.id !== batchId));
+      setSelectedBatchIds((prev) => prev.filter((id) => id !== batchId));
+      if (res?.message) {
+        alert(res.message);
+      }
     } catch (err) {
-      alert('Failed to delete upload log');
+      alert(err.message || 'Failed to delete upload batch and questions');
     }
+  }
+
+  async function handleBulkDeleteBatches() {
+    if (!selectedBatchIds.length) return;
+    if (!window.confirm(`Permanently delete ${selectedBatchIds.length} selected batch(es) AND all questions imported with them from the Question Bank?`)) return;
+
+    setBatchActionLoading(true);
+    try {
+      const res = await api.bulkDeleteUploadBatches(selectedBatchIds);
+      setBatches((prev) => prev.filter((b) => !selectedBatchIds.includes(b.id)));
+      setSelectedBatchIds([]);
+      alert(res?.message || 'Selected batches and questions were permanently deleted.');
+    } catch (err) {
+      alert(err.message || 'Failed to delete selected batches');
+    } finally {
+      setBatchActionLoading(false);
+    }
+  }
+
+  async function handlePurgeKeyword(keyword) {
+    if (!keyword) return;
+    if (!window.confirm(`Permanently purge ALL upload batches and questions matching "${keyword}" from the Question Bank?\n\nThis will completely remove them.`)) return;
+
+    setBatchActionLoading(true);
+    try {
+      const res = await api.purgeUploadBatchesByKeyword(keyword);
+      loadBatches();
+      setSelectedBatchIds([]);
+      alert(res?.message || `All batches and questions matching "${keyword}" were purged.`);
+    } catch (err) {
+      alert(err.message || `Failed to purge batches matching "${keyword}"`);
+    } finally {
+      setBatchActionLoading(false);
+    }
+  }
+
+  function toggleSelectAllBatches(filteredList) {
+    if (selectedBatchIds.length === filteredList.length) {
+      setSelectedBatchIds([]);
+    } else {
+      setSelectedBatchIds(filteredList.map((b) => b.id));
+    }
+  }
+
+  function toggleSelectBatch(id) {
+    setSelectedBatchIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   }
 
   function onDrop(e) {
@@ -281,7 +342,7 @@ export default function Upload() {
 
       {/* Batch Upload History */}
       <div className="executive-card" style={{ marginTop: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
               Recent Batch Ingestion Logs
@@ -290,9 +351,41 @@ export default function Upload() {
               Historical record of spreadsheet uploads and questions indexed into PostgreSQL.
             </p>
           </div>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '4px 12px', borderRadius: 9999 }}>
-            {batches.length} Batch(es)
-          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {batches.some((b) => b.fileName && b.fileName.toLowerCase().includes('jee')) && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '6px 14px', fontSize: 12.5, fontWeight: 700, background: '#DC2626', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                onClick={() => handlePurgeKeyword('JEE')}
+                disabled={batchActionLoading}
+                title="Permanently remove all JEE batches and their questions from database"
+              >
+                {batchActionLoading ? 'Purging…' : '🧹 Purge All JEE Batches & Questions'}
+              </button>
+            )}
+            {selectedBatchIds.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '6px 14px', fontSize: 12.5, fontWeight: 700, background: '#EF4444', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                onClick={handleBulkDeleteBatches}
+                disabled={batchActionLoading}
+              >
+                🗑️ Delete Selected ({selectedBatchIds.length}) &amp; Questions
+              </button>
+            )}
+            <input
+              type="text"
+              placeholder="Filter batches (e.g. JEE, EAPCET)..."
+              value={batchSearch}
+              onChange={(e) => setBatchSearch(e.target.value)}
+              style={{ padding: '6px 12px', fontSize: 12.5, border: '1px solid #CBD5E1', borderRadius: 8, width: 220 }}
+            />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '4px 12px', borderRadius: 9999 }}>
+              {batches.filter((b) => !batchSearch.trim() || (b.fileName || '').toLowerCase().includes(batchSearch.toLowerCase())).length} of {batches.length} Batch(es)
+            </span>
+          </div>
         </div>
 
         {loadingBatches ? (
@@ -303,78 +396,107 @@ export default function Upload() {
           </div>
         ) : (
           <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Spreadsheet Name</th>
-                  <th>Questions Added</th>
-                  <th>Status</th>
-                  <th>Timestamp</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batches.slice(0, 15).map((b) => (
-                  <tr key={b.id}>
-                    <td style={{ fontWeight: 700, color: '#0F172A' }}>
-                      <span style={{ marginRight: 8 }}>📄</span>
-                      {b.fileName}
-                    </td>
+            {(() => {
+              const filtered = batches.filter((b) => !batchSearch.trim() || (b.fileName || '').toLowerCase().includes(batchSearch.toLowerCase()));
+              if (filtered.length === 0) {
+                return (
+                  <div style={{ padding: '36px 0', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
+                    No upload batches match your filter &ldquo;{batchSearch}&rdquo;.
+                  </div>
+                );
+              }
+              return (
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 40, textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={filtered.length > 0 && selectedBatchIds.length === filtered.length}
+                          onChange={() => toggleSelectAllBatches(filtered)}
+                          title="Select all batches"
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </th>
+                      <th>Spreadsheet Name</th>
+                      <th>Questions Added</th>
+                      <th>Status</th>
+                      <th>Timestamp</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((b) => (
+                      <tr key={b.id} style={{ background: selectedBatchIds.includes(b.id) ? '#F8FAFC' : 'transparent' }}>
+                        <td style={{ textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedBatchIds.includes(b.id)}
+                            onChange={() => toggleSelectBatch(b.id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ fontWeight: 700, color: '#0F172A' }}>
+                          <span style={{ marginRight: 8 }}>📄</span>
+                          {b.fileName}
+                        </td>
 
-                    <td>
-                      <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
-                      {b.errorCount > 0 && (
-                        <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
-                          ({b.errorCount} skipped)
-                        </span>
-                      )}
-                    </td>
+                        <td>
+                          <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
+                          {b.errorCount > 0 && (
+                            <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
+                              ({b.errorCount} skipped)
+                            </span>
+                          )}
+                        </td>
 
-                    <td>
-                      <span className="badge badge-success">● Indexed</span>
-                    </td>
+                        <td>
+                          <span className="badge badge-success">● Indexed</span>
+                        </td>
 
-                    <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
-                      {new Date(b.createdAt).toLocaleString('en-IN', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
+                        <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
+                          {new Date(b.createdAt).toLocaleString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
 
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
-                        disabled={previewingBatchId === b.id}
-                        onClick={() => handlePreviewBatch(b)}
-                        title="Download & Preview this batch as PDF"
-                      >
-                        {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
-                      </button>
-                      <Link
-                        to="/questions"
-                        className="btn btn-secondary"
-                        style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
-                      >
-                        Inspect Bank &rarr;
-                      </Link>
-                      <button
-                        type="button"
-                        className="btn-danger-ghost"
-                        style={{ padding: '5px 10px', fontSize: 12 }}
-                        onClick={() => handleDeleteBatch(b.id)}
-                        title="Remove upload log"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
+                            disabled={previewingBatchId === b.id}
+                            onClick={() => handlePreviewBatch(b)}
+                            title="Download & Preview this batch as PDF"
+                          >
+                            {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
+                          </button>
+                          <Link
+                            to="/questions"
+                            className="btn btn-secondary"
+                            style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
+                          >
+                            Inspect Bank &rarr;
+                          </Link>
+                          <button
+                            type="button"
+                            className="btn-danger-ghost"
+                            style={{ padding: '5px 10px', fontSize: 12 }}
+                            onClick={() => handleDeleteBatch(b)}
+                            title="Permanently delete batch and remove all its questions from Question Bank"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </div>
         )}
       </div>
