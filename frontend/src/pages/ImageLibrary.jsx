@@ -487,10 +487,10 @@ export default function ImageLibrary() {
           </div>
         </div>
 
-        <div className="card" style={{ padding: '16px 20px', borderLeft: `4px solid ${orphanedCount > 0 ? '#ef4444' : '#94a3b8'}` }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>UNUSED / ORPHANED</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: orphanedCount > 0 ? '#dc2626' : 'var(--ink-soft)', marginTop: 4 }}>
-            {orphanedCount} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-soft)' }}>unused</span>
+        <div className="card" style={{ padding: '16px 20px', borderLeft: `4px solid ${orphanedCount > 0 ? '#f59e0b' : '#94a3b8'}` }}>
+          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>UNLINKED / NOT IN QUESTIONS</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: orphanedCount > 0 ? '#b45309' : 'var(--ink-soft)', marginTop: 4 }}>
+            {orphanedCount} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-soft)' }}>unlinked</span>
           </div>
         </div>
 
@@ -817,11 +817,11 @@ export default function ImageLibrary() {
             className={`btn ${usageFilter === 'ORPHANED' ? 'btn-primary' : 'btn-ghost'}`}
             style={{
               padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600,
-              color: usageFilter === 'ORPHANED' ? '#fff' : (orphanedCount > 0 ? '#dc2626' : 'var(--ink-soft)')
+              color: usageFilter === 'ORPHANED' ? '#fff' : (orphanedCount > 0 ? '#b45309' : 'var(--ink-soft)')
             }}
             onClick={() => { setUsageFilter('ORPHANED'); setCurrentPage(1); }}
           >
-            ⚠️ Unused / Orphaned ({orphanedCount})
+            ⚠️ Not Linked to Any Question ({orphanedCount})
           </button>
         </div>
 
@@ -1075,19 +1075,23 @@ export default function ImageLibrary() {
                     {/* Linked Question Status Badge */}
                     <div style={{ marginTop: 4, marginBottom: 4 }}>
                       {img.isOrphaned ? (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          background: '#fef3c7',
-                          color: '#92400e',
-                          border: '1px solid #fde68a',
-                        }}>
-                          ⚠️ Unused
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '2px 7px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: '1px solid #fde68a',
+                            cursor: 'help'
+                          }}
+                          title="Saved on server! However, this diagram is not yet referenced by any question in your Question Bank. Link it via Excel ImageFilename or Edit Question."
+                        >
+                          ⚠️ Unused (Not in any Question yet)
                         </span>
                       ) : (
                         <span
@@ -1296,7 +1300,7 @@ export default function ImageLibrary() {
                 margin: '10px 18px 0', padding: '10px 14px', borderRadius: 8,
                 background: '#fffbeb', border: '1px solid #fde68a', fontSize: 12.5, color: '#92400e'
               }}>
-                ⚠️ <strong>Unused Diagram:</strong> This image file is not linked to any active question in your Question Bank. You can safely delete it or leave it ready for future spreadsheets.
+                ⚠️ <strong>Saved on Server (Not Linked Yet):</strong> This image is safely saved on the server disk, but is not referenced by any question in your Question Bank yet. Link it in an Excel file using the filename <code>{activeLightboxImage.filename}</code> in the <code>ImageFilename</code> column, or attach it via <em>Edit Question</em>.
               </div>
             ) : (
               <div style={{
