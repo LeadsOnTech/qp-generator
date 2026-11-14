@@ -556,7 +556,7 @@ export default function Upload() {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 40, textAlign: 'center' }}>
+                    <th style={{ width: 36, textAlign: 'center' }}>
                       <input
                         type="checkbox"
                         checked={filteredBatches.length > 0 && selectedBatchIds.length === filteredBatches.length}
@@ -565,12 +565,14 @@ export default function Upload() {
                         style={{ cursor: 'pointer' }}
                       />
                     </th>
-                    <th>Spreadsheet Name</th>
-                    <th style={{ minWidth: 160 }}>Exam</th>
-                    <th>Questions Added</th>
-                    <th>Status</th>
-                    <th>Timestamp</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th style={{ minWidth: 180, maxWidth: 260 }}>Spreadsheet Name</th>
+                    <th style={{ width: 120 }}>Exam</th>
+                    <th style={{ width: 90 }}>Questions</th>
+                    <th style={{ width: 85 }}>Status</th>
+                    <th style={{ width: 115 }}>Timestamp</th>
+                    <th className="table-actions-sticky" style={{ textAlign: 'right', minWidth: 240, paddingRight: 16 }}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -584,9 +586,13 @@ export default function Upload() {
                           style={{ cursor: 'pointer' }}
                         />
                       </td>
-                      <td style={{ fontWeight: 700, color: '#0F172A' }}>
-                        <span style={{ marginRight: 8 }}>📄</span>
-                        {b.fileName}
+                      <td style={{ fontWeight: 700, color: '#0F172A', maxWidth: 260 }} title={b.fileName}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                          <span style={{ flexShrink: 0 }}>📄</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {b.fileName}
+                          </span>
+                        </div>
                       </td>
 
                       <td>
@@ -598,10 +604,10 @@ export default function Upload() {
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 6,
-                                padding: '4px 10px',
+                                gap: 5,
+                                padding: '3px 8px',
                                 borderRadius: 6,
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 fontWeight: 700,
                                 background: style.background,
                                 color: style.color,
@@ -618,19 +624,19 @@ export default function Upload() {
                       </td>
 
                       <td>
-                        <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
+                        <span style={{ fontWeight: 800, color: '#166534', fontSize: 12.5 }}>{b.successCount} Qs</span>
                         {b.errorCount > 0 && (
-                          <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
-                            ({b.errorCount} skipped)
+                          <span style={{ color: '#DC2626', fontSize: 11, marginLeft: 4, fontWeight: 600 }}>
+                            ({b.errorCount})
                           </span>
                         )}
                       </td>
 
                       <td>
-                        <span className="badge badge-success">● Indexed</span>
+                        <span className="badge badge-success" style={{ fontSize: 11, padding: '2px 8px' }}>● Indexed</span>
                       </td>
 
-                      <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
+                      <td className="mono" style={{ fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap' }}>
                         {new Date(b.createdAt).toLocaleString('en-IN', {
                           month: 'short',
                           day: 'numeric',
@@ -639,35 +645,51 @@ export default function Upload() {
                         })}
                       </td>
 
-                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
-                            disabled={previewingBatchId === b.id}
-                            onClick={() => handlePreviewBatch(b)}
-                            title="Download & Preview this batch as PDF"
-                          >
-                            {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
-                          </button>
-                          <Link
-                            to="/questions"
-                            className="btn btn-secondary"
-                            style={{ padding: '5px 12px', fontSize: 12, marginRight: 6 }}
-                          >
-                            Inspect Bank &rarr;
-                          </Link>
-                          <button
-                            type="button"
-                            className="btn-danger-ghost"
-                            style={{ padding: '5px 10px', fontSize: 12 }}
-                            onClick={() => handleDeleteBatch(b)}
-                            title="Permanently delete batch and remove all its questions from Question Bank"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
+                      <td
+                        className="table-actions-sticky"
+                        style={{
+                          textAlign: 'right',
+                          whiteSpace: 'nowrap',
+                          paddingRight: 16,
+                          background: selectedBatchIds.includes(b.id) ? '#F8FAFC' : undefined,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            marginRight: 6,
+                            background: '#EFF6FF',
+                            color: '#1D4ED8',
+                            border: '1px solid #BFDBFE',
+                          }}
+                          disabled={previewingBatchId === b.id}
+                          onClick={() => handlePreviewBatch(b)}
+                          title="Download & Preview this batch as PDF"
+                        >
+                          {previewingBatchId === b.id ? '⏳ Preparing...' : '📄 Preview PDF'}
+                        </button>
+                        <Link
+                          to="/questions"
+                          className="btn btn-ghost"
+                          style={{ padding: '4px 9px', fontSize: 11.5, marginRight: 6, border: '1px solid #E2E8F0' }}
+                        >
+                          Inspect &rarr;
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn-danger-ghost"
+                          style={{ padding: '4px 8px', fontSize: 11.5 }}
+                          onClick={() => handleDeleteBatch(b)}
+                          title="Permanently delete batch and remove all its questions from Question Bank"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
                     ))}
                   </tbody>
                 </table>
