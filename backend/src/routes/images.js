@@ -3,6 +3,12 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const prisma = require('../db');
+const {
+  isAutoDeleteDiagramsEnabled,
+  setAutoDeleteDiagramsEnabled,
+  findOrphanedImages,
+} = require('../lib/diagramCleaner');
 
 const router = express.Router();
 
@@ -33,6 +39,59 @@ const upload = multer({
     }
     cb(null, true);
   },
+});
+
+/**
+ * GET /api/images/settings
+ */
+router.get('/settings', async (req, res) => {
+  try {
+    const autoDelete = await isAutoDeleteDiagramsEnabled();
+    res.json({ autoDeleteDiagrams: autoDelete });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PUT /api/images/settings
+ * Body: { autoDeleteDiagrams: boolean }
+ */
+router.put('/settings', async (req, res) => {
+  try {
+    const { autoDeleteDiagrams } = req.body;
+    await setAutoDeleteDiagramsEnabled(Boolean(autoDeleteDiagrams));
+    res.json({ ok: true, autoDeleteDiagrams: Boolean(autoDeleteDiagrams) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/images/purge-orphans
+ * Deletes all image files on disk that are NOT referenced by any active question.
+ */
+router.post('/purge-orphans', async (req, res) => {
+  try {
+    const { orphaned } = await findOrphanedImages();
+    let deletedCount = 0;
+    const deletedFiles = [];
+    for (const filename of orphaned) {
+      const filePath = path.join(UPLOAD_DIR, filename);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          deletedCount++;
+          deletedFiles.push(filename);
+        } catch (e) {
+          console.error(`Failed to delete orphaned file ${filename}:`, e.message);
+        }
+      }
+    }
+    res.json({ ok: true, deletedCount, deletedFiles });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to purge orphaned diagrams: ' + err.message });
+  }
 });
 
 /**
@@ -231,14 +290,19 @@ router.get('/duplicates', (req, res) => {
 /**
  * GET /api/images — list every uploaded image (so users can check exact
  * saved filenames to reference in their Excel's ImageFilename column).
- * Includes file sizes, upload timestamps, and defaults to newest-first.
+ * Includes file sizes, upload timestamps, linked questions, and orphaned indicators.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const files = fs.readdirSync(UPLOAD_DIR).filter((f) => {
       const ext = f.split('.').pop().toLowerCase();
       return ALLOWED_EXTENSIONS.includes(ext);
     });
+
+    const [orphanData, autoDelete] = await Promise.all([
+      findOrphanedImages().catch(() => ({ orphaned: [], usedFilesMap: new Map() })),
+      isAutoDeleteDiagramsEnabled(),
+    ]);
 
     let totalBytes = 0;
     const imageList = files.map((f) => {
@@ -251,11 +315,18 @@ router.get('/', (req, res) => {
         totalBytes += stat.size;
       } catch (e) {}
 
+      const cleanName = path.basename(f);
+      const linked = orphanData.usedFilesMap.get(cleanName) || [];
+      const isOrphaned = linked.length === 0;
+
       return {
         filename: f,
         url: `/uploads/images/${f}`,
         sizeBytes,
         mtime,
+        linkedQuestions: linked,
+        linkedCount: linked.length,
+        isOrphaned,
       };
     });
 
@@ -265,32 +336,18 @@ router.get('/', (req, res) => {
       return new Date(b.mtime).getTime() - new Date(a.mtime).getTime();
     });
 
+    const orphanedCount = imageList.filter((img) => img.isOrphaned).length;
+
     res.json({
       images: imageList,
       totalCount: imageList.length,
       totalBytes,
+      orphanedCount,
+      autoDeleteDiagrams: autoDelete,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to read images: ' + err.message });
   }
-});
-
-/**
- * DELETE /api/images/:filename — delete an image and unlink from questions
- */
-router.delete('/:filename', async (req, res) => {
-  const filename = path.basename(req.params.filename);
-  const filePath = path.join(UPLOAD_DIR, filename);
-
-  if (fs.existsSync(filePath)) {
-    try {
-      fs.unlinkSync(filePath);
-    } catch (err) {
-      return res.status(500).json({ error: `Could not delete file: ${err.message}` });
-    }
-  }
-
-  res.json({ ok: true, deleted: filename });
 });
 
 /**
@@ -315,6 +372,17 @@ router.post('/bulk-delete', async (req, res) => {
         console.error(`Could not delete ${filename}:`, err);
       }
     }
+  }
+
+  // Clear references from questions
+  for (const filename of safeFilenames) {
+    try {
+      await prisma.question.updateMany({ where: { imageFilename: filename }, data: { imageFilename: null } });
+      await prisma.question.updateMany({ where: { optionAImage: filename }, data: { optionAImage: null } });
+      await prisma.question.updateMany({ where: { optionBImage: filename }, data: { optionBImage: null } });
+      await prisma.question.updateMany({ where: { optionCImage: filename }, data: { optionCImage: null } });
+      await prisma.question.updateMany({ where: { optionDImage: filename }, data: { optionDImage: null } });
+    } catch (e) {}
   }
 
   res.json({ ok: true, deletedCount });
@@ -349,7 +417,6 @@ router.post('/rename', async (req, res) => {
 
   // Update questions referencing oldFilename to newFilename
   try {
-    const prisma = require('../db');
     await prisma.question.updateMany({
       where: { imageFilename: cleanOld },
       data: { imageFilename: cleanNew },
@@ -375,6 +442,33 @@ router.post('/rename', async (req, res) => {
   }
 
   res.json({ ok: true, oldFilename: cleanOld, newFilename: cleanNew });
+});
+
+/**
+ * DELETE /api/images/:filename — delete an image and unlink from questions
+ */
+router.delete('/:filename', async (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(UPLOAD_DIR, filename);
+
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      return res.status(500).json({ error: `Could not delete file: ${err.message}` });
+    }
+  }
+
+  // Clear references from questions so questions aren't pointing to a missing image
+  try {
+    await prisma.question.updateMany({ where: { imageFilename: filename }, data: { imageFilename: null } });
+    await prisma.question.updateMany({ where: { optionAImage: filename }, data: { optionAImage: null } });
+    await prisma.question.updateMany({ where: { optionBImage: filename }, data: { optionBImage: null } });
+    await prisma.question.updateMany({ where: { optionCImage: filename }, data: { optionCImage: null } });
+    await prisma.question.updateMany({ where: { optionDImage: filename }, data: { optionDImage: null } });
+  } catch (err) {}
+
+  res.json({ ok: true, deleted: filename });
 });
 
 module.exports = router;

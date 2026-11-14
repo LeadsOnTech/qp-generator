@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { runChecks, ruleBasedCheck, isNVQQuestion } = require('../lib/checkEngine');
+const { extractImageFilenames, purgeUnreferencedImages } = require('../lib/diagramCleaner');
 
 const router = express.Router();
 
@@ -226,6 +227,8 @@ router.post('/review/:id', async (req, res) => {
 
   if (action === 'remove') {
     await prisma.question.update({ where: { id: q.id }, data: { isActive: false } });
+    const imgList = extractImageFilenames(q);
+    await purgeUnreferencedImages(imgList, [q.id]).catch((e) => console.error('Diagram purge error:', e));
     return res.json({ ok: true, removed: true });
   }
 

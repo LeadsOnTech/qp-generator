@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../db');
 const { requireAuth, requireAdmin } = require('../lib/auth');
+const { extractImageFilenames, purgeUnreferencedImages } = require('../lib/diagramCleaner');
 
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -227,7 +228,8 @@ router.patch('/:id', requireAdmin, async (req, res) => {
 });
 
 /**
- * DELETE /api/questions/:id — permanently delete or remove from active question bank
+ * DELETE /api/questions/:id — permanently delete or remove from active question bank.
+ * Automatically purges any associated diagram/images from disk if no other active question uses them.
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
@@ -240,6 +242,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Question not found.' });
     }
 
+    // Extract all diagram images attached to this question
+    const imageFiles = extractImageFilenames(q);
+
     // Always delete any exam mappings so question is unlinked from syllabus/exams
     await prisma.questionExamMapping.deleteMany({ where: { questionId: id } });
 
@@ -251,12 +256,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
         where: { id },
         data: { isActive: false }
       });
-      return res.json({ ok: true, message: 'Question permanently removed from Question Bank.' });
+      // Purge diagrams from disk if no other active question references them
+      const { deletedFiles } = await purgeUnreferencedImages(imageFiles, [id]);
+      const imgMsg = deletedFiles.length > 0 ? ` and ${deletedFiles.length} diagram file(s) deleted` : '';
+      return res.json({ ok: true, message: `Question permanently removed from Question Bank${imgMsg}.`, deletedImages: deletedFiles });
     }
 
     // If never used in any paper, delete permanently from database
     await prisma.question.delete({ where: { id } });
-    res.json({ ok: true, message: 'Question permanently deleted from Question Bank.' });
+    const { deletedFiles } = await purgeUnreferencedImages(imageFiles, [id]);
+    const imgMsg = deletedFiles.length > 0 ? ` and ${deletedFiles.length} diagram file(s) deleted` : '';
+    res.json({ ok: true, message: `Question permanently deleted from Question Bank${imgMsg}.`, deletedImages: deletedFiles });
   } catch (err) {
     console.error('Delete question error:', err);
     res.status(500).json({ error: 'Failed to delete question: ' + err.message });

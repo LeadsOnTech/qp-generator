@@ -1,5 +1,6 @@
 const { runAIBackgroundAudit } = require('../lib/autoQCAuditor');
 const { distributeQuestionToExams, distributeAllExistingQuestions } = require('../lib/multiExamSync');
+const { extractImageFilenames, purgeUnreferencedImages } = require('../lib/diagramCleaner');
 const express = require('express');
 const multer = require('multer');
 const prisma = require('../db');
@@ -152,7 +153,8 @@ router.post('/', upload.single('file'), async (req, res) => {
 });
 
 /**
- * Helper to delete all questions belonging to specified batches or source filenames.
+ * Helper to delete all questions belonging to specified batches or source filenames,
+ * and automatically purge any unreferenced diagram images from disk.
  */
 async function deleteQuestionsForBatches(batchIds = [], fileNames = []) {
   const whereOr = [];
@@ -166,9 +168,17 @@ async function deleteQuestionsForBatches(batchIds = [], fileNames = []) {
 
   const questions = await prisma.question.findMany({
     where: { OR: whereOr },
-    select: { id: true },
+    select: {
+      id: true,
+      imageFilename: true,
+      optionAImage: true,
+      optionBImage: true,
+      optionCImage: true,
+      optionDImage: true,
+    },
   });
   const questionIds = questions.map((q) => q.id);
+  const imageFiles = extractImageFilenames(questions);
 
   if (questionIds.length > 0) {
     // Delete child relationships before deleting questions
@@ -176,6 +186,11 @@ async function deleteQuestionsForBatches(batchIds = [], fileNames = []) {
     await prisma.questionExamMapping.deleteMany({ where: { questionId: { in: questionIds } } }).catch(() => {});
     await prisma.cbtSubmission.deleteMany({ where: { questionId: { in: questionIds } } }).catch(() => {});
     await prisma.question.deleteMany({ where: { id: { in: questionIds } } });
+
+    // Automatically purge diagram images that are no longer referenced by any remaining question
+    await purgeUnreferencedImages(imageFiles, questionIds).catch((err) => {
+      console.error('Error purging batch diagram images:', err);
+    });
   }
 
   return questionIds.length;

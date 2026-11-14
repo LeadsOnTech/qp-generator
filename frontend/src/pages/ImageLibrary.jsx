@@ -45,6 +45,13 @@ export default function ImageLibrary() {
   const [pageSize, setPageSize] = useState(36);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Settings & Orphan Management
+  const [autoDeleteDiagrams, setAutoDeleteDiagrams] = useState(true);
+  const [updatingSetting, setUpdatingSetting] = useState(false);
+  const [orphanedCount, setOrphanedCount] = useState(0);
+  const [usageFilter, setUsageFilter] = useState('ALL'); // 'ALL' | 'IN_USE' | 'ORPHANED'
+  const [purgingOrphans, setPurgingOrphans] = useState(false);
+
   // Selection & Feedback
   const [selected, setSelected] = useState(new Set());
   const [copiedName, setCopiedName] = useState(null);
@@ -63,6 +70,14 @@ export default function ImageLibrary() {
     api.listImages()
       .then((res) => {
         setImages(res.images || []);
+        if (typeof res.orphanedCount === 'number') {
+          setOrphanedCount(res.orphanedCount);
+        } else {
+          setOrphanedCount((res.images || []).filter((i) => i.isOrphaned).length);
+        }
+        if (typeof res.autoDeleteDiagrams === 'boolean') {
+          setAutoDeleteDiagrams(res.autoDeleteDiagrams);
+        }
         if (typeof res.totalBytes === 'number') {
           setTotalBytes(res.totalBytes);
         } else {
@@ -75,6 +90,41 @@ export default function ImageLibrary() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleToggleAutoDelete() {
+    const nextVal = !autoDeleteDiagrams;
+    setUpdatingSetting(true);
+    try {
+      await api.updateImageSettings(nextVal);
+      setAutoDeleteDiagrams(nextVal);
+      showToast(nextVal ? 'Automatic diagram deletion ENABLED: Attached images will be deleted when questions are deleted.' : 'Automatic diagram deletion DISABLED.');
+    } catch (err) {
+      setError('Failed to update setting: ' + err.message);
+    } finally {
+      setUpdatingSetting(false);
+    }
+  }
+
+  async function handlePurgeOrphans() {
+    if (orphanedCount === 0) {
+      alert('No unused or orphaned diagrams found. All diagrams in your library are actively linked to questions!');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete all ${orphanedCount} unused diagrams?\n\nThese images are not referenced by any question in your Question Bank. This will safely free up disk storage.`)) {
+      return;
+    }
+    setPurgingOrphans(true);
+    setError(null);
+    try {
+      const res = await api.purgeOrphanedImages();
+      showToast(`Successfully deleted ${res.deletedCount} unused diagram file(s).`);
+      load();
+    } catch (err) {
+      setError('Failed to clean up diagrams: ' + err.message);
+    } finally {
+      setPurgingOrphans(false);
+    }
+  }
 
   async function handleFiles(fileList) {
     const files = Array.from(fileList || []);
@@ -272,6 +322,12 @@ export default function ImageLibrary() {
       list = list.filter((img) => img.filename.toLowerCase().includes(q));
     }
 
+    if (usageFilter === 'IN_USE') {
+      list = list.filter((img) => !img.isOrphaned);
+    } else if (usageFilter === 'ORPHANED') {
+      list = list.filter((img) => img.isOrphaned);
+    }
+
     if (selectedSubject !== 'ALL') {
       list = list.filter((img) => {
         const p = extractPrefix(img.filename);
@@ -298,7 +354,7 @@ export default function ImageLibrary() {
     }
 
     return list;
-  }, [images, searchQuery, selectedSubject, selectedPrefix, sortBy]);
+  }, [images, searchQuery, usageFilter, selectedSubject, selectedPrefix, sortBy]);
 
   // Pagination
   const effectivePageSize = pageSize === 'ALL' ? filteredImages.length || 1 : Number(pageSize);
@@ -338,6 +394,78 @@ export default function ImageLibrary() {
         </p>
       </div>
 
+      {/* Automatic Deletion Setting & Maintenance Bar */}
+      <div className="card" style={{
+        marginBottom: 20,
+        padding: '16px 20px',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+        border: '1px solid var(--line)',
+        borderRadius: 10,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ fontSize: 28 }}>⚙️</div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <strong style={{ fontSize: 14, color: 'var(--ink)' }}>Auto-Delete Question Diagrams</strong>
+              <span style={{
+                fontSize: 11,
+                padding: '2px 8px',
+                borderRadius: 12,
+                fontWeight: 700,
+                background: autoDeleteDiagrams ? '#dcfce7' : '#fee2e2',
+                color: autoDeleteDiagrams ? '#15803d' : '#b91c1c'
+              }}>
+                {autoDeleteDiagrams ? '● ACTIVE (DEFAULT)' : '○ DISABLED'}
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--ink-soft)' }}>
+              When questions are deleted, all attached diagrams are automatically purged from storage if no other active question uses them.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={`btn ${autoDeleteDiagrams ? 'btn-ghost' : 'btn-primary'}`}
+            style={{ fontSize: 12.5, padding: '7px 14px', borderRadius: 8, fontWeight: 600 }}
+            onClick={handleToggleAutoDelete}
+            disabled={updatingSetting}
+          >
+            {updatingSetting ? 'Saving…' : autoDeleteDiagrams ? 'Turn Off Auto-Delete' : 'Turn On Auto-Delete'}
+          </button>
+
+          {orphanedCount > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{
+                fontSize: 12.5,
+                padding: '7px 14px',
+                borderRadius: 8,
+                background: '#dc2626',
+                borderColor: '#dc2626',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 600,
+              }}
+              onClick={handlePurgeOrphans}
+              disabled={purgingOrphans}
+              title="Delete all diagrams that are no longer used by any question in the Question Bank"
+            >
+              {purgingOrphans ? 'Cleaning up…' : `🧹 Clean Up Unused Diagrams (${orphanedCount})`}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Top 4 KPI Metrics Cards */}
       <div style={{
         display: 'grid',
@@ -353,23 +481,23 @@ export default function ImageLibrary() {
         </div>
 
         <div className="card" style={{ padding: '16px 20px', borderLeft: '4px solid #22c55e' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>LAST UPLOAD BATCH</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: lastUploadBatch ? '#16a34a' : 'var(--ink)', marginTop: 4 }}>
-            {lastUploadBatch ? `${lastUploadBatch.count} uploaded` : 'None this session'}
+          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>ACTIVE IN QUESTIONS</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#16a34a', marginTop: 4 }}>
+            {images.length - orphanedCount} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-soft)' }}>in use</span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: '16px 20px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>TOTAL DISK STORAGE</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
-            {formatBytes(totalBytes)}
+        <div className="card" style={{ padding: '16px 20px', borderLeft: `4px solid ${orphanedCount > 0 ? '#ef4444' : '#94a3b8'}` }}>
+          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>UNUSED / ORPHANED</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: orphanedCount > 0 ? '#dc2626' : 'var(--ink-soft)', marginTop: 4 }}>
+            {orphanedCount} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-soft)' }}>unused</span>
           </div>
         </div>
 
         <div className="card" style={{ padding: '16px 20px', borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>MATCHING DISPLAY</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontWeight: 600, letterSpacing: 0.5 }}>TOTAL DISK STORAGE</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
-            {filteredImages.length} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-soft)' }}>of {images.length}</span>
+            {formatBytes(totalBytes)}
           </div>
         </div>
       </div>
@@ -662,9 +790,44 @@ export default function ImageLibrary() {
           </div>
         </div>
 
+        {/* Usage Status Filter Tabs */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginRight: 4 }}>Usage:</span>
+          <button
+            type="button"
+            className={`btn ${usageFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{ padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600 }}
+            onClick={() => { setUsageFilter('ALL'); setCurrentPage(1); }}
+          >
+            All Diagrams ({images.length})
+          </button>
+          <button
+            type="button"
+            className={`btn ${usageFilter === 'IN_USE' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{
+              padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600,
+              color: usageFilter === 'IN_USE' ? '#fff' : '#16a34a'
+            }}
+            onClick={() => { setUsageFilter('IN_USE'); setCurrentPage(1); }}
+          >
+            ✓ In Active Questions ({images.length - orphanedCount})
+          </button>
+          <button
+            type="button"
+            className={`btn ${usageFilter === 'ORPHANED' ? 'btn-primary' : 'btn-ghost'}`}
+            style={{
+              padding: '4px 12px', fontSize: 12.5, borderRadius: 16, fontWeight: 600,
+              color: usageFilter === 'ORPHANED' ? '#fff' : (orphanedCount > 0 ? '#dc2626' : 'var(--ink-soft)')
+            }}
+            onClick={() => { setUsageFilter('ORPHANED'); setCurrentPage(1); }}
+          >
+            ⚠️ Unused / Orphaned ({orphanedCount})
+          </button>
+        </div>
+
         {/* Subject Filter Tabs */}
         {subjectList.length > 1 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--line)' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', marginRight: 4 }}>Subject:</span>
             <button
               type="button"
@@ -908,6 +1071,46 @@ export default function ImageLibrary() {
                     >
                       {img.filename}
                     </div>
+
+                    {/* Linked Question Status Badge */}
+                    <div style={{ marginTop: 4, marginBottom: 4 }}>
+                      {img.isOrphaned ? (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          border: '1px solid #fde68a',
+                        }}>
+                          ⚠️ Unused
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0',
+                            cursor: 'help'
+                          }}
+                          title={img.linkedQuestions?.map((q) => `• [${q.exam || 'General'} - ${q.subject}] ${q.preview}`).join('\n')}
+                        >
+                          ✓ In {img.linkedCount} Question{img.linkedCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
                     {img.mtime && (
                       <div style={{ fontSize: 10.5, color: 'var(--ink-soft)', marginTop: 2 }}>
                         {formatDate(img.mtime)}
@@ -1086,6 +1289,31 @@ export default function ImageLibrary() {
                 </>
               )}
             </div>
+
+            {/* Linked Questions in Lightbox */}
+            {activeLightboxImage.isOrphaned ? (
+              <div style={{
+                margin: '10px 18px 0', padding: '10px 14px', borderRadius: 8,
+                background: '#fffbeb', border: '1px solid #fde68a', fontSize: 12.5, color: '#92400e'
+              }}>
+                ⚠️ <strong>Unused Diagram:</strong> This image file is not linked to any active question in your Question Bank. You can safely delete it or leave it ready for future spreadsheets.
+              </div>
+            ) : (
+              <div style={{
+                margin: '10px 18px 0', padding: '10px 14px', borderRadius: 8,
+                background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 12.5, color: '#166534',
+                maxHeight: 120, overflowY: 'auto'
+              }}>
+                <strong>✓ Actively linked in {activeLightboxImage.linkedCount} Question(s):</strong>
+                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {(activeLightboxImage.linkedQuestions || []).map((q, i) => (
+                    <div key={i} style={{ fontSize: 12, color: '#14532d', lineHeight: 1.4 }}>
+                      • <span style={{ fontWeight: 600 }}>[{q.exam} / {q.subject} - {q.chapter}]</span> {q.preview}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Modal Footer with Actions */}
             <div style={{

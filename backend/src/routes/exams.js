@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../db');
 const { requireAdmin } = require('../lib/auth');
 const { getBlueprintsForExam, saveCustomBlueprint, deleteCustomBlueprint } = require('../lib/blueprintsEngine');
+const { extractImageFilenames, purgeUnreferencedImages } = require('../lib/diagramCleaner');
 
 const router = express.Router();
 
@@ -202,7 +203,17 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
       if (chapterIds.length > 0) {
         // Find questions under these chapters
-        const qList = await prisma.question.findMany({ where: { chapterId: { in: chapterIds } }, select: { id: true } });
+        const qList = await prisma.question.findMany({
+          where: { chapterId: { in: chapterIds } },
+          select: {
+            id: true,
+            imageFilename: true,
+            optionAImage: true,
+            optionBImage: true,
+            optionCImage: true,
+            optionDImage: true,
+          },
+        });
         const qIds = qList.map((q) => q.id);
 
         if (qIds.length > 0) {
@@ -210,6 +221,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
           await prisma.questionExamMapping.deleteMany({ where: { questionId: { in: qIds } } }).catch(() => {});
           await prisma.cbtSubmission.deleteMany({ where: { questionId: { in: qIds } } }).catch(() => {});
           await prisma.question.deleteMany({ where: { id: { in: qIds } } }).catch(() => {});
+          const examQImages = extractImageFilenames(qList);
+          await purgeUnreferencedImages(examQImages, qIds).catch((e) => console.error('Diagram purge error:', e));
         }
 
         await prisma.topic.deleteMany({ where: { chapterId: { in: chapterIds } } }).catch(() => {});
@@ -237,7 +250,14 @@ router.delete('/:id', requireAdmin, async (req, res) => {
             ...(matchingFileNames.length ? [{ sourceFileName: { in: matchingFileNames } }] : []),
           ],
         },
-        select: { id: true },
+        select: {
+          id: true,
+          imageFilename: true,
+          optionAImage: true,
+          optionBImage: true,
+          optionCImage: true,
+          optionDImage: true,
+        },
       });
       const batchQIds = batchQuestions.map((q) => q.id);
       if (batchQIds.length > 0) {
@@ -245,6 +265,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
         await prisma.questionExamMapping.deleteMany({ where: { questionId: { in: batchQIds } } }).catch(() => {});
         await prisma.cbtSubmission.deleteMany({ where: { questionId: { in: batchQIds } } }).catch(() => {});
         await prisma.question.deleteMany({ where: { id: { in: batchQIds } } }).catch(() => {});
+        const batchImages = extractImageFilenames(batchQuestions);
+        await purgeUnreferencedImages(batchImages, batchQIds).catch((e) => console.error('Diagram purge error:', e));
       }
       await prisma.uploadBatch.deleteMany({ where: { id: { in: matchingBatchIds } } }).catch(() => {});
     }

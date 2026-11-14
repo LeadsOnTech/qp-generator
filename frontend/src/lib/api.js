@@ -258,6 +258,9 @@ export const api = {
   deleteImage: (filename) => request(`/images/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
   bulkDeleteImages: (filenames) => request('/images/bulk-delete', { method: 'POST', body: JSON.stringify({ filenames }) }),
   renameImage: (oldFilename, newFilename) => request('/images/rename', { method: 'POST', body: JSON.stringify({ oldFilename, newFilename }) }),
+  getImageSettings: () => request('/images/settings'),
+  updateImageSettings: (autoDeleteDiagrams) => request('/images/settings', { method: 'PUT', body: JSON.stringify({ autoDeleteDiagrams }) }),
+  purgeOrphanedImages: () => request('/images/purge-orphans', { method: 'POST' }),
   imageBase: () => API_BASE.replace(/\/api$/, ''),
 
   // ---- Manual UPI recharge ----
