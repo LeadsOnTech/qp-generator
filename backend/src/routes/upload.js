@@ -196,8 +196,70 @@ async function deleteQuestionsForBatches(batchIds = [], fileNames = []) {
   return questionIds.length;
 }
 
+function normalizeExamName(name) {
+  if (!name) return null;
+  const upper = name.trim().toUpperCase();
+  if (upper === 'JEE' || upper === 'JEE MAIN' || upper === 'JEE MAINS') return 'JEE Mains';
+  if (upper === 'JEE ADV' || upper === 'JEE ADVANCED' || upper === 'JEE ADVANCE') return 'JEE Advanced';
+  if (upper === 'NEET' || upper === 'NEET UG') return 'NEET';
+  if (upper === 'KCET') return 'KCET';
+  if (upper === 'AP EAPCET' || upper === 'AP EAMCET') return 'AP EAPCET';
+  if (upper === 'TG EAPCET' || upper === 'TS EAPCET' || upper === 'TS EAMCET' || upper === 'TG EAMCET') return 'TS EAPCET';
+  return name.trim();
+}
+
+function inferExamFromFilename(filename = '') {
+  if (!filename) return null;
+  const clean = filename.replace(/\.[^/.]+$/, '').toUpperCase().replace(/[_\-]+/g, ' ');
+
+  if (/\b(JEE\s*ADV|JEE\s*ADVANCED|JEE\s*ADVANCE|ADVANCED|ADVANCE)\b/i.test(clean)) return 'JEE Advanced';
+  if (/\b(JEE\s*MAIN|JEE\s*MAINS|JEE)\b/i.test(clean)) return 'JEE Mains';
+  if (/\b(NEET)\b/i.test(clean)) return 'NEET';
+  if (/\b(KCET)\b/i.test(clean)) return 'KCET';
+  if (/\b(BITSAT)\b/i.test(clean)) return 'BITSAT';
+  if (/\b(CUET)\b/i.test(clean)) return 'CUET';
+  if (/\b(NDA)\b/i.test(clean)) return 'NDA';
+
+  if (/\b(EAPCET|EAMCET)\b/i.test(clean)) {
+    const hasAP = /\bAP\b/i.test(clean);
+    const hasTS = /\b(TS|TG|TELANGANA)\b/i.test(clean);
+    if (hasAP && hasTS) return 'AP EAPCET / TS EAPCET';
+    if (hasAP) return 'AP EAPCET';
+    if (hasTS) return 'TS EAPCET';
+    return 'AP EAPCET / TS EAPCET';
+  }
+
+  return null;
+}
+
+function resolveExamForBatch(fileName, dbExams = []) {
+  const fromFile = inferExamFromFilename(fileName);
+
+  if (fromFile) {
+    if (fromFile.includes('EAPCET') || fromFile.includes('EAMCET')) {
+      const hasAP = dbExams.some((e) => /AP/i.test(e)) || fromFile.includes('AP');
+      const hasTS = dbExams.some((e) => /TS|TG/i.test(e)) || fromFile.includes('TS');
+      if (hasAP && hasTS) return 'AP EAPCET / TS EAPCET';
+      if (hasAP) return 'AP EAPCET';
+      if (hasTS) return 'TS EAPCET';
+      return 'AP EAPCET / TS EAPCET';
+    }
+    return fromFile;
+  }
+
+  if (dbExams.length > 0) {
+    const normalized = Array.from(new Set(dbExams.map(normalizeExamName).filter(Boolean)));
+    if (normalized.includes('AP EAPCET') && normalized.includes('TS EAPCET')) {
+      return 'AP EAPCET / TS EAPCET';
+    }
+    return normalized.join(' / ');
+  }
+
+  return 'General';
+}
+
 /**
- * GET /api/upload/batches — recent upload history (audit trail)
+ * GET /api/upload/batches — recent upload history (audit trail) with resolved Exam names
  */
 router.get('/batches', async (req, res) => {
   const take = req.query.limit === 'all' ? 500 : (parseInt(req.query.limit, 10) || 100);
@@ -205,10 +267,77 @@ router.get('/batches', async (req, res) => {
     orderBy: { createdAt: 'desc' },
     take,
   });
-  res.json(batches.map((b) => ({
-    ...b,
-    errors: b.errors ? JSON.parse(b.errors) : [],
-  })));
+
+  const batchIds = batches.map((b) => b.id).filter(Boolean);
+  const fileNames = batches.map((b) => b.fileName).filter(Boolean);
+
+  const batchExamMap = new Map();
+  try {
+    const questions = await prisma.question.findMany({
+      where: {
+        OR: [
+          { uploadBatchId: { in: batchIds } },
+          { sourceFileName: { in: fileNames } },
+        ],
+      },
+      select: {
+        uploadBatchId: true,
+        sourceFileName: true,
+        chapter: {
+          select: {
+            subject: {
+              select: {
+                exam: { select: { name: true } },
+              },
+            },
+          },
+        },
+        examMappings: {
+          select: {
+            exam: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    for (const q of questions) {
+      const set = new Set();
+      if (q.chapter?.subject?.exam?.name) {
+        set.add(normalizeExamName(q.chapter.subject.exam.name));
+      }
+      if (q.examMappings) {
+        for (const m of q.examMappings) {
+          if (m.exam?.name) set.add(normalizeExamName(m.exam.name));
+        }
+      }
+
+      if (q.uploadBatchId) {
+        if (!batchExamMap.has(q.uploadBatchId)) batchExamMap.set(q.uploadBatchId, new Set());
+        set.forEach((item) => batchExamMap.get(q.uploadBatchId).add(item));
+      }
+      if (q.sourceFileName) {
+        if (!batchExamMap.has(q.sourceFileName)) batchExamMap.set(q.sourceFileName, new Set());
+        set.forEach((item) => batchExamMap.get(q.sourceFileName).add(item));
+      }
+    }
+  } catch (err) {
+    console.error('Error resolving batch question exams:', err.message);
+  }
+
+  const results = batches.map((b) => {
+    const fromId = b.id ? batchExamMap.get(b.id) : null;
+    const fromFile = b.fileName ? batchExamMap.get(b.fileName) : null;
+    const dbExams = Array.from(new Set([...(fromId || []), ...(fromFile || [])]));
+    const examName = resolveExamForBatch(b.fileName, dbExams);
+
+    return {
+      ...b,
+      examName,
+      errors: b.errors ? JSON.parse(b.errors) : [],
+    };
+  });
+
+  res.json(results);
 });
 
 /**

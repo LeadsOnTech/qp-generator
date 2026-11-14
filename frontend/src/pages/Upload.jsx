@@ -1,6 +1,81 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+
+function getBatchExam(b) {
+  if (b.examName && b.examName !== 'General') return b.examName;
+  const name = b.fileName || '';
+  const clean = name.replace(/\.[^/.]+$/, '').toUpperCase().replace(/[_\-]+/g, ' ');
+
+  if (/\b(JEE\s*ADV|JEE\s*ADVANCED|JEE\s*ADVANCE|ADVANCED|ADVANCE)\b/i.test(clean)) return 'JEE Advanced';
+  if (/\b(JEE\s*MAIN|JEE\s*MAINS|JEE)\b/i.test(clean)) return 'JEE Mains';
+  if (/\b(NEET)\b/i.test(clean)) return 'NEET';
+  if (/\b(KCET)\b/i.test(clean)) return 'KCET';
+  if (/\b(BITSAT)\b/i.test(clean)) return 'BITSAT';
+  if (/\b(CUET)\b/i.test(clean)) return 'CUET';
+  if (/\b(NDA)\b/i.test(clean)) return 'NDA';
+
+  if (/\b(EAPCET|EAMCET)\b/i.test(clean)) {
+    const hasAP = /\bAP\b/i.test(clean);
+    const hasTS = /\b(TS|TG|TELANGANA)\b/i.test(clean);
+    if (hasAP && hasTS) return 'AP EAPCET / TS EAPCET';
+    if (hasAP) return 'AP EAPCET';
+    if (hasTS) return 'TS EAPCET';
+    return 'AP EAPCET / TS EAPCET';
+  }
+
+  return b.examName || 'General';
+}
+
+function getExamBadgeStyle(examName) {
+  const upper = (examName || '').toUpperCase();
+  if (upper.includes('EAPCET') || upper.includes('EAMCET')) {
+    return {
+      background: '#ECFDF5',
+      color: '#065F46',
+      border: '1px solid #A7F3D0',
+      icon: '🎓',
+    };
+  }
+  if (upper.includes('ADV')) {
+    return {
+      background: '#FAF5FF',
+      color: '#6B21A8',
+      border: '1px solid #E9D5FF',
+      icon: '⚡',
+    };
+  }
+  if (upper.includes('JEE') || upper.includes('MAIN')) {
+    return {
+      background: '#EFF6FF',
+      color: '#1E40AF',
+      border: '1px solid #BFDBFE',
+      icon: '📘',
+    };
+  }
+  if (upper.includes('NEET')) {
+    return {
+      background: '#FFF1F2',
+      color: '#9F1239',
+      border: '1px solid #FECDD3',
+      icon: '🩺',
+    };
+  }
+  if (upper.includes('KCET')) {
+    return {
+      background: '#FFFBEB',
+      color: '#92400E',
+      border: '1px solid #FDE68A',
+      icon: '🏛️',
+    };
+  }
+  return {
+    background: '#F8FAFC',
+    color: '#334155',
+    border: '1px solid #E2E8F0',
+    icon: '📌',
+  };
+}
 
 export default function Upload() {
   const [searchParams] = useSearchParams();
@@ -16,7 +91,33 @@ export default function Upload() {
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
   const [batchSearch, setBatchSearch] = useState('');
   const [batchActionLoading, setBatchActionLoading] = useState(false);
+  const [examFilter, setExamFilter] = useState('ALL');
   const inputRef = useRef(null);
+
+  const uniqueExams = useMemo(() => {
+    const counts = {};
+    for (const b of batches) {
+      const e = getBatchExam(b);
+      counts[e] = (counts[e] || 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [batches]);
+
+  const filteredBatches = useMemo(() => {
+    return batches.filter((b) => {
+      const exam = getBatchExam(b);
+      if (examFilter !== 'ALL' && exam !== examFilter) {
+        return false;
+      }
+      if (batchSearch.trim()) {
+        const q = batchSearch.toLowerCase().trim();
+        const matchesFile = (b.fileName || '').toLowerCase().includes(q);
+        const matchesExam = (exam || '').toLowerCase().includes(q);
+        return matchesFile || matchesExam;
+      }
+      return true;
+    });
+  }, [batches, examFilter, batchSearch]);
 
   async function handlePreviewBatch(b, limit = null) {
     const batchId = typeof b === 'string' ? b : b.id;
@@ -377,16 +478,67 @@ export default function Upload() {
             )}
             <input
               type="text"
-              placeholder="Filter batches (e.g. JEE, EAPCET)..."
+              placeholder="Filter by name or exam (e.g. JEE, EAPCET)..."
               value={batchSearch}
               onChange={(e) => setBatchSearch(e.target.value)}
-              style={{ padding: '6px 12px', fontSize: 12.5, border: '1px solid #CBD5E1', borderRadius: 8, width: 220 }}
+              style={{ padding: '6px 12px', fontSize: 12.5, border: '1px solid #CBD5E1', borderRadius: 8, width: 260 }}
             />
             <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2563EB', background: '#EFF6FF', padding: '4px 12px', borderRadius: 9999 }}>
-              {batches.filter((b) => !batchSearch.trim() || (b.fileName || '').toLowerCase().includes(batchSearch.toLowerCase())).length} of {batches.length} Batch(es)
+              {filteredBatches.length} of {batches.length} Batch(es)
             </span>
           </div>
         </div>
+
+        {/* Quick Exam Filter Pills */}
+        {uniqueExams.length > 1 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16, paddingTop: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginRight: 4 }}>Filter Exam:</span>
+            <button
+              type="button"
+              className={`btn ${examFilter === 'ALL' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '4px 12px', fontSize: 12, borderRadius: 16, fontWeight: 700 }}
+              onClick={() => setExamFilter('ALL')}
+            >
+              All Exams ({batches.length})
+            </button>
+            {uniqueExams.map(([examName, count]) => {
+              const active = examFilter === examName;
+              const style = getExamBadgeStyle(examName);
+              return (
+                <button
+                  key={examName}
+                  type="button"
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: 12,
+                    borderRadius: 16,
+                    fontWeight: 700,
+                    background: active ? style.color : style.background,
+                    color: active ? '#fff' : style.color,
+                    border: active ? `1px solid ${style.color}` : style.border,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => setExamFilter(active ? 'ALL' : examName)}
+                >
+                  <span>{style.icon}</span>
+                  <span>{examName}</span>
+                  <span style={{
+                    fontSize: 10.5,
+                    padding: '1px 5px',
+                    borderRadius: 9999,
+                    background: active ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)'
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {loadingBatches ? (
           <div className="skeleton" style={{ height: 180, borderRadius: 14 }} />
@@ -396,72 +548,96 @@ export default function Upload() {
           </div>
         ) : (
           <div className="table-wrap">
-            {(() => {
-              const filtered = batches.filter((b) => !batchSearch.trim() || (b.fileName || '').toLowerCase().includes(batchSearch.toLowerCase()));
-              if (filtered.length === 0) {
-                return (
-                  <div style={{ padding: '36px 0', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
-                    No upload batches match your filter &ldquo;{batchSearch}&rdquo;.
-                  </div>
-                );
-              }
-              return (
-                <table>
-                  <thead>
-                    <tr>
-                      <th style={{ width: 40, textAlign: 'center' }}>
+            {filteredBatches.length === 0 ? (
+              <div style={{ padding: '36px 0', textAlign: 'center', color: '#64748B', fontSize: 14 }}>
+                No upload batches match your filter &ldquo;{batchSearch || examFilter}&rdquo;.
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 40, textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={filteredBatches.length > 0 && selectedBatchIds.length === filteredBatches.length}
+                        onChange={() => toggleSelectAllBatches(filteredBatches)}
+                        title="Select all batches"
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
+                    <th>Spreadsheet Name</th>
+                    <th style={{ minWidth: 160 }}>Exam</th>
+                    <th>Questions Added</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBatches.map((b) => (
+                    <tr key={b.id} style={{ background: selectedBatchIds.includes(b.id) ? '#F8FAFC' : 'transparent' }}>
+                      <td style={{ textAlign: 'center' }}>
                         <input
                           type="checkbox"
-                          checked={filtered.length > 0 && selectedBatchIds.length === filtered.length}
-                          onChange={() => toggleSelectAllBatches(filtered)}
-                          title="Select all batches"
+                          checked={selectedBatchIds.includes(b.id)}
+                          onChange={() => toggleSelectBatch(b.id)}
                           style={{ cursor: 'pointer' }}
                         />
-                      </th>
-                      <th>Spreadsheet Name</th>
-                      <th>Questions Added</th>
-                      <th>Status</th>
-                      <th>Timestamp</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((b) => (
-                      <tr key={b.id} style={{ background: selectedBatchIds.includes(b.id) ? '#F8FAFC' : 'transparent' }}>
-                        <td style={{ textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedBatchIds.includes(b.id)}
-                            onChange={() => toggleSelectBatch(b.id)}
-                            style={{ cursor: 'pointer' }}
-                          />
-                        </td>
-                        <td style={{ fontWeight: 700, color: '#0F172A' }}>
-                          <span style={{ marginRight: 8 }}>📄</span>
-                          {b.fileName}
-                        </td>
+                      </td>
+                      <td style={{ fontWeight: 700, color: '#0F172A' }}>
+                        <span style={{ marginRight: 8 }}>📄</span>
+                        {b.fileName}
+                      </td>
 
-                        <td>
-                          <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
-                          {b.errorCount > 0 && (
-                            <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
-                              ({b.errorCount} skipped)
+                      <td>
+                        {(() => {
+                          const exam = getBatchExam(b);
+                          const style = getExamBadgeStyle(exam);
+                          return (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: style.background,
+                                color: style.color,
+                                border: style.border,
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              }}
+                            >
+                              <span>{style.icon}</span>
+                              <span>{exam}</span>
                             </span>
-                          )}
-                        </td>
+                          );
+                        })()}
+                      </td>
 
-                        <td>
-                          <span className="badge badge-success">● Indexed</span>
-                        </td>
+                      <td>
+                        <span style={{ fontWeight: 800, color: '#166534' }}>{b.successCount} Qs</span>
+                        {b.errorCount > 0 && (
+                          <span style={{ color: '#DC2626', fontSize: 12, marginLeft: 6, fontWeight: 600 }}>
+                            ({b.errorCount} skipped)
+                          </span>
+                        )}
+                      </td>
 
-                        <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
-                          {new Date(b.createdAt).toLocaleString('en-IN', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
+                      <td>
+                        <span className="badge badge-success">● Indexed</span>
+                      </td>
+
+                      <td className="mono" style={{ fontSize: 12, color: '#64748B' }}>
+                        {new Date(b.createdAt).toLocaleString('en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
 
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button
@@ -495,11 +671,10 @@ export default function Upload() {
                     ))}
                   </tbody>
                 </table>
-              );
-            })()}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
 
       {/* Interactive In-App PDF Preview Modal */}
       {previewModal && (
