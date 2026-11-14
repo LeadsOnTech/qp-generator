@@ -15,6 +15,7 @@ import { useState, useMemo } from 'react';
 export default function ChapterPickerModal({ open, onClose, subjectName, chapters, selection, onChange }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState({});
+  const [onlyWithDiagrams, setOnlyWithDiagrams] = useState(false);
 
   const selectionMap = useMemo(() => {
     const map = {};
@@ -24,9 +25,11 @@ export default function ChapterPickerModal({ open, onClose, subjectName, chapter
 
   if (!open) return null;
 
-  const filteredChapters = chapters.filter((c) =>
-    !search.trim() || c.name.toLowerCase().includes(search.trim().toLowerCase())
-  );
+  const filteredChapters = chapters.filter((c) => {
+    const matchesSearch = !search.trim() || c.name.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesDiagram = !onlyWithDiagrams || (c.diagramCount && c.diagramCount > 0);
+    return matchesSearch && matchesDiagram;
+  });
 
   function isWholeChapterSelected(chapterName) {
     return chapterName in selectionMap && selectionMap[chapterName] === null;
@@ -95,19 +98,43 @@ export default function ChapterPickerModal({ open, onClose, subjectName, chapter
             Tick a whole chapter, or expand it to pick specific topics only. Leave everything unticked
             to draw from the entire {subjectName} syllabus.
           </p>
-          <input
-            type="text"
-            placeholder="Search chapters…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ marginTop: 14, width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14 }}
-          />
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="Search chapters…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ flex: '1 1 220px', padding: '9px 14px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+            />
+            <button
+              type="button"
+              className={`btn btn-sm ${onlyWithDiagrams ? 'btn-primary' : 'btn-ghost'}`}
+              style={{
+                fontSize: 12.5,
+                padding: '7px 12px',
+                borderRadius: 8,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                border: onlyWithDiagrams ? 'none' : '1px solid var(--line)',
+                background: onlyWithDiagrams ? '#059669' : '#fff',
+                color: onlyWithDiagrams ? '#fff' : '#047857'
+              }}
+              onClick={() => setOnlyWithDiagrams(!onlyWithDiagrams)}
+              title="Filter and show only chapters with diagram-based questions"
+            >
+              🖼️ With Diagrams Only {chapters.filter((c) => (c.diagramCount || 0) > 0).length > 0 && `(${chapters.filter((c) => (c.diagramCount || 0) > 0).length})`}
+            </button>
+          </div>
         </div>
 
         {/* Chapter list */}
         <div style={{ overflowY: 'auto', flex: 1, padding: '10px 14px' }}>
           {filteredChapters.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-soft)' }}>No chapters match "{search}"</div>
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-soft)' }}>
+              {onlyWithDiagrams ? 'No chapters found with diagram questions under this search.' : `No chapters match "${search}"`}
+            </div>
           ) : filteredChapters.map((ch) => {
             const isOpen = expanded[ch.id];
             const wholeSelected = isWholeChapterSelected(ch.name);
@@ -125,9 +152,14 @@ export default function ChapterPickerModal({ open, onClose, subjectName, chapter
                   />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14.5, fontWeight: 600 }}>{ch.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-                      {ch.questionCount} question{ch.questionCount !== 1 ? 's' : ''} ({ch.mcqCount || 0} MCQ, {ch.nvqCount || 0} NVQ)
-                      {selectedTopics.length > 0 && !wholeSelected && ` · ${selectedTopics.length} topic${selectedTopics.length !== 1 ? 's' : ''} selected`}
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                      <span>{ch.questionCount} question{ch.questionCount !== 1 ? 's' : ''} ({ch.mcqCount || 0} MCQ, {ch.nvqCount || 0} NVQ)</span>
+                      {ch.diagramCount > 0 && (
+                        <span style={{ fontWeight: 700, color: '#047857', background: '#D1FAE5', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>
+                          🖼️ {ch.diagramCount} with diagrams
+                        </span>
+                      )}
+                      {selectedTopics.length > 0 && !wholeSelected && <span>· {selectedTopics.length} topic{selectedTopics.length !== 1 ? 's' : ''} selected</span>}
                     </div>
                   </div>
                   {hasTopics && (

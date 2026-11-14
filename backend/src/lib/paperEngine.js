@@ -197,13 +197,51 @@ function classifyQuestionModel(q) {
   return 'THEORY_CONCEPTUAL';
 }
 
+function isDiagramQuestion(q) {
+  if (!q) return false;
+  return Boolean(
+    q.imageFilename ||
+    q.optionAImage ||
+    q.optionBImage ||
+    q.optionCImage ||
+    q.optionDImage ||
+    q.questionType === 'DIAGRAM_BASED'
+  );
+}
+
 /**
  * Given a list of candidate questions, selects `k` questions ensuring
  * a balanced mix of Theory, Calculation Problems, Statements, and Diagrams.
  */
-function pickDiverseModelQuestions(candidates, k, modelMix = 'BALANCED') {
+function pickDiverseModelQuestions(candidates, k, modelMix = 'BALANCED', diagramPreference = 'BALANCED') {
   if (!candidates || candidates.length === 0 || k <= 0) return [];
   if (candidates.length <= k) return shuffle(candidates);
+
+  // 1. Explicit Diagram Preferences
+  if (diagramPreference === 'ONLY_DIAGRAMS' || modelMix === 'DIAGRAMS_ONLY') {
+    const diagrams = candidates.filter(isDiagramQuestion);
+    if (diagrams.length >= k) {
+      return shuffle(diagrams).slice(0, k);
+    }
+    const nonDiagrams = candidates.filter((q) => !isDiagramQuestion(q));
+    return shuffle([...diagrams, ...shuffle(nonDiagrams).slice(0, k - diagrams.length)]);
+  }
+
+  if (diagramPreference === 'PREFER_DIAGRAMS') {
+    const diagrams = candidates.filter(isDiagramQuestion);
+    const nonDiagrams = candidates.filter((q) => !isDiagramQuestion(q));
+    const targetDiagrams = Math.min(diagrams.length, Math.max(1, Math.round(k * 0.5)));
+    const pickedDiagrams = shuffle(diagrams).slice(0, targetDiagrams);
+    const needRest = k - pickedDiagrams.length;
+    const pickedRest = pickDiverseModelQuestions(nonDiagrams, needRest, modelMix, 'BALANCED');
+    return shuffle([...pickedDiagrams, ...pickedRest]);
+  }
+
+  if (diagramPreference === 'NO_DIAGRAMS') {
+    const noDiag = candidates.filter((q) => !isDiagramQuestion(q));
+    if (noDiag.length >= k) return shuffle(noDiag).slice(0, k);
+    return shuffle(candidates).slice(0, k);
+  }
 
   const buckets = {
     NUMERICAL_PROBLEM: [],
@@ -348,7 +386,7 @@ function interleaveQuestionModels(questions = []) {
  *   { selected: [question...], shortages: [{subject, difficulty, requested, got}] }
  */
 async function selectQuestions(request) {
-  const { examName, subjects, chapters = [], difficultyMix, avoidRepeats = true, modelMix = 'BALANCED' } = request;
+  const { examName, subjects, chapters = [], difficultyMix, avoidRepeats = true, modelMix = 'BALANCED', diagramPreference = 'BALANCED' } = request;
   const mix = difficultyMix || { easy: 40, medium: 40, hard: 20 };
 
   const excludeIds = avoidRepeats ? await recentlyUsedQuestionIds() : new Set();
@@ -372,13 +410,24 @@ async function selectQuestions(request) {
     // Safety net against duplicate uploads & dummy placeholder rows
     const seenText = new Set();
     const placeholderRegex = /\b(placeholder|todo|tbd|xxx|lorem ipsum)\b/i;
-    const pool = [];
+    let pool = [];
     for (const q of rawPool) {
       if (placeholderRegex.test(q.questionText || '')) continue;
       const key = (q.questionText || '').trim().toLowerCase();
       if (key && seenText.has(key)) continue;
       seenText.add(key);
       pool.push(q);
+    }
+
+    if (diagramPreference === 'ONLY_DIAGRAMS' || modelMix === 'DIAGRAMS_ONLY') {
+      const diagramPool = pool.filter(isDiagramQuestion);
+      if (diagramPool.length > 0) {
+        // Place diagram questions first so they are picked with top priority
+        const nonDiagramPool = pool.filter((q) => !isDiagramQuestion(q));
+        pool = [...diagramPool, ...nonDiagramPool];
+      }
+    } else if (diagramPreference === 'NO_DIAGRAMS') {
+      pool = pool.filter((q) => !isDiagramQuestion(q));
     }
 
     const pickedForSubject = [];
@@ -407,7 +456,7 @@ async function selectQuestions(request) {
           const bucket = typeBucket[level];
           const take = Math.min(typeWanted[level], bucket.length);
           if (take > 0) {
-            const pickedDiverse = pickDiverseModelQuestions(bucket, take, modelMix);
+            const pickedDiverse = pickDiverseModelQuestions(bucket, take, modelMix, diagramPreference);
             for (const q of pickedDiverse) {
               pickedForSubject.push(q);
               usedInSubject.add(q.id);
@@ -426,7 +475,7 @@ async function selectQuestions(request) {
           const need = targetCount - chapterPicked;
           const take = Math.min(need, leftovers.length);
           if (take > 0) {
-            const pickedDiverse = pickDiverseModelQuestions(leftovers, take, modelMix);
+            const pickedDiverse = pickDiverseModelQuestions(leftovers, take, modelMix, diagramPreference);
             for (const q of pickedDiverse) {
               pickedForSubject.push(q);
               usedInSubject.add(q.id);
@@ -453,7 +502,7 @@ async function selectQuestions(request) {
         const remainingPool = pool.filter((q) => !usedInSubject.has(q.id));
         const take = Math.min(subjectRemaining, remainingPool.length);
         if (take > 0) {
-          const pickedDiverse = pickDiverseModelQuestions(remainingPool, take, modelMix);
+          const pickedDiverse = pickDiverseModelQuestions(remainingPool, take, modelMix, diagramPreference);
           for (const q of pickedDiverse) {
             pickedForSubject.push(q);
             usedInSubject.add(q.id);
@@ -498,8 +547,10 @@ async function selectQuestions(request) {
           const take = Math.min(typeWanted[level], bucket.length);
           if (take > 0) {
             const pickedDiverse = qType === 'MCQ'
-              ? pickDiverseModelQuestions(bucket, take, modelMix)
-              : bucket.slice(0, take);
+              ? pickDiverseModelQuestions(bucket, take, modelMix, diagramPreference)
+              : (diagramPreference === 'ONLY_DIAGRAMS' && bucket.some(isDiagramQuestion))
+                ? [...bucket.filter(isDiagramQuestion), ...bucket.filter((q) => !isDiagramQuestion(q))].slice(0, take)
+                : bucket.slice(0, take);
             pickedForSubject.push(...pickedDiverse);
             const pickedSet = new Set(pickedDiverse.map((p) => p.id));
             typeBucket[level] = bucket.filter((b) => !pickedSet.has(b.id));
@@ -522,8 +573,10 @@ async function selectQuestions(request) {
           const take = Math.min(remaining, leftovers.length);
           if (take > 0) {
             const pickedDiverse = qType === 'MCQ'
-              ? pickDiverseModelQuestions(leftovers, take, modelMix)
-              : leftovers.slice(0, take);
+              ? pickDiverseModelQuestions(leftovers, take, modelMix, diagramPreference)
+              : (diagramPreference === 'ONLY_DIAGRAMS' && leftovers.some(isDiagramQuestion))
+                ? [...leftovers.filter(isDiagramQuestion), ...leftovers.filter((q) => !isDiagramQuestion(q))].slice(0, take)
+                : leftovers.slice(0, take);
             pickedForSubject.push(...pickedDiverse);
             remaining -= take;
           }

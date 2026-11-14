@@ -70,7 +70,7 @@ function formatPaperQuestion(pq) {
  * Creates a DRAFT paper and returns its id + any shortages.
  */
 router.post('/generate', async (req, res) => {
-  const { title, instituteName, examName, paperType, subjects, chapters, difficultyMix, avoidRepeats, shuffleQuestions, includeSolutions, modelMix } = req.body;
+  const { title, instituteName, examName, paperType, subjects, chapters, difficultyMix, avoidRepeats, shuffleQuestions, includeSolutions, modelMix, diagramPreference } = req.body;
   // An INSTITUTE user can only ever generate papers under their own
   // account — the instituteId is taken from their login, never from the
   // request body, so there's no way to spoof another institute's branding.
@@ -86,7 +86,7 @@ router.post('/generate', async (req, res) => {
   }
 
   const { selected, shortages } = await selectQuestions({
-    examName, subjects, chapters, difficultyMix, avoidRepeats: avoidRepeats !== false, modelMix: modelMix || 'BALANCED',
+    examName, subjects, chapters, difficultyMix, avoidRepeats: avoidRepeats !== false, modelMix: modelMix || 'BALANCED', diagramPreference: diagramPreference || 'BALANCED',
   });
 
   if (selected.length === 0) {

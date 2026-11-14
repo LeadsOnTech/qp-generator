@@ -51,6 +51,11 @@ router.get('/tree', async (req, res) => {
         id: true,
         chapterId: true,
         questionType: true,
+        imageFilename: true,
+        optionAImage: true,
+        optionBImage: true,
+        optionCImage: true,
+        optionDImage: true,
         chapter: { select: { name: true, subject: { select: { name: true } } } },
         examMappings: { select: { examId: true } },
       },
@@ -62,6 +67,11 @@ router.get('/tree', async (req, res) => {
         id: true,
         chapterId: true,
         questionType: true,
+        imageFilename: true,
+        optionAImage: true,
+        optionBImage: true,
+        optionCImage: true,
+        optionDImage: true,
         chapter: { select: { name: true, subject: { select: { name: true } } } },
       },
     });
@@ -70,6 +80,7 @@ router.get('/tree', async (req, res) => {
   function getCountsForChapter(examId, subjectName, chapterName, chapterId) {
     let mcq = 0;
     let nvq = 0;
+    let diagrams = 0;
     const targetC = chapterName?.toLowerCase().trim();
     const targetS = subjectName?.toLowerCase().trim();
 
@@ -87,9 +98,12 @@ router.get('/tree', async (req, res) => {
         } else {
           mcq++;
         }
+        if (q.imageFilename || q.optionAImage || q.optionBImage || q.optionCImage || q.optionDImage || qType === 'DIAGRAM_BASED') {
+          diagrams++;
+        }
       }
     }
-    return { mcq, nvq, total: mcq + nvq };
+    return { mcq, nvq, diagrams, total: mcq + nvq };
   }
 
   res.json(exams.map((exam) => ({
@@ -109,6 +123,7 @@ router.get('/tree', async (req, res) => {
           questionCount: counts.total,
           mcqCount: counts.mcq,
           nvqCount: counts.nvq,
+          diagramCount: counts.diagrams,
           topics: c.topics.map((t) => ({ id: t.id, name: t.name })),
         };
       }),

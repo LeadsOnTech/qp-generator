@@ -30,6 +30,7 @@ export default function GeneratePaper() {
   const [optionFormat, setOptionFormat] = useState('AUTO');
   const [answerFormat, setAnswerFormat] = useState('STANDARD');
   const [modelMix, setModelMix] = useState('BALANCED');
+  const [diagramPreference, setDiagramPreference] = useState('BALANCED');
 
   // 5-Year Blueprint Presets state
   const [blueprints, setBlueprints] = useState([]);
@@ -229,6 +230,7 @@ export default function GeneratePaper() {
         avoidRepeats,
         includeSolutions,
         modelMix,
+        diagramPreference,
       });
       navigate(`/papers/${res.paperId}`);
     } catch (err) {
@@ -733,6 +735,30 @@ export default function GeneratePaper() {
               {modelMix === 'THEORY_ONLY' && 'Prioritizes theoretical definitions, qualitative reasoning, and factual questions from the question bank.'}
               {modelMix === 'PROBLEMS_ONLY' && 'Prioritizes mathematical calculations, formulas, numerical problem solving, and quantitative questions.'}
               {modelMix === 'ANY' && 'Picks questions at random based strictly on difficulty without balancing question models.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Diagram & Image Questions Filter */}
+        <div style={{ marginTop: 14 }}>
+          <div className="field">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ margin: 0, fontWeight: 700 }}>🖼️ Diagram &amp; Image Questions Filter</label>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', background: '#D1FAE5', padding: '2px 8px', borderRadius: 6 }}>
+                Image Controls
+              </span>
+            </div>
+            <select value={diagramPreference} onChange={(e) => setDiagramPreference(e.target.value)}>
+              <option value="BALANCED">🎯 Balanced Mix (Auto-mix diagrams with normal text questions) — Standard</option>
+              <option value="ONLY_DIAGRAMS">🖼️ Only Image / Diagram Questions (100% Visual / Diagram-Based Paper)</option>
+              <option value="PREFER_DIAGRAMS">⚡ Heavy Diagram Focus (Prioritize all available diagrams in selected chapters)</option>
+              <option value="NO_DIAGRAMS">📄 Text-Only (Exclude all diagrams and figures)</option>
+            </select>
+            <p style={{ fontSize: 11.5, color: '#64748B', marginTop: 5, marginBottom: 0 }}>
+              {diagramPreference === 'BALANCED' && 'Blends normal theoretical and calculation questions with diagram/figure questions from your Question Bank.'}
+              {diagramPreference === 'ONLY_DIAGRAMS' && 'Picks ONLY questions that have attached diagrams/figures (ideal for visual tests, circuit analysis, and ray optics worksheets).'}
+              {diagramPreference === 'PREFER_DIAGRAMS' && 'Prioritizes diagram-based questions from every selected chapter, filling remaining slots with normal questions.'}
+              {diagramPreference === 'NO_DIAGRAMS' && 'Excludes all questions containing diagrams or figures (ideal for pure text printing).'}
             </p>
           </div>
         </div>
