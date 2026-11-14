@@ -203,6 +203,37 @@ function validateRow(row, rowIndex, hasOptionsInFile = true) {
     correctOption = correctOption.toUpperCase();
   }
 
+  // Auto-heal NVQs where numerical answer was put into OptionA with dummy '-' in other options and marked 'A'
+  const hasDummyHyphenOptions = (optionB === '-' || optionB === '') && (optionC === '-' || optionC === '') && (optionD === '-' || optionD === '');
+  const looksLikeNVQ = isNVQ || hasDummyHyphenOptions || /_{2,}\.?\s*$/.test(questionText);
+
+  if (looksLikeNVQ) {
+    if (['A', 'B', 'C', 'D'].includes(correctOption.toUpperCase())) {
+      const optVal = { A: optionA, B: optionB, C: optionC, D: optionD }[correctOption.toUpperCase()] || optionA;
+      const cleanVal = String(optVal || '').trim();
+      const isNum = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:\s*(?:to|-)\s*-?\d+(?:\.\d+)?)?$/i.test(cleanVal) || !isNaN(Number(cleanVal)) || /^\d+\/\d+$/.test(cleanVal);
+      if (cleanVal && isNum && cleanVal !== '-') {
+        correctOption = cleanVal;
+        questionType = 'NVQ';
+      }
+    } else if (hasDummyHyphenOptions && !isNaN(Number(optionA)) && optionA.trim() && !correctOption) {
+      correctOption = optionA.trim();
+      questionType = 'NVQ';
+    }
+  }
+
+  let finalOptionA = optionA;
+  let finalOptionB = optionB;
+  let finalOptionC = optionC;
+  let finalOptionD = optionD;
+
+  if (questionType === 'NVQ' || questionType === 'NUMERICAL' || questionType === 'DECIMAL' || questionType === 'NVT') {
+    finalOptionA = '';
+    finalOptionB = '';
+    finalOptionC = '';
+    finalOptionD = '';
+  }
+
   let difficulty = row.difficulty ? String(row.difficulty).trim().toUpperCase() : 'UNTAGGED';
   const imageFilename = (row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage)
     ? String(row.imagefilename || row.questionimage || row.image || row.imagefile || row.diagramimage).trim()
@@ -281,7 +312,12 @@ function validateRow(row, rowIndex, hasOptionsInFile = true) {
     rowIndex,
     errors,
     data: {
-      questionText, optionA, optionB, optionC, optionD, correctOption,
+      questionText,
+      optionA: finalOptionA,
+      optionB: finalOptionB,
+      optionC: finalOptionC,
+      optionD: finalOptionD,
+      correctOption,
       examName, subjectName, chapterName, topicName,
       questionType, difficulty, imageFilename,
       optionAImage, optionBImage, optionCImage, optionDImage,
