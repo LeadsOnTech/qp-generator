@@ -29,6 +29,7 @@ export default function GeneratePaper() {
   const [includeSolutions, setIncludeSolutions] = useState(false);
   const [optionFormat, setOptionFormat] = useState('AUTO');
   const [answerFormat, setAnswerFormat] = useState('STANDARD');
+  const [modelMix, setModelMix] = useState('BALANCED');
 
   // 5-Year Blueprint Presets state
   const [blueprints, setBlueprints] = useState([]);
@@ -227,6 +228,7 @@ export default function GeneratePaper() {
         difficultyMix: { easy: Number(mix.easy), medium: Number(mix.medium), hard: Number(mix.hard) },
         avoidRepeats,
         includeSolutions,
+        modelMix,
       });
       navigate(`/papers/${res.paperId}`);
     } catch (err) {
@@ -708,6 +710,30 @@ export default function GeneratePaper() {
               <option value="STANDARD">Standard Layout (Best for OMR Sheet Exams)</option>
               <option value="STUDENT_ANSWER">Student Answer Format [   ] (Brackets next to each question)</option>
             </select>
+          </div>
+        </div>
+
+        {/* Model Variety / Mix Selector */}
+        <div style={{ marginTop: 14 }}>
+          <div className="field">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ margin: 0 }}>MCQ Question Model Variety &amp; Distribution</label>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF', background: '#DBEAFE', padding: '2px 8px', borderRadius: 6 }}>
+                Prevents 100% Theory or 100% Calculation Papers
+              </span>
+            </div>
+            <select value={modelMix} onChange={(e) => setModelMix(e.target.value)}>
+              <option value="BALANCED">🎯 Balanced Mix of All Models (Theory + Numerical Problems + Statements + Diagrams) — Recommended</option>
+              <option value="THEORY_ONLY">📖 Theory &amp; Conceptual Focus (Definitions, Concepts, Reasoning)</option>
+              <option value="PROBLEMS_ONLY">🧮 Numerical &amp; Calculations Focus (Formulas, Math, Quantitative)</option>
+              <option value="ANY">🎲 Any / Random Unrestricted</option>
+            </select>
+            <p style={{ fontSize: 11.5, color: '#64748B', marginTop: 5, marginBottom: 0 }}>
+              {modelMix === 'BALANCED' && 'Guarantees that generated papers contain a realistic, pedagogically balanced mix across theoretical questions, numerical calculation problems, and special formats (statements/diagrams).'}
+              {modelMix === 'THEORY_ONLY' && 'Prioritizes theoretical definitions, qualitative reasoning, and factual questions from the question bank.'}
+              {modelMix === 'PROBLEMS_ONLY' && 'Prioritizes mathematical calculations, formulas, numerical problem solving, and quantitative questions.'}
+              {modelMix === 'ANY' && 'Picks questions at random based strictly on difficulty without balancing question models.'}
+            </p>
           </div>
         </div>
 

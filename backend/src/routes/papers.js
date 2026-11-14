@@ -1,6 +1,6 @@
 const express = require('express');
 const prisma = require('../db');
-const { selectQuestions, findReplacement, shuffle } = require('../lib/paperEngine');
+const { selectQuestions, findReplacement, shuffle, interleaveQuestionModels } = require('../lib/paperEngine');
 const { buildPaperPdf, buildMasterKeyPdf, buildPaperBundlePdf, estimatePaperPages } = require('../lib/pdfBuilder');
 const { buildOmrSheetPdf } = require('../lib/omrGenerator');
 const { buildKeyChitPdf } = require('../lib/keyChitGenerator');
@@ -70,7 +70,7 @@ function formatPaperQuestion(pq) {
  * Creates a DRAFT paper and returns its id + any shortages.
  */
 router.post('/generate', async (req, res) => {
-  const { title, instituteName, examName, paperType, subjects, chapters, difficultyMix, avoidRepeats, shuffleQuestions, includeSolutions } = req.body;
+  const { title, instituteName, examName, paperType, subjects, chapters, difficultyMix, avoidRepeats, shuffleQuestions, includeSolutions, modelMix } = req.body;
   // An INSTITUTE user can only ever generate papers under their own
   // account — the instituteId is taken from their login, never from the
   // request body, so there's no way to spoof another institute's branding.
@@ -86,7 +86,7 @@ router.post('/generate', async (req, res) => {
   }
 
   const { selected, shortages } = await selectQuestions({
-    examName, subjects, chapters, difficultyMix, avoidRepeats: avoidRepeats !== false,
+    examName, subjects, chapters, difficultyMix, avoidRepeats: avoidRepeats !== false, modelMix: modelMix || 'BALANCED',
   });
 
   if (selected.length === 0) {
@@ -110,7 +110,7 @@ router.post('/generate', async (req, res) => {
     for (const [, list] of bySubject) {
       const mcqs = list.filter(q => q.questionType !== 'NVQ' && q.questionType !== 'NUMERICAL' && q.questionType !== 'DECIMAL');
       const nvqs = list.filter(q => q.questionType === 'NVQ' || q.questionType === 'NUMERICAL' || q.questionType === 'DECIMAL');
-      ordered.push(...shuffle(mcqs));
+      ordered.push(...interleaveQuestionModels(mcqs));
       ordered.push(...shuffle(nvqs));
     }
   }
