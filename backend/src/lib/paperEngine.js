@@ -369,10 +369,12 @@ async function selectQuestions(request) {
     }))
       .filter((q) => !excludeIds.has(q.id));
 
-    // Safety net against duplicate uploads
+    // Safety net against duplicate uploads & dummy placeholder rows
     const seenText = new Set();
+    const placeholderRegex = /\b(placeholder|todo|tbd|xxx|lorem ipsum)\b/i;
     const pool = [];
     for (const q of rawPool) {
+      if (placeholderRegex.test(q.questionText || '')) continue;
       const key = (q.questionText || '').trim().toLowerCase();
       if (key && seenText.has(key)) continue;
       seenText.add(key);

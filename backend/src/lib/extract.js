@@ -269,6 +269,11 @@ function validateRow(row, rowIndex, hasOptionsInFile = true) {
 
   if (!questionText) errors.push('Question text is empty');
   
+  const placeholderPattern = /\b(placeholder|todo|tbd|xxx|lorem ipsum)\b/i;
+  if (placeholderPattern.test(questionText) || (!isNVQ && [optionA, optionB, optionC, optionD].some((o) => placeholderPattern.test(o)))) {
+    errors.push(`Row contains dummy placeholder text ("${questionText.slice(0, 50)}") — real questions required.`);
+  }
+
   if (!VALID_QUESTION_TYPES.includes(questionType)) {
     errors.push(`QuestionType "${questionType}" not recognized — defaulting to ${hasRowOptions ? 'MCQ' : 'NVQ'}`);
     questionType = hasRowOptions ? 'MCQ' : 'NVQ';
