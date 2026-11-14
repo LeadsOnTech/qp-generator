@@ -268,8 +268,8 @@ function autoWrapMathSegment(text) {
 function autoWrapMath(text) {
   if (typeof text !== 'string' || text.includes('$')) return text;
 
-  // Split by sentence endings (periods not followed by digit, semicolons, and newlines)
-  const segments = text.split(/((?:\.(?!\d))|[;\n\r]+)/);
+  // Split by sentence endings (periods not part of ellipsis/range '..' and not followed by digit, semicolons, and newlines)
+  const segments = text.split(/((?<!\.)\.(?!\.|\d)|[;\n\r]+)/);
   const processedSegments = segments.map((seg, idx) => {
     if (idx % 2 === 0) {
       return autoWrapMathSegment(seg);

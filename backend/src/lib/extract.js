@@ -147,8 +147,18 @@ function normalizeExamName(raw) {
 
 function autoHealMathTypo(text) {
   if (!text || typeof text !== 'string') return text;
+  let healed = text;
   const greekCmds = 'pi|alpha|beta|gamma|theta|lambda|mu|omega|sigma|phi|rho|tau|delta|epsilon|eta|nu|xi|zeta';
-  return text.replace(new RegExp('\\\\(' + greekCmds + ')([a-zA-Z])', 'g'), (m, g, v) => '\\' + g + ' ' + v);
+  healed = healed.replace(new RegExp('\\\\(' + greekCmds + ')([a-zA-Z])', 'g'), (m, g, v) => '\\' + g + ' ' + v);
+
+  // Auto-heal pseudo-summation \Sigma(r = 1..10) or \sum(r=1..10) to proper LaTeX $\sum_{r=1}^{10}$
+  healed = healed.replace(/\\?(?:Sigma|sum)\s*\(\s*([a-zA-Z])\s*=\s*(\d+)\s*\.{1,3}\s*(\d+)\s*\)/gi, '$\\sum_{$1=$2}^{$3}$');
+
+  // Auto-heal inverse trig written lazily like "tan^-1", "tan -1", "tan 1", or "tan¹"
+  healed = healed.replace(/\b(sin|cos|tan|sec|cot|csc)\s*\^?\s*-1\b/gi, '\\$1^{-1}');
+  healed = healed.replace(/\b(sin|cos|tan|sec|cot|csc)\s*¹\b/gi, '\\$1^{-1}');
+
+  return healed;
 }
 
 function stripOptionPrefix(text) {
